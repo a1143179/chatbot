@@ -5,8 +5,8 @@ app.http('health', {
     authLevel: 'anonymous',
     handler: async (request, context) => {
         // Add debugging
-        console.log('Health endpoint called');
-        context.log('Health endpoint called');
+        console.log('Health endpoint called - Updated deployment test');
+        context.log('Health endpoint called - Updated deployment test');
         
         // Get current timestamp
         const timestamp = new Date().toISOString();
@@ -19,8 +19,9 @@ app.http('health', {
             status: 'healthy',
             timestamp: timestamp,
             service: 'chatbot-api',
-            version: '1.0.0',
+            version: '1.0.1',
             environment: process.env.NODE_ENV || 'production',
+            deployment: 'fixed-package-structure',
             checks: {
                 googleAI: {
                     configured: apiKeyConfigured,

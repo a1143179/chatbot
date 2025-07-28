@@ -22,10 +22,32 @@ jobs:
   test:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    permissions:
+      contents: read
+      pull-requests: read
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for existing PR
+        run: |
+          # Get the current branch name
+          BRANCH_NAME="working"
+          
+          # Check if a PR already exists for this branch
+          PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
+          
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          if [ "$PR_EXISTS" -eq 0 ]; then
+            echo "No PR exists for branch $BRANCH_NAME"
+          else
+            echo "PR already exists for branch $BRANCH_NAME"
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,10 +70,32 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+    permissions:
+      contents: write
+      pull-requests: read
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for existing PR
+        run: |
+          # Get the current branch name
+          BRANCH_NAME="working"
+          
+          # Check if a PR already exists for this branch
+          PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
+          
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          if [ "$PR_EXISTS" -eq 0 ]; then
+            echo "No PR exists for branch $BRANCH_NAME"
+          else
+            echo "PR already exists for branch $BRANCH_NAME"
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

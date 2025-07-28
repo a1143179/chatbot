@@ -40,7 +40,8 @@ describe('Health Function', () => {
     expect(response.jsonBody).toHaveProperty('status', 'healthy');
     expect(response.jsonBody).toHaveProperty('timestamp');
     expect(response.jsonBody).toHaveProperty('service', 'chatbot-api');
-    expect(response.jsonBody).toHaveProperty('version', '1.0.0');
+    expect(response.jsonBody).toHaveProperty('version', '1.0.1');
+    expect(response.jsonBody).toHaveProperty('deployment', 'fixed-package-structure');
     expect(response.jsonBody.checks.googleAI.configured).toBe(true);
     expect(response.jsonBody.checks.googleAI.status).toBe('ready');
   });

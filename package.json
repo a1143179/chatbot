@@ -29,6 +29,10 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
     "pre-commit": "npm run lint && npm run type-check && npm run test",
+    "api:test": "cd api && npm test",
+    "api:lint": "cd api && npm run lint",
+    "api:pre-commit": "npm run api:lint && npm run api:test",
+    "full-pre-commit": "npm run pre-commit && npm run api:pre-commit",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
