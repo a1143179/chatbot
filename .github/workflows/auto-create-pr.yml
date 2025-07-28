@@ -241,9 +241,8 @@ jobs:
               --title "$PR_TITLE" \
               --body "$PR_BODY" \
               --base "$TARGET_BRANCH" \
-              --head "$BRANCH_NAME" \
-              --draft; then
-              echo "Successfully created draft PR from $BRANCH_NAME to $TARGET_BRANCH"
+              --head "$BRANCH_NAME"; then
+              echo "Successfully created PR from $BRANCH_NAME to $TARGET_BRANCH"
               break
             else
               RETRY_COUNT=$((RETRY_COUNT + 1))
