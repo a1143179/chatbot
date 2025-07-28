@@ -261,7 +261,8 @@ function App() {
         vrmRef.current = vrm;
         scene.add(vrm.scene);
         // Position the model
-        vrm.scene.position.set(0, 0, 0);
+        vrm.scene.position.set(0, 1, 0); // Move up to show whole body
+        vrm.scene.rotation.y = Math.PI; // Face the camera
         vrm.scene.scale.setScalar(1);
         // Enable shadows
         vrm.scene.traverse((child: any) => {
