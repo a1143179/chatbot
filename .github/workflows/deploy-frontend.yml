@@ -46,8 +46,9 @@ jobs:
           # Get the current branch name
           BRANCH_NAME="working"
           
-          # Configure GitHub CLI to use token
+          # Configure GitHub CLI to use token and set repository
           echo "$GH_TOKEN" | gh auth login --with-token
+          gh repo set-default ${{ github.repository }}
           
           # Check if a PR already exists for this branch
           PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
@@ -106,8 +107,9 @@ jobs:
           # Get the current branch name
           BRANCH_NAME="working"
           
-          # Configure GitHub CLI to use token
+          # Configure GitHub CLI to use token and set repository
           echo "$GH_TOKEN" | gh auth login --with-token
+          gh repo set-default ${{ github.repository }}
           
           # Check if a PR already exists for this branch
           PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
