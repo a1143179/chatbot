@@ -276,6 +276,7 @@ function App() {
         const animLoader = new GLTFLoader();
         animLoader.load('/models/vrma_07.vrma', (animGltf: any) => {
           if (animGltf.animations && animGltf.animations.length > 0) {
+            console.log('vrma_07.vrma tracks:', animGltf.animations[0].tracks.map((t: any) => t.name));
             const mixer = new THREE.AnimationMixer(vrm.scene);
             mixer.clipAction(animGltf.animations[0]).play();
             mixerRef.current = mixer;
