@@ -53,34 +53,67 @@ This guide explains how to deploy the chatbot application using GitHub Pages for
 
 ## Step 2: GitHub Repository Setup
 
-### 2.1 Configure GitHub Secrets
+### 2.1 Create Azure Service Principal
+
+Before configuring GitHub secrets, you need to create an Azure Service Principal:
+
+1. **Install Azure CLI** (if not already installed):
+```bash
+# Windows
+winget install -e --id Microsoft.AzureCLI
+
+# macOS
+brew install azure-cli
+
+# Linux
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+```
+
+2. **Login to Azure**:
+```bash
+az login
+```
+
+3. **Create Service Principal**:
+```bash
+# Replace 'your-subscription-id' with your actual subscription ID
+az ad sp create-for-rbac --name "chatbot-deployment" --role contributor \
+  --scopes /subscriptions/your-subscription-id \
+  --sdk-auth
+```
+
+4. **Save the output** - This JSON output contains your credentials:
+```json
+{
+  "clientId": "your-client-id",
+  "clientSecret": "your-client-secret", 
+  "subscriptionId": "your-subscription-id",
+  "tenantId": "your-tenant-id",
+  "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+  "resourceManagerEndpointUrl": "https://management.azure.com/",
+  "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+  "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+  "galleryEndpointUrl": "https://gallery.azure.com/",
+  "managementEndpointUrl": "https://management.core.windows.net/"
+}
+```
+
+### 2.2 Configure GitHub Secrets
 
 1. Go to your GitHub repository
-2. Navigate to "Settings" → "Secrets and variables" → "Actions"
-3. Add the following secrets:
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add the following secrets:
 
 ```
-AZURE_CREDENTIALS: Your Azure service principal credentials (JSON)
+AZURE_CREDENTIALS: [Paste the entire JSON output from step 3]
 AZURE_FUNCTION_APP_NAME: your-chatbot-functions
 ```
 
-**Important**: Make sure your Azure Function App is properly created in Azure Portal with storage account before deploying.
-
-### 2.2 Create Azure Service Principal
-
-Run these commands in Azure CLI:
-
-```bash
-# Login to Azure
-az login
-
-# Create service principal
-az ad sp create-for-rbac --name "github-actions" --role contributor \
-    --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group} \
-    --sdk-auth
-
-# Copy the JSON output and add it as AZURE_CREDENTIALS secret
-```
+**Important**: 
+- The `AZURE_CREDENTIALS` should be the complete JSON string from the service principal creation
+- Make sure your Azure Function App is properly created in Azure Portal with storage account before deploying
+- The service principal needs Contributor role on your subscription or resource group
 
 ### 2.3 Update Configuration
 

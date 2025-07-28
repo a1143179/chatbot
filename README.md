@@ -109,3 +109,53 @@ Configure the following environment variables:
 ## License
 
 MIT License
+
+## 🚀 Deployment
+
+### Prerequisites
+
+1. **Azure Account**: You need an Azure subscription
+2. **GitHub Repository**: Your code should be in a GitHub repository
+3. **Azure CLI**: Install Azure CLI for local development
+
+### Quick Setup
+
+1. **Create Azure Service Principal**:
+   ```bash
+   # Windows
+   .\setup-azure-sp.ps1
+   
+   # Linux/macOS
+   chmod +x setup-azure-sp.sh
+   ./setup-azure-sp.sh
+   ```
+
+2. **Configure GitHub Secrets**:
+   - Go to your repository → Settings → Secrets and variables → Actions
+   - Add `AZURE_CREDENTIALS` with the JSON from step 1
+   - Add `AZURE_FUNCTION_APP_NAME` with your function app name
+
+3. **Create Azure Function App**:
+   - Go to Azure Portal
+   - Create a new Function App with Node.js runtime
+   - Set environment variable `GOOGLE_AI_API_KEY`
+
+4. **Deploy**:
+   - Push to `main` branch
+   - GitHub Actions will automatically deploy
+
+For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## 🧪 Testing
+
+### Frontend Testing
+```bash
+npm test
+```
+
+### Backend Testing
+```bash
+cd api
+npm test
+npm run test:coverage
+```
