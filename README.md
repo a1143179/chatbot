@@ -14,7 +14,7 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 ## Tech Stack
 
 - **Frontend**: React + TypeScript + Three.js + VRM
-- **Backend**: Azure Functions (Node.js 20, Consumption Plan)
+- **Backend**: Azure Functions (Node.js 22, Consumption Plan)
 - **AI Service**: Google AI Studio (Gemini Pro)
 - **Speech**: Web Speech API (STT + TTS)
 - **Deployment**: GitHub Pages + Azure Functions + GitHub Actions
@@ -146,7 +146,7 @@ This project uses the **new Azure Functions Node.js programming model**:
 - **File Structure**: Functions in `src/functions/*.js`
 - **Package.json**: `"main": "src/functions/*.js"`
 - **No function.json**: Not required in new model
-- **Runtime**: Node.js 20 LTS
+   - **Runtime**: Node.js 22 LTS
 - **Plan**: Consumption (Serverless)
 
 ### Function Structure
@@ -197,7 +197,7 @@ curl http://localhost:7071/api/health
 1. **Functions not detected in Azure Portal**
    - Ensure you're using Consumption plan (not App Service plan)
    - Verify `"main": "src/functions/*.js"` in package.json
-   - Check Node.js version is 20 LTS
+   - Check Node.js version is 22 LTS
 
 2. **404 errors on endpoints**
    - Verify functions are deployed correctly
@@ -239,7 +239,7 @@ This project uses a **frontend-backend separation** architecture:
 ### Backend Deployment (Azure Functions)
 
 1. **Create Function App in Azure Portal**
-   - Runtime: Node.js 20 LTS
+   - Runtime: Node.js 22 LTS
    - Plan: Consumption (Serverless)
    - Operating System: Windows or Linux
 
