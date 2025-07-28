@@ -2,19 +2,20 @@
   "name": "chatbot-api",
   "version": "1.0.0",
   "description": "Azure Functions for Chatbot API",
-  "main": "index.js",
+  "main": "src/functions/*.js",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@azure/functions": "^4.0.0"
+    "@azure/functions": "^4.0.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^6.3.3",
-    "nock": "^13.3.0"
+    "nock": "^13.3.0",
+    "supertest": "^6.3.3"
   },
   "jest": {
     "testEnvironment": "node",
@@ -29,4 +30,4 @@
       "html"
     ]
   }
-} 
+}
