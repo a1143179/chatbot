@@ -191,7 +191,7 @@ function App() {
       console.error('Error processing with AI:', error);
       const errorMessage: ChatMessage = { 
         role: 'assistant', 
-        content: '抱歉，处理您的请求时出现了错误。' 
+        content: 'Sorry, an error occurred while processing your request.' 
       };
       setChatHistory(prev => [...prev, errorMessage]);
     } finally {
@@ -234,12 +234,12 @@ function App() {
           onClick={isListening ? stopListening : startListening}
           disabled={isProcessing}
         >
-          {isListening ? '停止录音' : '开始录音'}
+          {isListening ? 'Stop Recording' : 'Start Recording'}
         </button>
         
         {isProcessing && (
           <div className="processing-indicator">
-            正在处理...
+            Processing...
           </div>
         )}
       </div>
@@ -248,7 +248,7 @@ function App() {
       <div className="chat-history">
         {chatHistory.map((message, index) => (
           <div key={index} className={`message ${message.role}`}>
-            <strong>{message.role === 'user' ? '您' : '助手'}:</strong> {message.content}
+            <strong>{message.role === 'user' ? 'You' : 'Assistant'}:</strong> {message.content}
           </div>
         ))}
       </div>

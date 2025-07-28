@@ -1,12 +1,12 @@
 module.exports = async function (context, req) {
-  // 获取请求体
+  // Get request body
   const { message, userId } = req.body;
   
-  // 获取环境变量
+  // Get environment variable
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   
   try {
-    // 调用Google AI Studio API
+    // Call Google AI Studio API
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
@@ -16,7 +16,7 @@ module.exports = async function (context, req) {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `用户说：${message}。请用中文回复，保持友好和自然的对话风格。`
+            text: `User says: ${message}. Please respond in Chinese, maintaining a friendly and natural conversation style.`
           }]
         }]
       })
@@ -24,7 +24,7 @@ module.exports = async function (context, req) {
     
     const data = await response.json();
     
-    // 返回响应
+    // Return response
     context.res = {
       status: 200,
       headers: {
@@ -43,7 +43,7 @@ module.exports = async function (context, req) {
     context.res = {
       status: 500,
       body: {
-        error: '处理请求时发生错误',
+        error: 'Error occurred while processing request',
         message: error.message
       }
     };

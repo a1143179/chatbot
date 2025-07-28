@@ -10,7 +10,7 @@ module.exports = async function (context, req) {
       status: 500,
       body: {
         error: 'Google AI API key not configured',
-        message: '请在Azure门户中配置GOOGLE_AI_API_KEY环境变量'
+        message: 'Please configure GOOGLE_AI_API_KEY environment variable in Azure portal'
       }
     };
     return;
@@ -21,7 +21,7 @@ module.exports = async function (context, req) {
       status: 400,
       body: {
         error: 'Missing prompt parameter',
-        message: '请提供prompt参数'
+        message: 'Please provide a prompt parameter'
       }
     };
     return;
@@ -38,7 +38,7 @@ module.exports = async function (context, req) {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `用户说：${prompt}。请用中文回复，保持友好、自然和有趣的对话风格。回复要简洁明了，适合语音播放。`
+            text: `User says: ${prompt}. Please respond in Chinese, maintaining a friendly, natural, and interesting conversation style. Keep the response concise and suitable for voice playback.`
           }]
         }],
         generationConfig: {
@@ -91,7 +91,7 @@ module.exports = async function (context, req) {
         'Access-Control-Allow-Headers': 'Content-Type'
       },
       body: {
-        error: '处理请求时发生错误',
+        error: 'Error occurred while processing request',
         message: error.message,
         timestamp: new Date().toISOString()
       }
