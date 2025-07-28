@@ -1,0 +1,259 @@
+import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
+import './App.css';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+function App() {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const vrmRef = useRef<VRM | null>(null);
+  
+  // Speech recognition and synthesis
+  const [isListening, setIsListening] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const synthesisRef = useRef<SpeechSynthesis | null>(null);
+
+  useEffect(() => {
+    if (!mountRef.current) return;
+
+    // Initialize Three.js scene
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+    scene.background = new THREE.Color(0xf0f0f0);
+
+    // Setup camera
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    cameraRef.current = camera;
+    camera.position.set(0, 1.5, 3);
+
+    // Setup renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    rendererRef.current = renderer;
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    mountRef.current.appendChild(renderer.domElement);
+
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+
+    // Load VRM model
+    const loader = new GLTFLoader();
+    const plugin = new VRMLoaderPlugin();
+    loader.register((parser) => plugin.createPlugin(parser));
+
+    loader.load(
+      '/models/cute-girl.vrm',
+      (gltf) => {
+        const vrm = plugin.createVRMInstance(gltf);
+        vrmRef.current = vrm;
+        scene.add(vrm.scene);
+
+        // Position the model
+        vrm.scene.position.set(0, 0, 0);
+        vrm.scene.scale.setScalar(1);
+
+        // Enable shadows
+        vrm.scene.traverse((child: any) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        // Animation loop
+        const animate = () => {
+          requestAnimationFrame(animate);
+          
+          // Update VRM
+          const delta = 0.016; // 60fps
+          vrm.update(delta);
+          
+          renderer.render(scene, camera);
+        };
+        animate();
+      },
+      (progress) => {
+        console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
+      },
+      (error) => {
+        console.error('Error loading VRM:', error);
+      }
+    );
+
+    // Handle window resize
+    const handleResize = () => {
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (mountRef.current && renderer.domElement) {
+        mountRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, []);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'zh-CN';
+
+      recognitionRef.current.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('Recognized:', transcript);
+        
+        // Add user message to chat
+        const userMessage: ChatMessage = { role: 'user', content: transcript };
+        setChatHistory(prev => [...prev, userMessage]);
+        
+        // Process with AI
+        await processWithAI(transcript);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    // Initialize speech synthesis
+    synthesisRef.current = window.speechSynthesis;
+  }, []);
+
+  const processWithAI = async (userInput: string) => {
+    setIsProcessing(true);
+    
+    try {
+      const response = await fetch('/api/processor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: userInput
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.response;
+      
+      // Add AI response to chat
+      const assistantMessage: ChatMessage = { role: 'assistant', content: aiResponse };
+      setChatHistory(prev => [...prev, assistantMessage]);
+      
+      // Speak the response
+      speakText(aiResponse);
+      
+    } catch (error) {
+      console.error('Error processing with AI:', error);
+      const errorMessage: ChatMessage = { 
+        role: 'assistant', 
+        content: '抱歉，处理您的请求时出现了错误。' 
+      };
+      setChatHistory(prev => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const speakText = (text: string) => {
+    if (synthesisRef.current) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-CN';
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      synthesisRef.current.speak(utterance);
+    }
+  };
+
+  const startListening = () => {
+    if (recognitionRef.current && !isListening && !isProcessing) {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  return (
+    <div className="App">
+      <div ref={mountRef} style={{ width: '100vw', height: '100vh' }} />
+      
+      {/* Voice control overlay */}
+      <div className="voice-controls">
+        <button 
+          className={`voice-button ${isListening ? 'listening' : ''}`}
+          onClick={isListening ? stopListening : startListening}
+          disabled={isProcessing}
+        >
+          {isListening ? '停止录音' : '开始录音'}
+        </button>
+        
+        {isProcessing && (
+          <div className="processing-indicator">
+            正在处理...
+          </div>
+        )}
+      </div>
+
+      {/* Chat history overlay */}
+      <div className="chat-history">
+        {chatHistory.map((message, index) => (
+          <div key={index} className={`message ${message.role}`}>
+            <strong>{message.role === 'user' ? '您' : '助手'}:</strong> {message.content}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default App;
