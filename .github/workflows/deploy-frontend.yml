@@ -1,8 +1,8 @@
 name: Deploy Frontend to GitHub Pages
 
 on:
-  pull_request:
-    branches: [ main, working ]
+  push:
+    branches: [ working ]
     paths:
       - 'src/**'
       - 'public/**'
@@ -22,7 +22,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'push'
     
     steps:
       - name: Checkout

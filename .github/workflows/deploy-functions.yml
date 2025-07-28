@@ -1,8 +1,8 @@
 name: Deploy Azure Functions
 
 on:
-  pull_request:
-    branches: [ main, working ]
+  push:
+    branches: [ working ]
     paths:
       - 'api/**'
   pull_request_target:
@@ -14,7 +14,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'push'
     
     steps:
     - uses: actions/checkout@v4
@@ -54,6 +54,11 @@ jobs:
       run: |
         cd api
         npm ci
+    
+    - name: Run unit tests
+      run: |
+        cd api
+        npm test
     
     - name: Prepare deployment package
       run: |
