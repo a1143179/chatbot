@@ -272,14 +272,20 @@ function App() {
             child.receiveShadow = true;
           }
         });
-        // Play 'Standard' animation if present
+        // Debug: print all animation clips and their tracks
         if (gltf.animations && gltf.animations.length > 0) {
+          console.log('All animation clips:', gltf.animations.map((clip: any) => ({ name: clip.name, tracks: clip.tracks.length })));
           const standardClip = gltf.animations.find((clip: any) => clip.name === 'Standard');
           if (standardClip) {
+            console.log('Standard animation tracks:', standardClip.tracks.map((t: any) => t.name));
             const mixer = new THREE.AnimationMixer(vrm.scene);
             mixer.clipAction(standardClip).play();
             mixerRef.current = mixer;
+          } else {
+            console.log('No Standard animation found in gltf.animations');
           }
+        } else {
+          console.log('No animations found in gltf.animations');
         }
       },
       (progress: any) => {
