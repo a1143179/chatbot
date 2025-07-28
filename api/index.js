@@ -4,5 +4,6 @@
 // Import all functions
 require('./src/functions/health.js');
 require('./src/functions/process.js');
+require('./src/functions/test.js');
 
 console.log('Azure Functions app initialized'); 
