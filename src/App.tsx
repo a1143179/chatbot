@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-// import * as THREE from 'three';
-// import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-// import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRM, VRMUtils } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 
@@ -60,10 +60,11 @@ interface ChatMessage {
 
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
-  // const sceneRef = useRef<THREE.Scene | null>(null);
-  // const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  // const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  // const vrmRef = useRef<VRM | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const vrmRef = useRef<VRM | null>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
@@ -73,14 +74,41 @@ function App() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
-  const speakText = useCallback((text: string) => {
-    if (synthesisRef.current) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'zh-CN';
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      synthesisRef.current.speak(utterance);
+  let lipSyncInterval: NodeJS.Timeout | null = null;
+
+  function setVrmMouthShape(shape: string, value: number) {
+    const vrm = vrmRef.current;
+    if (!vrm) return;
+    // VRM 1.x
+    if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
+      (vrm as any).expressionManager.setValue(shape, value);
+    } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
+      (vrm as any).blendShapeProxy.setValue(shape, value);
     }
+  }
+
+  const speakText = useCallback((text: string) => {
+    if (!synthesisRef.current) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+
+    // 启动嘴型同步
+    utterance.onstart = () => {
+      const mouthShapes = ['A', 'I', 'U', 'E', 'O'];
+      lipSyncInterval = setInterval(() => {
+        const shape = mouthShapes[Math.floor(Math.random() * mouthShapes.length)];
+        mouthShapes.forEach(s => setVrmMouthShape(s, s === shape ? 1 : 0));
+      }, 100);
+    };
+    // 停止嘴型同步
+    utterance.onend = () => {
+      if (lipSyncInterval) clearInterval(lipSyncInterval);
+      ['A', 'I', 'U', 'E', 'O'].forEach(s => setVrmMouthShape(s, 0));
+    };
+
+    synthesisRef.current.speak(utterance);
   }, []);
 
   const processWithAI = useCallback(async (userInput: string) => {
@@ -223,6 +251,105 @@ function App() {
   //     renderer.dispose();
   //   };
   // }, []);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    // Initialize Three.js scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+    const camera = new THREE.PerspectiveCamera(
+      35,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 1.4, 3.5); // Move camera further back to show whole body
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if (mountRef.current) {
+      mountRef.current.appendChild(renderer.domElement);
+    }
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+    // Load VRM model (official latest API)
+    const loader = new GLTFLoader();
+    loader.register((parser: any) => new VRMLoaderPlugin(parser));
+    loader.load(
+      '/models/cute-girl.vrm',
+      (gltf: any) => {
+        const vrm = gltf.userData.vrm;
+        vrmRef.current = vrm;
+        scene.add(vrm.scene);
+        // Position the model
+        vrm.scene.position.set(0, 1, 0); // Move up to show whole body
+        vrm.scene.rotation.y = Math.PI; // Face the camera
+        vrm.scene.scale.setScalar(1);
+        // Enable shadows
+        vrm.scene.traverse((child: any) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        // Load and play vrma_07.vrma animation
+        const animLoader = new GLTFLoader();
+        animLoader.load('/models/vrma_07.vrma', (animGltf: any) => {
+          if (animGltf.animations && animGltf.animations.length > 0) {
+            console.log('vrma_07.vrma tracks:', animGltf.animations[0].tracks.map((t: any) => t.name));
+            const mixer = new THREE.AnimationMixer(vrm.scene);
+            mixer.clipAction(animGltf.animations[0]).play();
+            mixerRef.current = mixer;
+          } else {
+            console.log('No animations found in vrma_07.vrma');
+          }
+        });
+      },
+      (progress: any) => {
+        console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
+      },
+      (error: any) => {
+        console.error('Error loading VRM:', error);
+      }
+    );
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      const delta = 0.016; // 60fps
+      if (vrmRef.current) {
+        vrmRef.current.update(delta);
+      }
+      if (mixerRef.current) {
+        mixerRef.current.update(delta);
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+    // Handle window resize
+    const handleResize = () => {
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (mountRef.current && renderer.domElement) {
+        mountRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, []);
 
   // Initialize speech recognition
   useEffect(() => {
