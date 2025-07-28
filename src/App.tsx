@@ -235,7 +235,7 @@ function App() {
       0.1,
       1000
     );
-    camera.position.set(0, 1.4, 2.2);
+    camera.position.set(0, 1.4, 3.5); // Move camera further back to show whole body
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
