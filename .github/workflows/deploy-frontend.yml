@@ -23,9 +23,29 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     
+    env:
+      GH_TOKEN: ${{ github.token }}
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Check for existing PR
+        run: |
+          # Get the current branch name
+          BRANCH_NAME="working"
+          
+          # Check if a PR already exists for this branch
+          PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
+          
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          if [ "$PR_EXISTS" -eq 0 ]; then
+            echo "No PR exists for branch $BRANCH_NAME"
+          else
+            echo "PR already exists for branch $BRANCH_NAME"
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
