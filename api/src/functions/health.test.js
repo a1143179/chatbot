@@ -1,5 +1,3 @@
-const { app } = require('@azure/functions');
-
 // Mock the app.http to capture the handler
 const mockApp = {
   http: jest.fn()
