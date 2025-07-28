@@ -30,9 +30,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ACTION_PAT }}
 
       - name: Check for existing PR
+        env:
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
         run: |
           # Get the current branch name
           BRANCH_NAME="working"
@@ -78,9 +80,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ACTION_PAT }}
 
       - name: Check for existing PR
+        env:
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
         run: |
           # Get the current branch name
           BRANCH_NAME="working"
