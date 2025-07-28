@@ -1,124 +1,45 @@
 # GitHub Pages Setup Guide
 
-## Option 1: Deploy to `docs` folder (Recommended)
+## Recommended: Use `build` Directory (No docs folder needed)
 
-This approach deploys your React app to a `docs` folder in your main branch, which GitHub Pages can serve.
+For modern React projects, you can deploy your static site directly from the `build` directory in your `main` branch. This is simpler and avoids the need for a `docs` folder.
 
-### Setup Steps:
+### Steps:
 
-1. **Enable GitHub Pages**:
-   - Go to your repository → Settings → Pages
-   - Source: Select "Deploy from a branch"
-   - Branch: Select "main"
-   - Folder: Select "/ (root)"
-   - Click "Save"
-
-2. **Configure GitHub Pages to use docs folder**:
-   - Go to your repository → Settings → Pages
-   - Source: Select "Deploy from a branch"
-   - Branch: Select "main"
-   - Folder: Select "/docs"
-   - Click "Save"
-
-3. **Deploy manually**:
-   ```bash
-   npm run deploy
-   git add docs/
-   git commit -m "Deploy to GitHub Pages"
-   git push
-   ```
-
-4. **Automatic deployment**:
-   - The GitHub Actions workflow will automatically deploy to `docs` folder on push to main
-   - Your site will be available at: `https://your-username.github.io/your-repo-name`
-
-## Option 2: Deploy to `gh-pages` branch
-
-If you prefer using a separate branch:
-
-1. **Enable GitHub Pages**:
-   - Go to your repository → Settings → Pages
-   - Source: Select "Deploy from a branch"
-   - Branch: Select "gh-pages"
-   - Click "Save"
-
-2. **Update workflow**:
-   ```yaml
-   - name: Deploy to GitHub Pages
-     uses: peaceiris/actions-gh-pages@v3
-     with:
-       github_token: ${{ secrets.GITHUB_TOKEN }}
-       publish_dir: ./build
-       publish_branch: gh-pages
-       force_orphan: true
-   ```
-
-## Troubleshooting
-
-### Common Issues:
-
-1. **404 Error**: Make sure your React app has proper routing
-   - Add `basename` to your Router if using React Router
-   - Or use HashRouter instead of BrowserRouter
-
-2. **Assets not loading**: Check if paths are relative
-   - Update `package.json` homepage field if needed
-   - Ensure all asset paths are relative
-
-3. **Build fails**: Check for TypeScript errors
+1. **Build your React app**
    ```bash
    npm run build
    ```
+2. **Push to main branch**
+   ```bash
+   git add .
+   git commit -m "Build frontend"
+   git push
+   ```
+3. **Configure GitHub Pages**
+   - Go to your repository → Settings → Pages
+   - Source: Select "Deploy from a branch"
+   - Branch: `main`
+   - Folder: `/build`
+   - Click "Save"
+4. **Access your site**
+   - Your app will be available at: `https://your-username.github.io/your-repo-name`
 
-### Manual Deployment Commands:
+---
 
-```bash
-# Build the app
-npm run build
+## FAQ
 
-# Create docs folder and copy files
-mkdir -p docs
-cp -r build/* docs/
+### Why not use a docs folder?
+- The `docs` folder is only needed if you want to keep both source code and static site in the same branch and directory.
+- Using the `build` directory is simpler, recommended, and fully supported by GitHub Pages.
 
-# Commit and push
-git add docs/
-git commit -m "Deploy to GitHub Pages"
-git push
-```
+### Can I use a custom domain?
+- Yes, configure it in GitHub Pages settings after deployment.
 
-## Configuration Files
+### How does this work with a backend?
+- Your frontend (static site) is served from GitHub Pages.
+- Your backend (API) is served from Azure Functions (see README and DEPLOYMENT.md for details).
 
-### package.json (if using homepage)
-```json
-{
-  "homepage": "https://your-username.github.io/your-repo-name",
-  "scripts": {
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
-  }
-}
-```
+---
 
-### For React Router (if using routing)
-```jsx
-// Use HashRouter instead of BrowserRouter
-import { HashRouter as Router } from 'react-router-dom';
-
-// Or add basename to BrowserRouter
-<BrowserRouter basename="/your-repo-name">
-```
-
-## Benefits of docs folder approach:
-
-1. ✅ **Single branch**: Everything stays in main branch
-2. ✅ **Simple**: No need for gh-pages branch
-3. ✅ **Automatic**: GitHub Actions handles deployment
-4. ✅ **Version control**: Deployment history in main branch
-5. ✅ **Easy rollback**: Just revert the docs folder commit
-
-## URL Structure:
-
-- **Repository**: `https://github.com/your-username/your-repo-name`
-- **GitHub Pages**: `https://your-username.github.io/your-repo-name`
-- **Source code**: `https://github.com/your-username/your-repo-name/tree/main`
-- **Deployed files**: `https://github.com/your-username/your-repo-name/tree/main/docs` 
+For more details, see [README.md](README.md) and [DEPLOYMENT.md](DEPLOYMENT.md). 

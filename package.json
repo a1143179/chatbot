@@ -24,8 +24,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "deploy": "npm run build && mkdir -p docs && cp -r build/* docs/ && echo 'Deployed to docs folder. Now commit and push: git add docs/ && git commit -m \"Deploy to GitHub Pages\" && git push'"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
