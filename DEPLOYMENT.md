@@ -30,6 +30,8 @@ This guide explains how to deploy the chatbot application using GitHub Pages for
    - **Runtime stack**: Node.js
    - **Version**: 18 LTS
    - **Region**: Choose closest to you
+   - **Operating System**: Windows (recommended)
+   - **Plan type**: Consumption (Serverless)
 6. Click "Review + create" then "Create"
 
 ### 1.2 Configure Environment Variables
@@ -129,6 +131,7 @@ git push origin main
 1. **Function not found**: Check deployment logs
 2. **API key error**: Verify environment variable in Azure
 3. **Cold start**: First request may be slow
+4. **Deployment validation failed**: Ensure Function App is created with Node.js runtime
 
 ### CORS Configuration
 
@@ -157,6 +160,7 @@ REACT_APP_API_URL=https://your-chatbot-functions.azurewebsites.net/api/processor
 ### Backend (Azure Function App Settings)
 ```
 GOOGLE_AI_API_KEY=your-google-ai-api-key
+FUNCTIONS_WORKER_RUNTIME=node
 ```
 
 ## Cost Optimization
@@ -169,4 +173,26 @@ GOOGLE_AI_API_KEY=your-google-ai-api-key
 
 1. **API Keys**: Never commit API keys to repository
 2. **CORS**: Configure properly for production
-3. **HTTPS**: Both GitHub Pages and Azure Functions use HTTPS by default 
+3. **HTTPS**: Both GitHub Pages and Azure Functions use HTTPS by default
+
+## Local Development
+
+### Azure Functions Local Development
+
+1. Install Azure Functions Core Tools:
+```bash
+npm install -g azure-functions-core-tools@4
+```
+
+2. Start local development:
+```bash
+cd api
+func start
+```
+
+3. Test locally:
+```bash
+curl -X POST http://localhost:7071/api/processor \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Hello"}'
+``` 
