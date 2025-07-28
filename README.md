@@ -1,14 +1,14 @@
 # VRM Virtual Assistant
 
-A VRM virtual assistant based on Azure Static Web Apps with voice interaction and AI conversation capabilities.
+A VRM virtual assistant with voice interaction and AI conversation capabilities, deployed using GitHub Pages for frontend and Azure Functions for backend.
 
 ## Features
 
-- 🎭 **VRM Virtual Avatar**: Display 3D virtual character
+- 🎭 **VRM Virtual Avatar**: Display 3D virtual character (coming soon)
 - 🎤 **Speech Recognition**: Use browser STT API for voice input
 - 🤖 **AI Conversation**: Integrate Google AI Studio for intelligent dialogue
 - 🔊 **Speech Synthesis**: Use browser TTS API to play AI responses
-- 🌐 **Cloud Deployment**: Automatic deployment to Azure Static Web Apps
+- 🌐 **Cloud Deployment**: GitHub Pages (Frontend) + Azure Functions (Backend)
 
 ## Tech Stack
 
@@ -16,7 +16,7 @@ A VRM virtual assistant based on Azure Static Web Apps with voice interaction an
 - **Backend**: Azure Functions (Serverless)
 - **AI Service**: Google AI Studio (Gemini Pro)
 - **Speech**: Web Speech API (STT + TTS)
-- **Deployment**: Azure Static Web Apps + GitHub Actions
+- **Deployment**: GitHub Pages + Azure Functions + GitHub Actions
 
 ## Project Structure
 
@@ -31,9 +31,12 @@ A VRM virtual assistant based on Azure Static Web Apps with voice interaction an
 │   └── index.html
 ├── src/
 │   ├── App.tsx            # Main Application Component
+│   ├── config.ts          # Environment Configuration
 │   └── App.css            # Style Files
 ├── .github/workflows/      # GitHub Actions
-├── staticwebapp.config.json # Azure Static Web Apps Configuration
+│   ├── deploy-frontend.yml # GitHub Pages Deployment
+│   └── deploy-backend.yml  # Azure Functions Deployment
+├── DEPLOYMENT.md          # Detailed Deployment Guide
 └── README.md
 ```
 
@@ -56,16 +59,29 @@ A VRM virtual assistant based on Azure Static Web Apps with voice interaction an
 
 ### Environment Variables Setup
 
-Configure the following environment variables in Azure Portal:
+Configure the following environment variables:
 
+**Azure Functions (Backend)**:
 - `GOOGLE_AI_API_KEY`: Google AI Studio API Key
+
+**Frontend Configuration**:
+- Update `src/config.ts` with your Azure Function URL
 
 ### Deployment Steps
 
-1. **Create Azure Static Web App**
-2. **Configure GitHub Actions**
-3. **Set Environment Variables**
-4. **Push Code to Main Branch**
+1. **Setup Azure Functions**
+   - Create Function App in Azure Portal
+   - Configure environment variables
+   - Get Function App URL
+
+2. **Setup GitHub Repository**
+   - Configure GitHub Secrets
+   - Enable GitHub Pages
+   - Update configuration files
+
+3. **Deploy**
+   - Push code to main branch
+   - Monitor deployment in GitHub Actions
 
 ## Usage
 
@@ -77,6 +93,17 @@ Configure the following environment variables in Azure Portal:
 ## API Endpoints
 
 - `POST /api/processor`: Process user input and return AI response
+
+## Deployment URLs
+
+- **Frontend**: `https://your-username.github.io/chatbot`
+- **Backend**: `https://your-function-app.azurewebsites.net/api/processor`
+
+## Cost Optimization
+
+- **GitHub Pages**: Free for public repositories
+- **Azure Functions**: Pay-per-use consumption plan
+- **Google AI**: Check pricing for API calls
 
 ## License
 
