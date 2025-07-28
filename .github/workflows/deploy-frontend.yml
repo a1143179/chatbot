@@ -3,33 +3,28 @@ name: Deploy Frontend to GitHub Pages
 on:
   push:
     branches: [ main ]
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches: [ main ]
 
 jobs:
   build-and-deploy:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
-    name: Build and Deploy Frontend
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          submodules: true
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build React app
         run: npm run build
-      
-      # No need to copy to docs, just keep build as the deployable artifact
-      # You can add a manual deploy step if you want, but GitHub Pages can use build/ directly 
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          publish_branch: gh-pages 
