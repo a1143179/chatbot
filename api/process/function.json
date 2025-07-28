@@ -6,7 +6,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["POST", "OPTIONS"],
-      "route": "processor"
+      "route": "process"
     },
     {
       "type": "http",
