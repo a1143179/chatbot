@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-// import * as THREE from 'three';
-// import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-// import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 
@@ -60,10 +60,10 @@ interface ChatMessage {
 
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
-  // const sceneRef = useRef<THREE.Scene | null>(null);
-  // const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  // const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  // const vrmRef = useRef<VRM | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const vrmRef = useRef<VRM | null>(null);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
@@ -223,6 +223,89 @@ function App() {
   //     renderer.dispose();
   //   };
   // }, []);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    // Initialize Three.js scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+    const camera = new THREE.PerspectiveCamera(
+      35,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 1.4, 2.2);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if (mountRef.current) {
+      mountRef.current.appendChild(renderer.domElement);
+    }
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+    // Load VRM model (official latest API)
+    const loader = new GLTFLoader();
+    loader.register((parser: any) => new VRMLoaderPlugin(parser));
+    loader.load(
+      '/models/cute-girl.vrm',
+      (gltf: any) => {
+        const vrm = gltf.userData.vrm;
+        vrmRef.current = vrm;
+        scene.add(vrm.scene);
+        // Position the model
+        vrm.scene.position.set(0, 0, 0);
+        vrm.scene.scale.setScalar(1);
+        // Enable shadows
+        vrm.scene.traverse((child: any) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+      },
+      (progress: any) => {
+        console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
+      },
+      (error: any) => {
+        console.error('Error loading VRM:', error);
+      }
+    );
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      const delta = 0.016; // 60fps
+      if (vrmRef.current) {
+        vrmRef.current.update(delta);
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+    // Handle window resize
+    const handleResize = () => {
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (mountRef.current && renderer.domElement) {
+        mountRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, []);
 
   // Initialize speech recognition
   useEffect(() => {
