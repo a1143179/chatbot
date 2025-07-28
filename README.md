@@ -110,6 +110,32 @@ Configure the following environment variables:
 
 MIT License
 
+## 🌐 GitHub Pages Setup
+
+### Quick Setup
+
+1. **Enable GitHub Pages**:
+   - Go to your repository → Settings → Pages
+   - Source: Select "Deploy from a branch"
+   - Branch: Select "main"
+   - Folder: Select "/docs"
+   - Click "Save"
+
+2. **Deploy manually**:
+   ```bash
+   npm run deploy
+   git add docs/
+   git commit -m "Deploy to GitHub Pages"
+   git push
+   ```
+
+3. **Automatic deployment**:
+   - Push to `main` branch
+   - GitHub Actions will automatically deploy to `docs` folder
+   - Your site will be available at: `https://your-username.github.io/your-repo-name`
+
+For detailed setup instructions, see [GITHUB_PAGES_SETUP.md](GITHUB_PAGES_SETUP.md).
+
 ## 🚀 Deployment
 
 ### Prerequisites
