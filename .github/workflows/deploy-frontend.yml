@@ -29,26 +29,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install GitHub CLI
-        run: |
-          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-          && sudo apt update \
-          && sudo apt install gh -y
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for existing PR
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           # Get the current branch name
           BRANCH_NAME="working"
-          
-          # Configure GitHub CLI to use token and set repository
-          echo "$GH_TOKEN" | gh auth login --with-token
-          gh repo set-default ${{ github.repository }}
           
           # Check if a PR already exists for this branch
           PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
@@ -90,26 +77,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install GitHub CLI
-        run: |
-          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-          && sudo apt update \
-          && sudo apt install gh -y
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for existing PR
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           # Get the current branch name
           BRANCH_NAME="working"
-          
-          # Configure GitHub CLI to use token and set repository
-          echo "$GH_TOKEN" | gh auth login --with-token
-          gh repo set-default ${{ github.repository }}
           
           # Check if a PR already exists for this branch
           PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
