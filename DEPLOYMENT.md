@@ -122,6 +122,29 @@ git push
 
 1. **Frontend URL**: `https://your-username.github.io/chatbot`
 2. **Backend URL**: `https://your-chatbot-functions.azurewebsites.net/api/processor`
+3. **Health Check**: `https://your-chatbot-functions.azurewebsites.net/api/health`
+
+### Health Check Response Example
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "service": "chatbot-api",
+  "version": "1.0.0",
+  "environment": "production",
+  "checks": {
+    "googleAI": {
+      "configured": true,
+      "status": "ready"
+    },
+    "azureFunctions": {
+      "status": "running",
+      "runtime": "node"
+    }
+  }
+}
+```
 
 ## Troubleshooting
 
