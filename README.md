@@ -93,6 +93,7 @@ Configure the following environment variables:
 ## API Endpoints
 
 - `POST /api/processor`: Process user input and return AI response
+- `GET /api/health`: Health check endpoint for monitoring service status
 
 ## Deployment URLs
 
