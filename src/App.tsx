@@ -74,14 +74,41 @@ function App() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
-  const speakText = useCallback((text: string) => {
-    if (synthesisRef.current) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'zh-CN';
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      synthesisRef.current.speak(utterance);
+  let lipSyncInterval: NodeJS.Timeout | null = null;
+
+  function setVrmMouthShape(shape: string, value: number) {
+    const vrm = vrmRef.current;
+    if (!vrm) return;
+    // VRM 1.x
+    if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
+      (vrm as any).expressionManager.setValue(shape, value);
+    } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
+      (vrm as any).blendShapeProxy.setValue(shape, value);
     }
+  }
+
+  const speakText = useCallback((text: string) => {
+    if (!synthesisRef.current) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+
+    // 启动嘴型同步
+    utterance.onstart = () => {
+      const mouthShapes = ['A', 'I', 'U', 'E', 'O'];
+      lipSyncInterval = setInterval(() => {
+        const shape = mouthShapes[Math.floor(Math.random() * mouthShapes.length)];
+        mouthShapes.forEach(s => setVrmMouthShape(s, s === shape ? 1 : 0));
+      }, 100);
+    };
+    // 停止嘴型同步
+    utterance.onend = () => {
+      if (lipSyncInterval) clearInterval(lipSyncInterval);
+      ['A', 'I', 'U', 'E', 'O'].forEach(s => setVrmMouthShape(s, 0));
+    };
+
+    synthesisRef.current.speak(utterance);
   }, []);
 
   const processWithAI = useCallback(async (userInput: string) => {
