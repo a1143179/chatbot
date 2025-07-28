@@ -36,26 +36,35 @@ jobs:
           BRANCH_NAME="${{ github.ref_name }}"
           
           # Check if a PR already exists for this branch with retry mechanism
-          MAX_RETRIES=3
+          MAX_RETRIES=5
           RETRY_COUNT=0
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             echo "Attempting to check PR existence (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
             
-            PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
-            
-            if [ ! -z "$PR_EXISTS" ] && [ "$PR_EXISTS" != "null" ]; then
-              echo "Successfully checked PR existence: $PR_EXISTS"
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "Failed to check PR existence, retrying in 10 seconds..."
-                sleep 10
+            # Add timeout to gh command and capture exit code
+            if PR_EXISTS=$(timeout 30s gh pr list --head "$BRANCH_NAME" --json number --jq 'length' 2>/dev/null); then
+              if [ ! -z "$PR_EXISTS" ] && [ "$PR_EXISTS" != "null" ]; then
+                echo "Successfully checked PR existence: $PR_EXISTS"
+                break
               else
-                echo "Failed to check PR existence after $MAX_RETRIES attempts"
-                exit 1
+                echo "Empty or null response, treating as failure"
+                RETRY_COUNT=$((RETRY_COUNT + 1))
               fi
+            else
+              echo "GitHub CLI command failed or timed out"
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+            fi
+            
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              # Exponential backoff: 15s, 30s, 45s, 60s
+              WAIT_TIME=$((15 * RETRY_COUNT))
+              echo "Failed to check PR existence, retrying in $WAIT_TIME seconds..."
+              sleep $WAIT_TIME
+            else
+              echo "Failed to check PR existence after $MAX_RETRIES attempts"
+              echo "Setting default value and continuing..."
+              PR_EXISTS=0
             fi
           done
           
@@ -222,13 +231,13 @@ jobs:
           fi
           
           # Create the pull request with retry mechanism
-          MAX_RETRIES=3
+          MAX_RETRIES=5
           RETRY_COUNT=0
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             echo "Attempting to create PR (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
             
-            if gh pr create \
+            if timeout 60s gh pr create \
               --title "$PR_TITLE" \
               --body "$PR_BODY" \
               --base "$TARGET_BRANCH" \
@@ -239,11 +248,13 @@ jobs:
             else
               RETRY_COUNT=$((RETRY_COUNT + 1))
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "Failed to create PR, retrying in 10 seconds..."
-                sleep 10
+                # Exponential backoff: 15s, 30s, 45s, 60s
+                WAIT_TIME=$((15 * RETRY_COUNT))
+                echo "Failed to create PR, retrying in $WAIT_TIME seconds..."
+                sleep $WAIT_TIME
               else
                 echo "Failed to create PR after $MAX_RETRIES attempts"
-                exit 1
+                echo "Continuing without creating PR..."
               fi
             fi
           done
@@ -256,26 +267,34 @@ jobs:
           BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
           
           # Get the PR number with retry mechanism
-          MAX_RETRIES=3
+          MAX_RETRIES=5
           RETRY_COUNT=0
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             echo "Attempting to get PR number (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
             
-            PR_NUMBER=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
-            
-            if [ ! -z "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
-              echo "Successfully got PR number: $PR_NUMBER"
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "Failed to get PR number, retrying in 10 seconds..."
-                sleep 10
+            if PR_NUMBER=$(timeout 30s gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' 2>/dev/null); then
+              if [ ! -z "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+                echo "Successfully got PR number: $PR_NUMBER"
+                break
               else
-                echo "Failed to get PR number after $MAX_RETRIES attempts"
-                exit 1
+                echo "Empty or null PR number, treating as failure"
+                RETRY_COUNT=$((RETRY_COUNT + 1))
               fi
+            else
+              echo "GitHub CLI command failed or timed out"
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+            fi
+            
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              # Exponential backoff: 15s, 30s, 45s, 60s
+              WAIT_TIME=$((15 * RETRY_COUNT))
+              echo "Failed to get PR number, retrying in $WAIT_TIME seconds..."
+              sleep $WAIT_TIME
+            else
+              echo "Failed to get PR number after $MAX_RETRIES attempts"
+              echo "Skipping PR update..."
+              exit 0
             fi
           done
           
@@ -288,7 +307,7 @@ jobs:
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             echo "Attempting to update PR (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
             
-            if gh pr edit $PR_NUMBER --body "Updated with latest changes from $BRANCH_NAME
+            if timeout 60s gh pr edit $PR_NUMBER --body "Updated with latest changes from $BRANCH_NAME
           
           ### 🔄 Recent Updates
           \`\`\`
@@ -299,11 +318,13 @@ jobs:
             else
               RETRY_COUNT=$((RETRY_COUNT + 1))
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "Failed to update PR, retrying in 10 seconds..."
-                sleep 10
+                # Exponential backoff: 15s, 30s, 45s, 60s
+                WAIT_TIME=$((15 * RETRY_COUNT))
+                echo "Failed to update PR, retrying in $WAIT_TIME seconds..."
+                sleep $WAIT_TIME
               else
                 echo "Failed to update PR after $MAX_RETRIES attempts"
-                exit 1
+                echo "Continuing without updating PR..."
               fi
             fi
           done 
