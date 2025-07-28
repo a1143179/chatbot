@@ -1,8 +1,0 @@
-{
-  "IsEncrypted": false,
-  "Values": {
-    "FUNCTIONS_WORKER_RUNTIME": "node",
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "GOOGLE_AI_API_KEY": "your-google-ai-api-key-here"
-  }
-} 
