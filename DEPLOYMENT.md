@@ -64,6 +64,8 @@ AZURE_CREDENTIALS: Your Azure service principal credentials (JSON)
 AZURE_FUNCTION_APP_NAME: your-chatbot-functions
 ```
 
+**Important**: Make sure your Azure Function App is properly created in Azure Portal with storage account before deploying.
+
 ### 2.2 Create Azure Service Principal
 
 Run these commands in Azure CLI:
