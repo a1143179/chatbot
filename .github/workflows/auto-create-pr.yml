@@ -35,8 +35,29 @@ jobs:
           # Get the current branch name
           BRANCH_NAME="${{ github.ref_name }}"
           
-          # Check if a PR already exists for this branch
-          PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
+          # Check if a PR already exists for this branch with retry mechanism
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempting to check PR existence (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+            
+            PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
+            
+            if [ ! -z "$PR_EXISTS" ] && [ "$PR_EXISTS" != "null" ]; then
+              echo "Successfully checked PR existence: $PR_EXISTS"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Failed to check PR existence, retrying in 10 seconds..."
+                sleep 10
+              else
+                echo "Failed to check PR existence after $MAX_RETRIES attempts"
+                exit 1
+              fi
+            fi
+          done
           
           echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
@@ -200,15 +221,32 @@ jobs:
           - [ ] Ready for merge"
           fi
           
-          # Create the pull request
-          gh pr create \
-            --title "$PR_TITLE" \
-            --body "$PR_BODY" \
-            --base "$TARGET_BRANCH" \
-            --head "$BRANCH_NAME" \
-            --draft
+          # Create the pull request with retry mechanism
+          MAX_RETRIES=3
+          RETRY_COUNT=0
           
-          echo "Created draft PR from $BRANCH_NAME to $TARGET_BRANCH"
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempting to create PR (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+            
+            if gh pr create \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY" \
+              --base "$TARGET_BRANCH" \
+              --head "$BRANCH_NAME" \
+              --draft; then
+              echo "Successfully created draft PR from $BRANCH_NAME to $TARGET_BRANCH"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Failed to create PR, retrying in 10 seconds..."
+                sleep 10
+              else
+                echo "Failed to create PR after $MAX_RETRIES attempts"
+                exit 1
+              fi
+            fi
+          done
 
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists != '0'
@@ -217,18 +255,55 @@ jobs:
         run: |
           BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
           
-          # Get the PR number
-          PR_NUMBER=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
+          # Get the PR number with retry mechanism
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempting to get PR number (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+            
+            PR_NUMBER=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
+            
+            if [ ! -z "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+              echo "Successfully got PR number: $PR_NUMBER"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Failed to get PR number, retrying in 10 seconds..."
+                sleep 10
+              else
+                echo "Failed to get PR number after $MAX_RETRIES attempts"
+                exit 1
+              fi
+            fi
+          done
           
           # Get recent commits for update
           COMMIT_MESSAGES=$(git log --oneline -3 --no-merges)
           
-          # Update the PR with latest changes
-          gh pr edit $PR_NUMBER --body "Updated with latest changes from $BRANCH_NAME
+          # Update the PR with latest changes and retry mechanism
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempting to update PR (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+            
+            if gh pr edit $PR_NUMBER --body "Updated with latest changes from $BRANCH_NAME
           
           ### 🔄 Recent Updates
           \`\`\`
           $COMMIT_MESSAGES
-          \`\`\`"
-          
-          echo "Updated existing PR #$PR_NUMBER for branch $BRANCH_NAME" 
+          \`\`\`"; then
+              echo "Successfully updated existing PR #$PR_NUMBER for branch $BRANCH_NAME"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Failed to update PR, retrying in 10 seconds..."
+                sleep 10
+              else
+                echo "Failed to update PR after $MAX_RETRIES attempts"
+                exit 1
+              fi
+            fi
+          done 
