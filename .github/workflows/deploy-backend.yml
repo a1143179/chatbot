@@ -39,4 +39,4 @@ jobs:
       - name: Deploy to Azure Functions
         run: |
           cd api
-          func azure functionapp publish ${{ secrets.AZURE_FUNCTION_APP_NAME }} --javascript 
+          func azure functionapp publish ${{ secrets.AZURE_FUNCTION_APP_NAME }} --javascript --force 
