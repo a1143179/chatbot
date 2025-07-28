@@ -32,7 +32,10 @@ This guide explains how to deploy the chatbot application using GitHub Pages for
    - **Region**: Choose closest to you
    - **Operating System**: Windows (recommended)
    - **Plan type**: Consumption (Serverless)
+   - **Storage Account**: Create new (Azure will create this automatically)
 6. Click "Review + create" then "Create"
+
+**Important**: Azure will automatically create a storage account for your Function App. This is required for Azure Functions to work properly.
 
 ### 1.2 Configure Environment Variables
 
@@ -104,7 +107,7 @@ const config: Config = {
 ```bash
 git add .
 git commit -m "Setup deployment configuration"
-git push origin main
+git push
 ```
 
 ### 4.2 Monitor Deployment
@@ -131,7 +134,10 @@ git push origin main
 1. **Function not found**: Check deployment logs
 2. **API key error**: Verify environment variable in Azure
 3. **Cold start**: First request may be slow
-4. **Deployment validation failed**: Ensure Function App is created with Node.js runtime
+4. **Deployment validation failed**: 
+   - Ensure Function App is created with Node.js runtime
+   - Make sure storage account is created (Azure does this automatically)
+   - Check that all required environment variables are set
 
 ### CORS Configuration
 
@@ -161,13 +167,17 @@ REACT_APP_API_URL=https://your-chatbot-functions.azurewebsites.net/api/processor
 ```
 GOOGLE_AI_API_KEY=your-google-ai-api-key
 FUNCTIONS_WORKER_RUNTIME=node
+AzureWebJobsStorage=DefaultEndpointsProtocol=https;AccountName=your-storage-account;AccountKey=your-key;EndpointSuffix=core.windows.net
 ```
+
+**Note**: The `AzureWebJobsStorage` connection string is automatically configured by Azure when you create the Function App.
 
 ## Cost Optimization
 
 1. **Azure Functions**: Use Consumption plan (pay per use)
-2. **GitHub Pages**: Free for public repositories
-3. **Google AI**: Check pricing for API calls
+2. **Azure Storage**: Minimal cost for Function App storage
+3. **GitHub Pages**: Free for public repositories
+4. **Google AI**: Check pricing for API calls
 
 ## Security Notes
 
@@ -184,13 +194,22 @@ FUNCTIONS_WORKER_RUNTIME=node
 npm install -g azure-functions-core-tools@4
 ```
 
-2. Start local development:
+2. Install Azure Storage Emulator (for Windows) or Azurite:
+```bash
+# For Windows
+# Download and install Azure Storage Emulator
+
+# For cross-platform (Azurite)
+npm install -g azurite
+```
+
+3. Start local development:
 ```bash
 cd api
 func start
 ```
 
-3. Test locally:
+4. Test locally:
 ```bash
 curl -X POST http://localhost:7071/api/processor \
   -H "Content-Type: application/json" \
