@@ -33,4 +33,14 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variables file
-.env 
+.env
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Jest
+.jest/
+
+# Test results
+test-results/ 
