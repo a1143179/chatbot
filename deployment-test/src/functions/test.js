@@ -4,8 +4,8 @@ app.http('test', {
     methods: ['GET'],
     authLevel: 'anonymous',
     handler: async (request, context) => {
-        console.log('Test endpoint called - Deployment verification');
-        context.log('Test endpoint called - Deployment verification');
+        console.log('Test endpoint called');
+        context.log('Test endpoint called');
         
         return {
             status: 200,
@@ -16,8 +16,7 @@ app.http('test', {
             jsonBody: {
                 message: 'Azure Functions is working!',
                 timestamp: new Date().toISOString(),
-                environment: process.env.NODE_ENV || 'production',
-                deployment: 'test-verification'
+                environment: process.env.NODE_ENV || 'production'
             }
         };
     }
