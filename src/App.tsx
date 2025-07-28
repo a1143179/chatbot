@@ -73,6 +73,16 @@ function App() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
+  const speakText = useCallback((text: string) => {
+    if (synthesisRef.current) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-CN';
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      synthesisRef.current.speak(utterance);
+    }
+  }, []);
+
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
     
@@ -112,17 +122,7 @@ function App() {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
-
-  const speakText = useCallback((text: string) => {
-    if (synthesisRef.current) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'zh-CN';
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      synthesisRef.current.speak(utterance);
-    }
-  }, []);
+  }, [speakText]);
 
   // useEffect(() => {
   //   if (!mountRef.current) return;

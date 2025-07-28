@@ -254,4 +254,42 @@ func start
 curl -X POST http://localhost:7071/api/processor \
   -H "Content-Type: application/json" \
   -d '{"prompt":"Hello"}'
-``` 
+```
+
+### Running Tests
+
+1. Install test dependencies:
+```bash
+cd api
+npm install
+```
+
+2. Run all tests:
+```bash
+npm test
+```
+
+3. Run tests with coverage:
+```bash
+npm run test:coverage
+```
+
+4. Run tests in watch mode:
+```bash
+npm run test:watch
+```
+
+### Test Coverage
+
+The tests cover:
+- **Processor Function** (`/api/processor`):
+  - Successful API calls
+  - Error handling (missing API key, invalid requests)
+  - CORS headers
+  - Google AI API integration
+
+- **Health Function** (`/api/health`):
+  - Service status checks
+  - Environment variable validation
+  - Response structure validation
+  - CORS headers 
