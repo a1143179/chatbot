@@ -31,10 +31,5 @@ jobs:
       - name: Build React app
         run: npm run build
       
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
-          publish_branch: gh-pages
-          force_orphan: true 
+      # No need to copy to docs, just keep build as the deployable artifact
+      # You can add a manual deploy step if you want, but GitHub Pages can use build/ directly 

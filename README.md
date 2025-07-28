@@ -110,52 +110,77 @@ Configure the following environment variables:
 
 MIT License
 
-## 🚀 Deployment
+## 🚀 Deployment Overview
 
-### Prerequisites
+This project uses a **frontend-backend separation** architecture:
 
-1. **Azure Account**: You need an Azure subscription
-2. **GitHub Repository**: Your code should be in a GitHub repository
-3. **Azure CLI**: Install Azure CLI for local development
+- **Frontend**: Entire React project, deployed to GitHub Pages (main branch, using the `build` directory, no `docs` folder required)
+- **Backend**: Node.js Azure Functions under `/api`, deployed separately to Azure
 
-### Quick Setup
+### Why you do NOT need a `docs` folder
+- Modern GitHub Pages allows you to publish from the `main` branch's `/` (root) or `/build` directory.
+- The `docs` folder is only needed if you want to keep both source code and static site in the same branch and don't want to use the `build` directory directly.
+- **Recommended:** Use the `build` directory as your GitHub Pages source. No need for a `docs` folder.
 
-1. **Create Azure Service Principal**:
+---
+
+## 🌐 Frontend Deployment (GitHub Pages)
+
+1. **Build the React app**
    ```bash
-   # Windows
-   .\setup-azure-sp.ps1
-   
-   # Linux/macOS
-   chmod +x setup-azure-sp.sh
-   ./setup-azure-sp.sh
+   npm run build
    ```
+2. **Push to main branch**
+   ```bash
+   git add .
+   git commit -m "Build frontend"
+   git push
+   ```
+3. **Configure GitHub Pages**
+   - Go to your repository → Settings → Pages
+   - Source: Select "Deploy from a branch"
+   - Branch: `main`
+   - Folder: `/build`
+   - Click "Save"
+4. **Access your site**
+   - Your app will be available at: `https://your-username.github.io/your-repo-name`
 
-2. **Configure GitHub Secrets**:
-   - Go to your repository → Settings → Secrets and variables → Actions
-   - Add `AZURE_CREDENTIALS` with the JSON from step 1
-   - Add `AZURE_FUNCTION_APP_NAME` with your function app name
+---
 
-3. **Create Azure Function App**:
-   - Go to Azure Portal
-   - Create a new Function App with Node.js runtime
+## ☁️ Backend Deployment (Azure Functions)
+
+1. **Prepare Azure Function App**
+   - Create a Function App in Azure Portal (Node.js runtime)
    - Set environment variable `GOOGLE_AI_API_KEY`
+2. **Deploy backend**
+   - The `/api` directory contains your Azure Functions code
+   - Use the provided GitHub Actions workflow or Azure CLI to deploy
+3. **API Endpoint**
+   - Your backend API will be available at: `https://your-func-app-name.azurewebsites.net/api/processor`
 
-4. **Deploy**:
-   - Push to `main` branch
-   - GitHub Actions will automatically deploy
+---
 
-For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+## 🔗 Frontend-Backend Integration
+
+- The frontend React app communicates with the backend via the API URL (see `src/config.ts`).
+- Make sure the API URL in your frontend config points to your deployed Azure Function endpoint.
+
+---
 
 ## 🧪 Testing
 
-### Frontend Testing
+### Frontend
 ```bash
 npm test
 ```
 
-### Backend Testing
+### Backend
 ```bash
 cd api
 npm test
 npm run test:coverage
 ```
+
+---
+
+For detailed deployment steps, see [DEPLOYMENT.md](DEPLOYMENT.md).
