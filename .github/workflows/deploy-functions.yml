@@ -2,7 +2,6 @@ name: Deploy Azure Functions
 
 on:
   push:
-    branches: [ working ]
     paths:
       - 'api/**'
   pull_request_target:
