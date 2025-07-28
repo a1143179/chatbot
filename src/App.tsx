@@ -64,6 +64,7 @@ function App() {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const vrmRef = useRef<VRM | null>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
@@ -271,6 +272,15 @@ function App() {
             child.receiveShadow = true;
           }
         });
+        // Play 'Standard' animation if present
+        if (gltf.animations && gltf.animations.length > 0) {
+          const standardClip = gltf.animations.find((clip: any) => clip.name === 'Standard');
+          if (standardClip) {
+            const mixer = new THREE.AnimationMixer(vrm.scene);
+            mixer.clipAction(standardClip).play();
+            mixerRef.current = mixer;
+          }
+        }
       },
       (progress: any) => {
         console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
@@ -285,6 +295,9 @@ function App() {
       const delta = 0.016; // 60fps
       if (vrmRef.current) {
         vrmRef.current.update(delta);
+      }
+      if (mixerRef.current) {
+        mixerRef.current.update(delta);
       }
       renderer.render(scene, camera);
     };
