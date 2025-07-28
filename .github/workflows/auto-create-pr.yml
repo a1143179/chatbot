@@ -1,0 +1,226 @@
+name: Auto Create Pull Request
+
+on:
+  push:
+    branches:
+      - working
+      - feature/*
+      - hotfix/*
+      - bugfix/*
+      - develop
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+      - 'docs/**'
+
+jobs:
+  auto-create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if PR exists
+        id: check-pr
+        run: |
+          # Get the current branch name
+          BRANCH_NAME="${{ github.ref_name }}"
+          
+          # Check if a PR already exists for this branch
+          PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq 'length')
+          
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          if [ "$PR_EXISTS" -eq 0 ]; then
+            echo "No PR exists for branch $BRANCH_NAME"
+          else
+            echo "PR already exists for branch $BRANCH_NAME"
+          fi
+
+      - name: Get commit messages
+        id: commits
+        if: steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          # Get the last 5 commit messages for PR description
+          COMMIT_MESSAGES=$(git log --oneline -5 --no-merges)
+          echo "commit_messages<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MESSAGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
+          
+          # Determine target branch based on current branch
+          if [[ "$BRANCH_NAME" == "working" ]]; then
+            TARGET_BRANCH="main"
+            PR_TITLE="🚀 Deploy to Production"
+            PR_BODY="## 🚀 Production Deployment
+          
+          This PR contains changes ready for production deployment.
+          
+          ### 📋 What's Changed
+          - Automated deployment from working branch
+          - All tests passing ✅
+          - Ready for review and merge
+          
+          ### 🔄 Recent Commits
+          \`\`\`
+          ${{ steps.commits.outputs.commit_messages }}
+          \`\`\`
+          
+          ### ✅ Checklist
+          - [ ] Tests passing
+          - [ ] Code reviewed
+          - [ ] Ready for deployment
+          - [ ] No breaking changes"
+          
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            TARGET_BRANCH="working"
+            PR_TITLE="🔄 Merge Develop to Working"
+            PR_BODY="## 🔄 Development Updates
+          
+          This PR merges development changes to the working branch.
+          
+          ### 📋 What's Changed
+          - Development updates from develop branch
+          - Ready for testing and review
+          
+          ### 🔄 Recent Commits
+          \`\`\`
+          ${{ steps.commits.outputs.commit_messages }}
+          \`\`\`
+          
+          ### ✅ Checklist
+          - [ ] Tests passing
+          - [ ] Code reviewed
+          - [ ] Ready for working branch"
+          
+          elif [[ "$BRANCH_NAME" =~ ^feature/ ]]; then
+            TARGET_BRANCH="develop"
+            FEATURE_NAME=$(echo "$BRANCH_NAME" | sed 's/feature\///')
+            PR_TITLE="✨ Feature: $FEATURE_NAME"
+            PR_BODY="## ✨ Feature: $FEATURE_NAME
+          
+          This PR adds the $FEATURE_NAME feature.
+          
+          ### 📋 What's Changed
+          - New feature implementation
+          - Ready for review and testing
+          
+          ### 🔄 Recent Commits
+          \`\`\`
+          ${{ steps.commits.outputs.commit_messages }}
+          \`\`\`
+          
+          ### ✅ Checklist
+          - [ ] Tests passing
+          - [ ] Code reviewed
+          - [ ] Feature tested
+          - [ ] Documentation updated"
+          
+          elif [[ "$BRANCH_NAME" =~ ^hotfix/ ]]; then
+            TARGET_BRANCH="working"
+            HOTFIX_NAME=$(echo "$BRANCH_NAME" | sed 's/hotfix\///')
+            PR_TITLE="🚨 Hotfix: $HOTFIX_NAME"
+            PR_BODY="## 🚨 Hotfix: $HOTFIX_NAME
+          
+          This PR contains a critical hotfix.
+          
+          ### 📋 What's Changed
+          - Critical bug fix
+          - Urgent deployment needed
+          
+          ### 🔄 Recent Commits
+          \`\`\`
+          ${{ steps.commits.outputs.commit_messages }}
+          \`\`\`
+          
+          ### ✅ Checklist
+          - [ ] Tests passing
+          - [ ] Code reviewed
+          - [ ] Critical fix verified
+          - [ ] Ready for immediate deployment"
+          
+          elif [[ "$BRANCH_NAME" =~ ^bugfix/ ]]; then
+            TARGET_BRANCH="develop"
+            BUGFIX_NAME=$(echo "$BRANCH_NAME" | sed 's/bugfix\///')
+            PR_TITLE="🐛 Bugfix: $BUGFIX_NAME"
+            PR_BODY="## 🐛 Bugfix: $BUGFIX_NAME
+          
+          This PR fixes a bug in the codebase.
+          
+          ### 📋 What's Changed
+          - Bug fix implementation
+          - Ready for review and testing
+          
+          ### 🔄 Recent Commits
+          \`\`\`
+          ${{ steps.commits.outputs.commit_messages }}
+          \`\`\`
+          
+          ### ✅ Checklist
+          - [ ] Tests passing
+          - [ ] Code reviewed
+          - [ ] Bug fix verified
+          - [ ] No regression introduced"
+          
+          else
+            TARGET_BRANCH="develop"
+            PR_TITLE="📝 Update from $BRANCH_NAME"
+            PR_BODY="## 📝 Update from $BRANCH_NAME
+          
+          This PR contains changes from the $BRANCH_NAME branch.
+          
+          ### 📋 What's Changed
+          - Updates from $BRANCH_NAME branch
+          - Ready for review
+          
+          ### 🔄 Recent Commits
+          \`\`\`
+          ${{ steps.commits.outputs.commit_messages }}
+          \`\`\`
+          
+          ### ✅ Checklist
+          - [ ] Tests passing
+          - [ ] Code reviewed
+          - [ ] Ready for merge"
+          fi
+          
+          # Create the pull request
+          gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base "$TARGET_BRANCH" \
+            --head "$BRANCH_NAME" \
+            --draft
+          
+          echo "Created draft PR from $BRANCH_NAME to $TARGET_BRANCH"
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
+          
+          # Get the PR number
+          PR_NUMBER=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
+          
+          # Get recent commits for update
+          COMMIT_MESSAGES=$(git log --oneline -3 --no-merges)
+          
+          # Update the PR with latest changes
+          gh pr edit $PR_NUMBER --body "Updated with latest changes from $BRANCH_NAME
+          
+          ### 🔄 Recent Updates
+          \`\`\`
+          $COMMIT_MESSAGES
+          \`\`\`"
+          
+          echo "Updated existing PR #$PR_NUMBER for branch $BRANCH_NAME" 
