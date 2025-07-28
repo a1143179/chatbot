@@ -272,15 +272,15 @@ function App() {
             child.receiveShadow = true;
           }
         });
-        // Load and play VRMA_01.vrma animation
+        // Load and play vrma_07.vrma animation
         const animLoader = new GLTFLoader();
-        animLoader.load('/models/VRMA_01.vrma', (animGltf: any) => {
+        animLoader.load('/models/vrma_07.vrma', (animGltf: any) => {
           if (animGltf.animations && animGltf.animations.length > 0) {
             const mixer = new THREE.AnimationMixer(vrm.scene);
             mixer.clipAction(animGltf.animations[0]).play();
             mixerRef.current = mixer;
           } else {
-            console.log('No animations found in VRMA_01.vrma');
+            console.log('No animations found in vrma_07.vrma');
           }
         });
       },
