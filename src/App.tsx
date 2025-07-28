@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
+import { VRMLoaderPlugin, VRM, VRMUtils } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 
@@ -272,21 +272,17 @@ function App() {
             child.receiveShadow = true;
           }
         });
-        // Debug: print all animation clips and their tracks
-        if (gltf.animations && gltf.animations.length > 0) {
-          console.log('All animation clips:', gltf.animations.map((clip: any) => ({ name: clip.name, tracks: clip.tracks.length })));
-          const standardClip = gltf.animations.find((clip: any) => clip.name === 'Standard');
-          if (standardClip) {
-            console.log('Standard animation tracks:', standardClip.tracks.map((t: any) => t.name));
+        // Load and play VRMA_01.vrma animation
+        const animLoader = new GLTFLoader();
+        animLoader.load('/models/VRMA_01.vrma', (animGltf: any) => {
+          if (animGltf.animations && animGltf.animations.length > 0) {
             const mixer = new THREE.AnimationMixer(vrm.scene);
-            mixer.clipAction(standardClip).play();
+            mixer.clipAction(animGltf.animations[0]).play();
             mixerRef.current = mixer;
           } else {
-            console.log('No Standard animation found in gltf.animations');
+            console.log('No animations found in VRMA_01.vrma');
           }
-        } else {
-          console.log('No animations found in gltf.animations');
-        }
+        });
       },
       (progress: any) => {
         console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
