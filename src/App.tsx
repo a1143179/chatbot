@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin, VRM, VRMUtils } from '@pixiv/three-vrm';
+import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 
@@ -60,9 +60,6 @@ interface ChatMessage {
 
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const vrmRef = useRef<VRM | null>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   
@@ -73,8 +70,7 @@ function App() {
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
-
-  let lipSyncInterval: NodeJS.Timeout | null = null;
+  const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   function setVrmMouthShape(shape: string, value: number) {
     const vrm = vrmRef.current;
@@ -97,14 +93,14 @@ function App() {
     // 启动嘴型同步
     utterance.onstart = () => {
       const mouthShapes = ['A', 'I', 'U', 'E', 'O'];
-      lipSyncInterval = setInterval(() => {
+      lipSyncIntervalRef.current = setInterval(() => {
         const shape = mouthShapes[Math.floor(Math.random() * mouthShapes.length)];
         mouthShapes.forEach(s => setVrmMouthShape(s, s === shape ? 1 : 0));
       }, 100);
     };
     // 停止嘴型同步
     utterance.onend = () => {
-      if (lipSyncInterval) clearInterval(lipSyncInterval);
+      if (lipSyncIntervalRef.current) clearInterval(lipSyncIntervalRef.current);
       ['A', 'I', 'U', 'E', 'O'].forEach(s => setVrmMouthShape(s, 0));
     };
 
@@ -254,6 +250,9 @@ function App() {
 
   // Initialize speech recognition
   useEffect(() => {
+    const mountElement = mountRef.current;
+    if (!mountElement) return;
+    
     // Initialize Three.js scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
@@ -269,9 +268,7 @@ function App() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    if (mountRef.current) {
-      mountRef.current.appendChild(renderer.domElement);
-    }
+    mountElement.appendChild(renderer.domElement);
     // Add lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -344,8 +341,8 @@ function App() {
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
+      if (mountElement && renderer.domElement) {
+        mountElement.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
