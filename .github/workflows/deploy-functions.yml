@@ -55,6 +55,22 @@ jobs:
         cd api
         npm ci
     
+    - name: Prepare deployment package
+      run: |
+        # Create deployment directory
+        mkdir -p deployment
+        # Copy all files from api directory to deployment root
+        cp -r api/* deployment/
+        # Copy host.json to root (it should be at root level)
+        cp api/host.json deployment/
+        # Copy package.json and other necessary files
+        cp api/package.json deployment/
+        cp api/package-lock.json deployment/
+        # Copy source files
+        cp -r api/src deployment/
+        # Copy index.js
+        cp api/index.js deployment/
+    
     - name: Login to Azure
       uses: azure/login@v2
       with:
@@ -64,7 +80,7 @@ jobs:
       uses: Azure/functions-action@v1
       with:
         app-name: 'chatbotprocessor'
-        package: './api'
+        package: './deployment'
         respect-pom-xml: false
         respect-funcignore: false
         scm-do-build-during-deployment: false
