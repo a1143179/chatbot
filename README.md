@@ -4,16 +4,17 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 
 ## Features
 
-- 🎭 **VRM Virtual Avatar**: Display 3D virtual character (coming soon)
+- 🎭 **VRM Virtual Avatar**: Display 3D virtual character with animations
 - 🎤 **Speech Recognition**: Use browser STT API for voice input
 - 🤖 **AI Conversation**: Integrate Google AI Studio for intelligent dialogue
 - 🔊 **Speech Synthesis**: Use browser TTS API to play AI responses
 - 🌐 **Cloud Deployment**: GitHub Pages (Frontend) + Azure Functions (Backend)
+- 🔄 **Real-time Processing**: Voice-to-text → AI processing → Text-to-speech
 
 ## Tech Stack
 
 - **Frontend**: React + TypeScript + Three.js + VRM
-- **Backend**: Azure Functions (Serverless)
+- **Backend**: Azure Functions (Node.js 20, Consumption Plan)
 - **AI Service**: Google AI Studio (Gemini Pro)
 - **Speech**: Web Speech API (STT + TTS)
 - **Deployment**: GitHub Pages + Azure Functions + GitHub Actions
@@ -22,12 +23,18 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 
 ```
 /
-├── api/processor/           # Azure Function - AI Processor
-│   ├── index.js
-│   └── function.json
+├── api/                     # Azure Functions Backend
+│   ├── src/
+│   │   └── functions/      # New Azure Functions Programming Model
+│   │       ├── health.js   # Health check endpoint
+│   │       └── process.js  # AI processing endpoint
+│   ├── package.json        # Backend dependencies
+│   ├── host.json          # Azure Functions configuration
+│   └── local.settings.json # Local development settings
 ├── public/
 │   ├── models/             # VRM Model Files
-│   │   └── cute-girl.vrm
+│   │   ├── cute-girl.vrm
+│   │   └── *.vrma         # Animation files
 │   └── index.html
 ├── src/
 │   ├── App.tsx            # Main Application Component
@@ -35,12 +42,14 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 │   └── App.css            # Style Files
 ├── .github/workflows/      # GitHub Actions
 │   ├── deploy-frontend.yml # GitHub Pages Deployment
-│   └── deploy-backend.yml  # Azure Functions Deployment
+│   └── deploy-functions.yml # Azure Functions Deployment
 ├── DEPLOYMENT.md          # Detailed Deployment Guide
 └── README.md
 ```
 
 ## Local Development
+
+### Frontend Development
 
 1. **Install Dependencies**:
    ```bash
@@ -54,6 +63,27 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 
 3. **Access Application**:
    Open http://localhost:3000
+
+### Backend Development
+
+1. **Navigate to API directory**:
+   ```bash
+   cd api
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Start Azure Functions locally**:
+   ```bash
+   func start
+   ```
+
+4. **Test endpoints**:
+   - Health: http://localhost:7071/api/health
+   - Process: http://localhost:7071/api/process
 
 ## Deployment Configuration
 
@@ -70,7 +100,7 @@ Configure the following environment variables:
 ### Deployment Steps
 
 1. **Setup Azure Functions**
-   - Create Function App in Azure Portal
+   - Create Function App in Azure Portal (Node.js 20, Consumption Plan)
    - Configure environment variables
    - Get Function App URL
 
@@ -92,19 +122,91 @@ Configure the following environment variables:
 
 ## API Endpoints
 
-- `POST /api/processor`: Process user input and return AI response
-- `GET /api/health`: Health check endpoint for monitoring service status
+### Health Check
+- **URL**: `GET /api/health`
+- **Purpose**: Monitor service status and configuration
+- **Response**: JSON with service health, timestamp, and configuration status
+
+### AI Processing
+- **URL**: `POST /api/process`
+- **Purpose**: Process user input and return AI response
+- **Request Body**: `{ "prompt": "user message" }`
+- **Response**: JSON with AI response, timestamp, and model info
 
 ## Deployment URLs
 
 - **Frontend**: `https://your-username.github.io/chatbot`
-- **Backend**: `https://your-function-app.azurewebsites.net/api/processor`
+- **Backend**: `https://your-function-app.azurewebsites.net/api/`
+
+## Azure Functions Architecture
+
+### New Programming Model
+This project uses the **new Azure Functions Node.js programming model**:
+
+- **File Structure**: Functions in `src/functions/*.js`
+- **Package.json**: `"main": "src/functions/*.js"`
+- **No function.json**: Not required in new model
+- **Runtime**: Node.js 20 LTS
+- **Plan**: Consumption (Serverless)
+
+### Function Structure
+```javascript
+const { app } = require('@azure/functions');
+
+app.http('functionName', {
+    methods: ['GET', 'POST'],
+    authLevel: 'anonymous',
+    handler: async (request, context) => {
+        // Function logic here
+        return { jsonBody: { message: 'Hello' } };
+    }
+});
+```
 
 ## Cost Optimization
 
 - **GitHub Pages**: Free for public repositories
 - **Azure Functions**: Pay-per-use consumption plan
 - **Google AI**: Check pricing for API calls
+
+## Testing
+
+### Frontend Tests
+```bash
+npm test
+```
+
+### Backend Tests
+```bash
+cd api
+npm test
+npm run test:coverage
+```
+
+### Local Function Testing
+```bash
+cd api
+func start
+curl http://localhost:7071/api/health
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Functions not detected in Azure Portal**
+   - Ensure you're using Consumption plan (not App Service plan)
+   - Verify `"main": "src/functions/*.js"` in package.json
+   - Check Node.js version is 20 LTS
+
+2. **404 errors on endpoints**
+   - Verify functions are deployed correctly
+   - Check Azure Portal → Functions section
+   - Ensure correct Function App URL in frontend config
+
+3. **Speech recognition not working**
+   - Ensure HTTPS is used (required for Web Speech API)
+   - Check browser permissions for microphone access
 
 ## License
 
@@ -114,17 +216,10 @@ MIT License
 
 This project uses a **frontend-backend separation** architecture:
 
-- **Frontend**: Entire React project, deployed to GitHub Pages (main branch, using the `build` directory, no `docs` folder required)
-- **Backend**: Node.js Azure Functions under `/api`, deployed separately to Azure
+- **Frontend**: Entire React project, deployed to GitHub Pages (main branch, using the `build` directory)
+- **Backend**: Node.js Azure Functions under `/api`, deployed to Azure Functions Consumption plan
 
-### Why you do NOT need a `docs` folder
-- Modern GitHub Pages allows you to publish from the `main` branch's `/` (root) or `/build` directory.
-- The `docs` folder is only needed if you want to keep both source code and static site in the same branch and don't want to use the `build` directory directly.
-- **Recommended:** Use the `build` directory as your GitHub Pages source. No need for a `docs` folder.
-
----
-
-## 🌐 Frontend Deployment (GitHub Pages)
+### Frontend Deployment (GitHub Pages)
 
 1. **Build the React app**
    ```bash
@@ -132,9 +227,7 @@ This project uses a **frontend-backend separation** architecture:
    ```
 2. **Push to main branch**
    ```bash
-   git add .
-   git commit -m "Build frontend"
-   git push
+   git add . ; git commit -m "Build frontend" ; git push
    ```
 3. **Configure GitHub Pages**
    - Go to your repository → Settings → Pages
@@ -142,44 +235,28 @@ This project uses a **frontend-backend separation** architecture:
    - Branch: `main`
    - Folder: `/build`
    - Click "Save"
-4. **Access your site**
-   - Your app will be available at: `https://your-username.github.io/your-repo-name`
 
----
+### Backend Deployment (Azure Functions)
 
-## ☁️ Backend Deployment (Azure Functions)
+1. **Create Function App in Azure Portal**
+   - Runtime: Node.js 20 LTS
+   - Plan: Consumption (Serverless)
+   - Operating System: Windows or Linux
 
-1. **Prepare Azure Function App**
-   - Create a Function App in Azure Portal (Node.js runtime)
-   - Set environment variable `GOOGLE_AI_API_KEY`
-2. **Deploy backend**
-   - The `/api` directory contains your Azure Functions code
-   - Use the provided GitHub Actions workflow or Azure CLI to deploy
-3. **API Endpoint**
-   - Your backend API will be available at: `https://your-func-app-name.azurewebsites.net/api/processor`
+2. **Deploy using Azure Functions Core Tools**
+   ```bash
+   cd api
+   func azure functionapp publish <FUNCTION_APP_NAME> --javascript --force
+   ```
 
----
+3. **Or use GitHub Actions**
+   - Add `AZURE_FUNCTIONAPP_PUBLISH_PROFILE` to GitHub Secrets
+   - Push changes to trigger automatic deployment
 
-## 🔗 Frontend-Backend Integration
+### Frontend-Backend Integration
 
-- The frontend React app communicates with the backend via the API URL (see `src/config.ts`).
-- Make sure the API URL in your frontend config points to your deployed Azure Function endpoint.
-
----
-
-## 🧪 Testing
-
-### Frontend
-```bash
-npm test
-```
-
-### Backend
-```bash
-cd api
-npm test
-npm run test:coverage
-```
+- The frontend React app communicates with the backend via the API URL (see `src/config.ts`)
+- Make sure the API URL in your frontend config points to your deployed Azure Function endpoint
 
 ---
 
