@@ -196,7 +196,22 @@ AzureWebJobsStorage=DefaultEndpointsProtocol=https;AccountName=your-storage-acco
 npm install -g azure-functions-core-tools@4
 ```
 
-2. Install Azure Storage Emulator (for Windows) or Azurite:
+2. Create local settings file (for local development only):
+```bash
+# Create local.settings.json in api/ directory
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "GOOGLE_AI_API_KEY": "your-google-ai-api-key-here"
+  }
+}
+```
+
+**Important**: The `local.settings.json` file is for local development only and should not be committed to the repository.
+
+3. Install Azure Storage Emulator (for Windows) or Azurite:
 ```bash
 # For Windows
 # Download and install Azure Storage Emulator
@@ -205,13 +220,13 @@ npm install -g azure-functions-core-tools@4
 npm install -g azurite
 ```
 
-3. Start local development:
+4. Start local development:
 ```bash
 cd api
 func start
 ```
 
-4. Test locally:
+5. Test locally:
 ```bash
 curl -X POST http://localhost:7071/api/processor \
   -H "Content-Type: application/json" \
