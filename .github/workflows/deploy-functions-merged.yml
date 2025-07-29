@@ -48,14 +48,16 @@ jobs:
       run: |
         # Clean deployment directory
         rm -rf deployment
-        mkdir -p deployment
-        # Copy index.js, function.json, and host.json from health to deployment root
-        cp api/health/index.js deployment/
-        cp api/health/function.json deployment/
+        mkdir -p deployment/health
+        # Copy host.json to deployment root
         cp api/health/host.json deployment/
+        # Copy index.js and function.json to health subdirectory
+        cp api/health/index.js deployment/health/
+        cp api/health/function.json deployment/health/
         # Show structure
         echo "Deployment structure:"
         ls -la deployment/
+        ls -la deployment/health/
       timeout-minutes: 5
     
     - name: Install Azure Functions Core Tools
