@@ -16,7 +16,7 @@ module.exports = async function (context, req) {
         service: 'chatbot-api',
         version: '1.0.1',
         environment: process.env.NODE_ENV || 'production',
-        deployment: 'fixed-package-structure',
+        deployment: 'force-redeploy',
         checks: {
             googleAI: {
                 configured: apiKeyConfigured,
