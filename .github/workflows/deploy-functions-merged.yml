@@ -46,34 +46,15 @@ jobs:
     
     - name: Prepare deployment structure
       run: |
-        # Create a deployment directory with correct structure
+        # 清理 deployment 目录
+        rm -rf deployment
         mkdir -p deployment
-        # Copy host.json to root (Azure Functions expects it here)
-        cp api/host.json deployment/
-        # Copy function directories
-        cp -r api/health deployment/
-        cp -r api/process deployment/
-        # Copy package files
-        cp api/package.json deployment/
-        cp api/package-lock.json deployment/
-        # Copy source files
-        cp -r api/src deployment/
-        # Remove unnecessary files that might have been copied
-        rm -rf deployment/node_modules 2>/dev/null || true
-        rm -rf deployment/coverage 2>/dev/null || true
-        rm -f deployment/local.settings.json 2>/dev/null || true
-        rm -f deployment/.gitignore 2>/dev/null || true
-        rm -f deployment/.nvmrc 2>/dev/null || true
-        rm -f deployment/run-tests.js 2>/dev/null || true
-        # Show the structure
+        # 只复制 health 目录下的 index.js 和 function.json 到 deployment 根目录
+        cp api/health/index.js deployment/
+        cp api/health/function.json deployment/
+        # 显示结构
         echo "Deployment structure:"
         ls -la deployment/
-        echo "host.json location:"
-        find deployment/ -name "host.json"
-        echo "Health function structure:"
-        ls -la deployment/health/
-        echo "Process function structure:"
-        ls -la deployment/process/
       timeout-minutes: 5
     
     - name: Install Azure Functions Core Tools
