@@ -280,7 +280,7 @@ function App() {
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
     loader.load(
-      '/models/cute-girl.vrm',
+      '/models/pee.vrm',
       (gltf: any) => {
         const vrm = gltf.userData.vrm;
         vrmRef.current = vrm;
