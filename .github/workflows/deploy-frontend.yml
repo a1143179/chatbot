@@ -8,6 +8,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.json'
+      - '.github/workflows/**'
   pull_request_target:
     types: [closed]
     branches: [ main, working ]
@@ -17,6 +18,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.json'
+      - '.github/workflows/**'
 
 jobs:
   test:
