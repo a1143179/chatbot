@@ -262,7 +262,7 @@ function App() {
       0.1,
       1000
     );
-    camera.position.set(0, 1.4, 3.5); // Move camera further back to show whole body
+    camera.position.set(0, 1.6, 4); // Position camera to center the avatar
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -285,10 +285,10 @@ function App() {
         const vrm = gltf.userData.vrm;
         vrmRef.current = vrm;
         scene.add(vrm.scene);
-        // Position the model
-        vrm.scene.position.set(0, 1, 0); // Move up to show whole body
+        // Position the model to be centered
+        vrm.scene.position.set(0, 0, 0); // Center the avatar
         vrm.scene.rotation.y = Math.PI; // Face the camera
-        vrm.scene.scale.setScalar(1);
+        vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
         // Enable shadows
         vrm.scene.traverse((child: any) => {
           if (child instanceof THREE.Mesh) {
@@ -335,6 +335,10 @@ function App() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        // Ensure avatar stays centered after resize
+        if (vrmRef.current) {
+          vrmRef.current.scene.position.set(0, 0, 0);
+        }
       }
     };
     window.addEventListener('resize', handleResize);
