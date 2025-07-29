@@ -12,9 +12,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == false
+    timeout-minutes: 15
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -26,12 +29,14 @@ jobs:
     - name: Install dependencies
       run: |
         cd api
-        npm ci
+        npm ci --no-audit
+      timeout-minutes: 10
     
     - name: Run unit tests
       run: |
         cd api
         npm test
+      timeout-minutes: 5
 
 
     
