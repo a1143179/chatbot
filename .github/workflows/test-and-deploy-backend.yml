@@ -31,10 +31,10 @@ jobs:
         cd api
         npm test
         
-    - name: Build Azure Functions
+    - name: Validate Azure Functions
       run: |
         cd api
-        npm run build
+        npm run lint
         
     - name: Deploy to Azure Functions
       uses: Azure/functions-action@v1

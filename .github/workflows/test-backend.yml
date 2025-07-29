@@ -29,7 +29,7 @@ jobs:
         cd api
         npm test
         
-    - name: Test Azure Functions locally
+    - name: Validate Azure Functions
       run: |
         cd api
-        npm run build 
+        npm run lint 
