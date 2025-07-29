@@ -14,7 +14,7 @@ local.settings.json
 .gitignore
 
 # Keep package.json but exclude other dependency files
-# package.json  # 注释掉，允许包含 package.json
+package.json  # Ignore package.json in deployment
 node_modules/
 package-lock.json
 npm-debug.log*
