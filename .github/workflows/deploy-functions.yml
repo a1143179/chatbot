@@ -62,14 +62,11 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
     - name: Deploy to Azure Functions
-      uses: Azure/functions-action@v1
-      with:
-        app-name: 'chatbotprocessor'
-        package: './api'
-        respect-pom-xml: false
-        respect-funcignore: false
-        scm-do-build-during-deployment: false
-        enable-oryx-build: false
-        remote-build: false
+      run: |
+        # Install Azure Functions Core Tools
+        npm install -g azure-functions-core-tools@4 --unsafe-perm true
+        
+        # Deploy using Azure Functions Core Tools
+        func azure functionapp publish chatbotprocessor --javascript
     
  
