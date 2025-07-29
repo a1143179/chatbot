@@ -72,4 +72,9 @@ jobs:
       run: |
         # Deploy from the prepared deployment directory
         cd deployment
-        func azure functionapp publish chatbotprocessor --javascript 
+        func azure functionapp publish chatbotprocessor --javascript
+        
+    - name: Restart Function App
+      run: |
+        # Restart the function app to ensure new files are loaded
+        az functionapp restart --name chatbotprocessor --resource-group ResourceGroup1 
