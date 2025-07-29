@@ -49,9 +49,10 @@ jobs:
         # 清理 deployment 目录
         rm -rf deployment
         mkdir -p deployment
-        # 只复制 health 目录下的 index.js 和 function.json 到 deployment 根目录
+        # 复制 health 目录下的 index.js、function.json、host.json 到 deployment 根目录
         cp api/health/index.js deployment/
         cp api/health/function.json deployment/
+        cp api/health/host.json deployment/
         # 显示结构
         echo "Deployment structure:"
         ls -la deployment/
