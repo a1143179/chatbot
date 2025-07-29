@@ -22,7 +22,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
         cache: 'npm'
         cache-dependency-path: api/package-lock.json
     
@@ -58,6 +58,13 @@ jobs:
         cp api/package-lock.json deployment/
         # Copy source files
         cp -r api/src deployment/
+        # Remove unnecessary files that might have been copied
+        rm -rf deployment/node_modules 2>/dev/null || true
+        rm -rf deployment/coverage 2>/dev/null || true
+        rm -f deployment/local.settings.json 2>/dev/null || true
+        rm -f deployment/.gitignore 2>/dev/null || true
+        rm -f deployment/.nvmrc 2>/dev/null || true
+        rm -f deployment/run-tests.js 2>/dev/null || true
         # Show the structure
         echo "Deployment structure:"
         ls -la deployment/
