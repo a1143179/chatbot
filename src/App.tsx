@@ -285,8 +285,8 @@ function App() {
         const vrm = gltf.userData.vrm;
         vrmRef.current = vrm;
         scene.add(vrm.scene);
-        // Position the model to be centered and higher up
-        vrm.scene.position.set(0, 1.5, 0); // Center the avatar and move up
+        // Position the model to be centered and slightly lower
+        vrm.scene.position.set(0, 1.0, 0); // Center the avatar and move down a little
         vrm.scene.rotation.y = Math.PI; // Face the camera
         vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
         // Enable shadows
@@ -335,9 +335,9 @@ function App() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
-        // Ensure avatar stays centered and higher up after resize
+        // Ensure avatar stays centered and at correct height after resize
         if (vrmRef.current) {
-          vrmRef.current.scene.position.set(0, 1.5, 0);
+          vrmRef.current.scene.position.set(0, 1.0, 0);
         }
       }
     };
