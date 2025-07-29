@@ -90,6 +90,8 @@ jobs:
         echo "Creating empty deployment to clear wwwroot..."
         mkdir -p empty-deploy
         cd empty-deploy
+        # Create a dummy file to make zip work
+        echo "placeholder" > placeholder.txt
         zip -r ../empty.zip .
         cd ..
         
