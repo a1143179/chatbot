@@ -1,6 +1,21 @@
 const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+        context.res = {
+            status: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '86400'
+            },
+            body: {}
+        };
+        return;
+    }
+    
     // Get request body
     const body = req.body;
     const { prompt } = body;
@@ -73,7 +88,8 @@ module.exports = async function (context, req) {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type'
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '86400'
             },
             body: {
                 response: aiResponse,
@@ -91,7 +107,8 @@ module.exports = async function (context, req) {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type'
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '86400'
             },
             body: {
                 error: 'Error occurred while processing request',
