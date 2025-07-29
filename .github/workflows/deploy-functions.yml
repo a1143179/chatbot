@@ -97,7 +97,7 @@ jobs:
         cd ..
         
         # Deploy empty zip to clear wwwroot
-        az functionapp deployment source config-zip --resource-group chatbotprocessor --name chatbotprocessor --src empty.zip --timeout 60
+        az functionapp deployment source config-zip --resource-group rg-chatbot --name chatbotprocessor --src empty.zip --timeout 60
         
         # Wait a moment for the cleanup to complete
         sleep 10
