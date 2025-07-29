@@ -1,0 +1,85 @@
+name: Deploy to Azure Functions
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [ main, working ]
+    paths:
+      - 'api/**'
+      - '.github/workflows/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: api/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd api
+        npm ci
+    
+    - name: Run unit tests
+      run: |
+        cd api
+        npm test
+    
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Prepare deployment structure
+      run: |
+        # Create a deployment directory with correct structure
+        mkdir -p deployment
+        # Copy host.json to root (Azure Functions expects it here)
+        cp api/host.json deployment/
+        # Copy function directories
+        cp -r api/health deployment/
+        cp -r api/process deployment/
+        # Copy package files
+        cp api/package.json deployment/
+        cp api/package-lock.json deployment/
+        # Copy source files
+        cp -r api/src deployment/
+        # Show the structure
+        echo "Deployment structure:"
+        ls -la deployment/
+        echo "host.json location:"
+        find deployment/ -name "host.json"
+    
+    - name: Clean wwwroot directory
+      run: |
+        # Install Azure Functions Core Tools
+        npm install -g azure-functions-core-tools@4 --unsafe-perm true
+        
+        # Create an empty zip file to clear the wwwroot directory
+        echo "Creating empty deployment to clear wwwroot..."
+        mkdir -p empty-deploy
+        cd empty-deploy
+        # Create a dummy file to make zip work
+        echo "placeholder" > placeholder.txt
+        zip -r ../empty.zip .
+        cd ..
+        
+        # Deploy empty zip to clear wwwroot
+        az functionapp deployment source config-zip --resource-group ResourceGroup1 --name chatbotprocessor --src empty.zip --timeout 60
+        
+        # Wait a moment for the cleanup to complete
+        sleep 10
+        
+    - name: Deploy to Azure Functions
+      run: |
+        # Deploy from the prepared deployment directory
+        cd deployment
+        func azure functionapp publish chatbotprocessor --javascript 
