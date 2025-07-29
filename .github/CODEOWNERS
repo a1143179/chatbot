@@ -1,0 +1,20 @@
+# Global repository owners
+* @
+
+# Frontend files (React/TypeScript)
+/src/ @
+*.tsx @
+*.ts @
+
+# API files (Azure Functions)
+/api/ @
+*.js @
+
+# Configuration files
+package.json @
+tsconfig.json @
+*.yml @
+*.yaml @
+
+# Documentation
+*.md @ 

@@ -33,6 +33,7 @@
     "api:lint": "cd api && npm run lint",
     "api:pre-commit": "npm run api:lint && npm run api:test",
     "full-pre-commit": "npm run pre-commit && npm run api:pre-commit",
+    "test-ci": "node test-ci-setup.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
