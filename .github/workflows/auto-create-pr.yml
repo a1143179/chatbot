@@ -2,12 +2,8 @@ name: Auto Create Pull Request
 
 on:
   push:
-    branches:
-      - working
-      - feature/*
-      - hotfix/*
-      - bugfix/*
-      - develop
+    branches-ignore:
+      - main
     paths-ignore:
       - 'README.md'
       - '.gitignore'
@@ -94,9 +90,11 @@ jobs:
         run: |
           BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
           
-          # Determine target branch based on current branch
+          # All branches create PR to main
+          TARGET_BRANCH="main"
+          
+          # Determine PR title and body based on branch name
           if [[ "$BRANCH_NAME" == "working" ]]; then
-            TARGET_BRANCH="main"
             PR_TITLE="🚀 Deploy to Production"
             PR_BODY="## 🚀 Production Deployment
           
@@ -118,29 +116,7 @@ jobs:
           - [ ] Ready for deployment
           - [ ] No breaking changes"
           
-          elif [[ "$BRANCH_NAME" == "develop" ]]; then
-            TARGET_BRANCH="working"
-            PR_TITLE="🔄 Merge Develop to Working"
-            PR_BODY="## 🔄 Development Updates
-          
-          This PR merges development changes to the working branch.
-          
-          ### 📋 What's Changed
-          - Development updates from develop branch
-          - Ready for testing and review
-          
-          ### 🔄 Recent Commits
-          \`\`\`
-          ${{ steps.commits.outputs.commit_messages }}
-          \`\`\`
-          
-          ### ✅ Checklist
-          - [ ] Tests passing
-          - [ ] Code reviewed
-          - [ ] Ready for working branch"
-          
           elif [[ "$BRANCH_NAME" =~ ^feature/ ]]; then
-            TARGET_BRANCH="develop"
             FEATURE_NAME=$(echo "$BRANCH_NAME" | sed 's/feature\///')
             PR_TITLE="✨ Feature: $FEATURE_NAME"
             PR_BODY="## ✨ Feature: $FEATURE_NAME
@@ -163,7 +139,6 @@ jobs:
           - [ ] Documentation updated"
           
           elif [[ "$BRANCH_NAME" =~ ^hotfix/ ]]; then
-            TARGET_BRANCH="working"
             HOTFIX_NAME=$(echo "$BRANCH_NAME" | sed 's/hotfix\///')
             PR_TITLE="🚨 Hotfix: $HOTFIX_NAME"
             PR_BODY="## 🚨 Hotfix: $HOTFIX_NAME
@@ -186,7 +161,6 @@ jobs:
           - [ ] Ready for immediate deployment"
           
           elif [[ "$BRANCH_NAME" =~ ^bugfix/ ]]; then
-            TARGET_BRANCH="develop"
             BUGFIX_NAME=$(echo "$BRANCH_NAME" | sed 's/bugfix\///')
             PR_TITLE="🐛 Bugfix: $BUGFIX_NAME"
             PR_BODY="## 🐛 Bugfix: $BUGFIX_NAME
@@ -209,7 +183,6 @@ jobs:
           - [ ] No regression introduced"
           
           else
-            TARGET_BRANCH="develop"
             PR_TITLE="📝 Update from $BRANCH_NAME"
             PR_BODY="## 📝 Update from $BRANCH_NAME
           
