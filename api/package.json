@@ -4,7 +4,7 @@
   "description": "Azure Functions for Chatbot API",
   "main": "index.js",
   "engines": {
-    "node": "22.x"
+    "node": "22.14.0"
   },
   "scripts": {
     "start": "func start",
