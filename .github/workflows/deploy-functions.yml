@@ -1,9 +1,6 @@
 name: Deploy Azure Functions
 
 on:
-  push:
-    paths:
-      - 'api/**'
   pull_request_target:
     types: [closed]
     branches: [ main, working ]
@@ -13,7 +10,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == false
     
     steps:
     - uses: actions/checkout@v4
