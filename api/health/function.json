@@ -16,6 +16,5 @@
       "direction": "out",
       "name": "res"
     }
-  ],
-  "scriptFile": "../src/functions/health.js"
+  ]
 } 
