@@ -1,26 +1,6 @@
-// Mock the app.http to capture the handler
-const mockApp = {
-  http: jest.fn()
-};
-
-// Mock the @azure/functions module
-jest.mock('@azure/functions', () => ({
-  app: mockApp
-}));
-
-// Import the health function to trigger the registration
-require('./health');
+const healthFunction = require('./health.js');
 
 describe('Health Function', () => {
-  let healthHandler;
-
-  beforeEach(() => {
-    // Get the registered handler
-    expect(mockApp.http).toHaveBeenCalledWith('health', expect.any(Object));
-    const callArgs = mockApp.http.mock.calls[0];
-    healthHandler = callArgs[1].handler;
-  });
-
   test('should return 200 status and health message', async () => {
     const mockRequest = {
       method: 'GET',
@@ -28,22 +8,27 @@ describe('Health Function', () => {
     };
 
     const mockContext = {
-      log: jest.fn()
+      log: jest.fn(),
+      res: {}
     };
 
     // Mock environment variable
-    process.env.GOOGLE_AI_API_KEY = 'test-key';
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, GOOGLE_AI_API_KEY: 'test-key' };
 
-    const response = await healthHandler(mockRequest, mockContext);
+    await healthFunction(mockContext, mockRequest);
 
-    expect(response.status).toBe(200);
-    expect(response.jsonBody).toHaveProperty('status', 'healthy');
-    expect(response.jsonBody).toHaveProperty('timestamp');
-    expect(response.jsonBody).toHaveProperty('service', 'chatbot-api');
-    expect(response.jsonBody).toHaveProperty('version', '1.0.1');
-    expect(response.jsonBody).toHaveProperty('deployment', 'fixed-package-structure');
-    expect(response.jsonBody.checks.googleAI.configured).toBe(true);
-    expect(response.jsonBody.checks.googleAI.status).toBe('ready');
+    expect(mockContext.res.status).toBe(200);
+    expect(mockContext.res.body).toHaveProperty('status', 'healthy');
+    expect(mockContext.res.body).toHaveProperty('timestamp');
+    expect(mockContext.res.body).toHaveProperty('service', 'chatbot-api');
+    expect(mockContext.res.body).toHaveProperty('version', '1.0.1');
+    expect(mockContext.res.body).toHaveProperty('deployment', 'fixed-package-structure');
+    expect(mockContext.res.body.checks.googleAI.configured).toBe(true);
+    expect(mockContext.res.body.checks.googleAI.status).toBe('ready');
+
+    // Restore process.env
+    process.env = originalEnv;
   });
 
   test('should return 503 when API key is not configured', async () => {
@@ -53,16 +38,22 @@ describe('Health Function', () => {
     };
 
     const mockContext = {
-      log: jest.fn()
+      log: jest.fn(),
+      res: {}
     };
 
     // Remove environment variable
+    const originalEnv = process.env;
+    process.env = { ...originalEnv };
     delete process.env.GOOGLE_AI_API_KEY;
 
-    const response = await healthHandler(mockRequest, mockContext);
+    await healthFunction(mockContext, mockRequest);
 
-    expect(response.status).toBe(503);
-    expect(response.jsonBody.checks.googleAI.configured).toBe(false);
-    expect(response.jsonBody.checks.googleAI.status).toBe('not_configured');
+    expect(mockContext.res.status).toBe(503);
+    expect(mockContext.res.body.checks.googleAI.configured).toBe(false);
+    expect(mockContext.res.body.checks.googleAI.status).toBe('not_configured');
+
+    // Restore process.env
+    process.env = originalEnv;
   });
 }); 
