@@ -1,34 +1,34 @@
-# Node.js 20 Upgrade Guide
+# Node.js 22 Upgrade Guide
 
 ## Overview
 
-This project has been upgraded to use Node.js 20 across all components for better performance, security, and modern JavaScript features.
+This project has been upgraded to use Node.js 22 across all components for better performance, security, and modern JavaScript features.
 
 ## Changes Made
 
 ### ✅ Package.json Updates
 
 **Frontend (root package.json):**
-- Updated `@types/node` from `^16.18.126` to `^20.0.0`
+- Updated `@types/node` from `^16.18.126` to `^22.0.0`
 
 **API (api/package.json):**
-- Updated `engines.node` from `18.x` to `20.x`
+- Updated `engines.node` from `18.x` to `22.x`
 
 ### ✅ GitHub Actions Workflows
 
-All CI/CD workflows updated to use Node.js 20:
-- `deploy-functions.yml` - Node.js 20
-- `deploy-functions-merged.yml` - Node.js 20
-- `deploy-frontend.yml` - Node.js 20
-- `deploy-frontend-merged.yml` - Node.js 20
+All CI/CD workflows updated to use Node.js 22:
+- `deploy-functions.yml` - Node.js 22
+- `deploy-functions-merged.yml` - Node.js 22
+- `deploy-frontend.yml` - Node.js 22
+- `deploy-frontend-merged.yml` - Node.js 22
 
 ### ✅ Local Development
 
 Added `.nvmrc` files:
-- Root `.nvmrc` - Node.js 20
-- `api/.nvmrc` - Node.js 20
+- Root `.nvmrc` - Node.js 22
+- `api/.nvmrc` - Node.js 22
 
-## Benefits of Node.js 20
+## Benefits of Node.js 22
 
 ### Performance Improvements
 - **Faster startup times** - Improved V8 engine performance
@@ -50,12 +50,12 @@ Added `.nvmrc` files:
 ### Using nvm (Node Version Manager)
 
 ```bash
-# Install Node.js 20
-nvm install 20
-nvm use 20
+# Install Node.js 22
+nvm install 22
+nvm use 22
 
 # Verify version
-node --version  # Should show v20.x.x
+node --version  # Should show v22.x.x
 ```
 
 ### Using .nvmrc files
@@ -65,22 +65,22 @@ The project includes `.nvmrc` files that automatically set the correct Node.js v
 ```bash
 # Navigate to project root
 cd /path/to/chatbot
-nvm use  # Automatically uses Node.js 20
+nvm use  # Automatically uses Node.js 22
 
 # Navigate to API directory
 cd api
-nvm use  # Automatically uses Node.js 20
+nvm use  # Automatically uses Node.js 22
 ```
 
 ## Azure Functions Compatibility
 
 ### Azure Functions Runtime Support
-- **Azure Functions v4** fully supports Node.js 20
-- **Better cold start performance** with Node.js 20
+- **Azure Functions v4** fully supports Node.js 22
+- **Better cold start performance** with Node.js 22
 - **Enhanced debugging** capabilities
 
 ### Deployment Considerations
-- Azure Functions will automatically use Node.js 20 based on `engines.node` in `api/package.json`
+- Azure Functions will automatically use Node.js 22 based on `engines.node` in `api/package.json`
 - No additional configuration needed for Azure deployment
 
 ## Testing the Upgrade
@@ -98,9 +98,9 @@ npm run full-pre-commit
 ```
 
 ### CI/CD Testing
-- All GitHub Actions workflows now use Node.js 20
+- All GitHub Actions workflows now use Node.js 22
 - Automated testing will verify compatibility
-- Deployment will use Node.js 20 runtime
+- Deployment will use Node.js 22 runtime
 
 ## Rollback Plan
 
@@ -128,10 +128,10 @@ If issues arise, you can rollback to Node.js 18:
 
 ## Verification Checklist
 
-- [ ] Local development works with Node.js 20
-- [ ] All tests pass with Node.js 20
-- [ ] GitHub Actions use Node.js 20
-- [ ] Azure Functions deployment uses Node.js 20
+- [ ] Local development works with Node.js 22
+- [ ] All tests pass with Node.js 22
+- [ ] GitHub Actions use Node.js 22
+- [ ] Azure Functions deployment uses Node.js 22
 - [ ] No breaking changes in application functionality
 - [ ] Performance improvements observed
 
@@ -147,7 +147,7 @@ If issues arise, you can rollback to Node.js 18:
    - Check for deprecated APIs
 
 3. **Azure Functions deployment issues**
-   - Verify Azure Functions runtime version supports Node.js 20
+   - Verify Azure Functions runtime version supports Node.js 22
    - Check function app configuration
 
 ### Performance Monitoring
@@ -161,8 +161,8 @@ Monitor these metrics after upgrade:
 ## Next Steps
 
 1. **Monitor performance** - Track improvements in production
-2. **Update dependencies** - Consider updating other packages for Node.js 20 compatibility
+2. **Update dependencies** - Consider updating other packages for Node.js 22 compatibility
 3. **Security audit** - Run security scans with new Node.js version
-4. **Documentation** - Update team documentation with Node.js 20 requirements
+4. **Documentation** - Update team documentation with Node.js 22 requirements
 
-The upgrade to Node.js 20 provides significant performance and security benefits while maintaining full compatibility with your existing codebase! 
+The upgrade to Node.js 22 provides significant performance and security benefits while maintaining full compatibility with your existing codebase! 
