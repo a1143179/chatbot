@@ -29,16 +29,12 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 │   ├── health/             # Health function directory
 │   │   ├── function.json   # Function configuration
 │   │   └── index.js        # Function entry point
-│   ├── test/               # Test function directory
-│   │   ├── function.json   # Function configuration
-│   │   └── index.js        # Function entry point
 │   ├── process/            # Process function directory
 │   │   ├── function.json   # Function configuration
 │   │   └── index.js        # Function entry point
 │   ├── src/
 │   │   └── functions/      # Function source code
 │   │       ├── health.js   # Health check endpoint
-│   │       ├── test.js     # Test endpoint
 │   │       └── process.js  # AI processing endpoint
 │   ├── package.json        # Backend dependencies
 │   ├── host.json          # Azure Functions configuration
@@ -151,7 +147,6 @@ Configure the following environment variables:
 - **Frontend**: `https://a1143179.github.io/chatbot`
 - **Backend**: `https://chatbotprocessor.azurewebsites.net/api/`
 - **Health Check**: `https://chatbotprocessor.azurewebsites.net/api/health`
-- **Test Endpoint**: `https://chatbotprocessor.azurewebsites.net/api/test`
 - **Process Endpoint**: `https://chatbotprocessor.azurewebsites.net/api/process`
 
 ## Azure Functions Architecture
