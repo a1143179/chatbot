@@ -10,6 +10,7 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 - 🔊 **Speech Synthesis**: Use browser TTS API to play AI responses
 - 🌐 **Cloud Deployment**: GitHub Pages (Frontend) + Azure Functions (Backend)
 - 🔄 **Real-time Processing**: Voice-to-text → AI processing → Text-to-speech
+- 🚀 **Automated CI/CD**: GitHub Actions for seamless deployment
 
 ## Tech Stack
 
@@ -18,15 +19,26 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 - **AI Service**: Google AI Studio (Gemini Pro)
 - **Speech**: Web Speech API (STT + TTS)
 - **Deployment**: GitHub Pages + Azure Functions + GitHub Actions
+- **CI/CD**: GitHub Actions with automated testing and deployment
 
 ## Project Structure
 
 ```
 /
 ├── api/                     # Azure Functions Backend
+│   ├── health/             # Health function directory
+│   │   ├── function.json   # Function configuration
+│   │   └── index.js        # Function entry point
+│   ├── test/               # Test function directory
+│   │   ├── function.json   # Function configuration
+│   │   └── index.js        # Function entry point
+│   ├── process/            # Process function directory
+│   │   ├── function.json   # Function configuration
+│   │   └── index.js        # Function entry point
 │   ├── src/
-│   │   └── functions/      # New Azure Functions Programming Model
+│   │   └── functions/      # Function source code
 │   │       ├── health.js   # Health check endpoint
+│   │       ├── test.js     # Test endpoint
 │   │       └── process.js  # AI processing endpoint
 │   ├── package.json        # Backend dependencies
 │   ├── host.json          # Azure Functions configuration
@@ -42,7 +54,8 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 │   └── App.css            # Style Files
 ├── .github/workflows/      # GitHub Actions
 │   ├── deploy-frontend.yml # GitHub Pages Deployment
-│   └── deploy-functions.yml # Azure Functions Deployment
+│   ├── deploy-functions.yml # Azure Functions Deployment
+│   └── auto-create-pr.yml # Auto PR Creation
 ├── DEPLOYMENT.md          # Detailed Deployment Guide
 └── README.md
 ```
@@ -135,32 +148,55 @@ Configure the following environment variables:
 
 ## Deployment URLs
 
-- **Frontend**: `https://your-username.github.io/chatbot`
-- **Backend**: `https://your-function-app.azurewebsites.net/api/`
+- **Frontend**: `https://a1143179.github.io/chatbot`
+- **Backend**: `https://chatbotprocessor.azurewebsites.net/api/`
+- **Health Check**: `https://chatbotprocessor.azurewebsites.net/api/health`
+- **Test Endpoint**: `https://chatbotprocessor.azurewebsites.net/api/test`
+- **Process Endpoint**: `https://chatbotprocessor.azurewebsites.net/api/process`
 
 ## Azure Functions Architecture
 
-### New Programming Model
-This project uses the **new Azure Functions Node.js programming model**:
+### Traditional Programming Model
+This project uses the **traditional Azure Functions Node.js programming model** for better stability:
 
-- **File Structure**: Functions in `src/functions/*.js`
-- **Package.json**: `"main": "src/functions/*.js"`
-- **No function.json**: Not required in new model
-   - **Runtime**: Node.js 22 LTS
+- **File Structure**: Each function has its own directory with `function.json` and `index.js`
+- **Function Configuration**: `function.json` defines HTTP triggers and routes
+- **Entry Points**: `index.js` files in each function directory
+- **Runtime**: Node.js 22 LTS
 - **Plan**: Consumption (Serverless)
 
 ### Function Structure
 ```javascript
-const { app } = require('@azure/functions');
+// Traditional model - index.js
+module.exports = async function (context, req) {
+    // Function logic here
+    context.res = {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: { message: 'Hello' }
+    };
+};
+```
 
-app.http('functionName', {
-    methods: ['GET', 'POST'],
-    authLevel: 'anonymous',
-    handler: async (request, context) => {
-        // Function logic here
-        return { jsonBody: { message: 'Hello' } };
+```json
+// function.json
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get", "post"],
+      "route": "health"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
     }
-});
+  ]
+}
 ```
 
 ## Cost Optimization
@@ -196,17 +232,31 @@ curl http://localhost:7071/api/health
 
 1. **Functions not detected in Azure Portal**
    - Ensure you're using Consumption plan (not App Service plan)
-   - Verify `"main": "src/functions/*.js"` in package.json
+   - Verify function directories have `function.json` and `index.js`
    - Check Node.js version is 22 LTS
+   - Ensure `host.json` has correct `routePrefix` configuration
 
 2. **404 errors on endpoints**
    - Verify functions are deployed correctly
    - Check Azure Portal → Functions section
    - Ensure correct Function App URL in frontend config
+   - Verify `host.json` contains `"routePrefix": "api"`
 
-3. **Speech recognition not working**
+3. **Deployment issues**
+   - Use Azure Functions Core Tools for reliable deployment
+   - Ensure deployment package has correct structure
+   - Check GitHub Actions logs for deployment errors
+
+4. **Speech recognition not working**
    - Ensure HTTPS is used (required for Web Speech API)
    - Check browser permissions for microphone access
+
+### Recent Fixes
+
+- ✅ **Fixed deployment structure**: Using traditional Azure Functions model
+- ✅ **Added proper function.json files**: For each function directory
+- ✅ **Improved deployment workflow**: With cleanup and proper package structure
+- ✅ **Removed conflicting workflows**: Eliminated auto-generated Azure workflow
 
 ## License
 
@@ -243,15 +293,23 @@ This project uses a **frontend-backend separation** architecture:
    - Plan: Consumption (Serverless)
    - Operating System: Windows or Linux
 
-2. **Deploy using Azure Functions Core Tools**
+2. **Configure Environment Variables**
+   - `GOOGLE_AI_API_KEY`: Your Google AI Studio API key
+
+3. **Deploy using GitHub Actions (Recommended)**
+   - Configure `AZURE_CREDENTIALS` in GitHub Secrets
+   - Push changes to trigger automatic deployment
+   - Deployment includes cleanup and proper package structure
+
+4. **Manual Deployment using Azure Functions Core Tools**
    ```bash
    cd api
-   func azure functionapp publish <FUNCTION_APP_NAME> --javascript --force
+   func azure functionapp publish chatbotprocessor --javascript
    ```
 
-3. **Or use GitHub Actions**
-   - Add `AZURE_FUNCTIONAPP_PUBLISH_PROFILE` to GitHub Secrets
-   - Push changes to trigger automatic deployment
+5. **Verify Deployment**
+   - Check health endpoint: `https://chatbotprocessor.azurewebsites.net/api/health`
+   - Verify all functions are listed in Azure Portal
 
 ### Frontend-Backend Integration
 
