@@ -12,7 +12,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
-    timeout-minutes: 30
+    timeout-minutes: 45
     
     steps:
     - uses: actions/checkout@v4
@@ -30,39 +30,53 @@ jobs:
       run: |
         cd api
         npm ci --no-audit
-      timeout-minutes: 10
+      timeout-minutes: 15
     
     - name: Run unit tests
       run: |
         cd api
         npm test
-      timeout-minutes: 5
+      timeout-minutes: 10
     
     - name: Login to Azure
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-      timeout-minutes: 10
+      timeout-minutes: 15
     
     - name: Install Azure Functions Core Tools
       run: |
         npm install -g azure-functions-core-tools@4 --unsafe-perm true
     
+    - name: Prepare deployment package
+      run: |
+        cd api
+        # Create a clean deployment directory
+        rm -rf deployment
+        mkdir -p deployment
+        
+        # Copy only necessary files
+        cp -r health deployment/
+        cp -r process deployment/
+        cp host.json deployment/
+        cp package.json deployment/
+        
+        # Show deployment structure
+        echo "Deployment package structure:"
+        ls -la deployment/
+        ls -la deployment/health/
+        ls -la deployment/process/
+      timeout-minutes: 10
+    
     - name: Deploy to Azure Functions
       run: |
-        # Show structure for debugging
-        echo "API directory structure before deploy:"
-        ls -la api/
-        ls -la api/health/
-        ls -la api/process/
-        
-        # Deploy with dependencies
-        cd api
-        func azure functionapp publish chatbotprocessor --javascript --force --build remote
-      timeout-minutes: 20
+        cd api/deployment
+        # Deploy without remote build to avoid timeout
+        func azure functionapp publish chatbotprocessor --javascript --force
+      timeout-minutes: 25
         
     - name: Restart Function App
       run: |
         # Restart the function app to ensure new files are loaded
         az functionapp restart --name chatbotprocessor --resource-group ResourceGroup1
-      timeout-minutes: 5 
+      timeout-minutes: 10 
