@@ -61,13 +61,36 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
-    - name: Deploy to Azure Functions
+    - name: Prepare deployment structure
+      run: |
+        # Create a deployment directory with correct structure
+        mkdir -p deployment
+        # Copy host.json to root (Azure Functions expects it here)
+        cp api/host.json deployment/
+        # Copy function directories
+        cp -r api/health deployment/
+        cp -r api/test deployment/
+        cp -r api/process deployment/
+        # Copy package files
+        cp api/package.json deployment/
+        cp api/package-lock.json deployment/
+        # Copy source files
+        cp -r api/src deployment/
+        # Show the structure
+        echo "Deployment structure:"
+        ls -la deployment/
+        echo "host.json location:"
+        find deployment/ -name "host.json"
+    
+    - name: Clean and deploy to Azure Functions
       run: |
         # Install Azure Functions Core Tools
         npm install -g azure-functions-core-tools@4 --unsafe-perm true
         
-        # Change to api directory and deploy
-        cd api
-        func azure functionapp publish chatbotprocessor --javascript
+        # Clean wwwroot and deploy from the prepared deployment directory
+        cd deployment
+        func azure functionapp publish chatbotprocessor --javascript --force
+    
+
     
  
