@@ -33,7 +33,9 @@
     "api:lint": "cd api && npm run lint",
     "api:pre-commit": "npm run api:lint && npm run api:test",
     "full-pre-commit": "npm run pre-commit && npm run api:pre-commit",
-    "eject": "react-scripts eject"
+    "build-check": "npm run lint && npm run type-check && npm run test && npm run build",
+    "eject": "react-scripts eject",
+    "prepare": "husky"
   },
   "eslintConfig": {
     "extends": [
@@ -59,6 +61,20 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "git add"
     ]
   }
 }

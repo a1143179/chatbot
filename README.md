@@ -314,3 +314,5 @@ This project uses a **frontend-backend separation** architecture:
 ---
 
 For detailed deployment steps, see [DEPLOYMENT.md](DEPLOYMENT.md).
+#   T e s t   p r e - c o m m i t   h o o k  
+ 

@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+echo "📝 Running frontend tests..."
+
+# Run frontend tests and build
+npm run build-check
+
+if [ $? -eq 0 ]; then
+    echo "🔧 Running API tests..."
+    
+    # Run API tests
+    cd api && npm test
+    
+    if [ $? -eq 0 ]; then
+        echo ""
+        echo "📊 Pre-commit Check Summary:"
+        echo "  Frontend Tests: ✅ PASSED"
+        echo "  API Tests: ✅ PASSED"
+        echo ""
+        echo "✅ All tests passed! Commit allowed."
+    else
+        echo ""
+        echo "❌ API tests failed. Commit blocked."
+        exit 1
+    fi
+else
+    echo ""
+    echo "❌ Frontend tests or build failed. Commit blocked."
+    exit 1
+fi
