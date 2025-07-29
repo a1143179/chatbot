@@ -46,14 +46,14 @@ jobs:
     
     - name: Prepare deployment structure
       run: |
-        # 清理 deployment 目录
+        # Clean deployment directory
         rm -rf deployment
         mkdir -p deployment
-        # 复制 health 目录下的 index.js、function.json、host.json 到 deployment 根目录
+        # Copy index.js, function.json, and host.json from health to deployment root
         cp api/health/index.js deployment/
         cp api/health/function.json deployment/
         cp api/health/host.json deployment/
-        # 显示结构
+        # Show structure
         echo "Deployment structure:"
         ls -la deployment/
       timeout-minutes: 5
