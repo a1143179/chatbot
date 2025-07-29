@@ -12,9 +12,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+    timeout-minutes: 30
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -26,17 +29,20 @@ jobs:
     - name: Install dependencies
       run: |
         cd api
-        npm ci
+        npm ci --no-audit
+      timeout-minutes: 10
     
     - name: Run unit tests
       run: |
         cd api
         npm test
+      timeout-minutes: 5
     
     - name: Login to Azure
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+      timeout-minutes: 10
     
     - name: Prepare deployment structure
       run: |
@@ -61,20 +67,22 @@ jobs:
         ls -la deployment/health/
         echo "Process function structure:"
         ls -la deployment/process/
+      timeout-minutes: 5
     
-
-        
     - name: Install Azure Functions Core Tools
       run: |
         npm install -g azure-functions-core-tools@4 --unsafe-perm true
+      timeout-minutes: 10
         
     - name: Deploy to Azure Functions
       run: |
         # Deploy from the prepared deployment directory
         cd deployment
-        func azure functionapp publish chatbotprocessor --javascript
+        func azure functionapp publish chatbotprocessor --javascript --force
+      timeout-minutes: 20
         
     - name: Restart Function App
       run: |
         # Restart the function app to ensure new files are loaded
-        az functionapp restart --name chatbotprocessor --resource-group ResourceGroup1 
+        az functionapp restart --name chatbotprocessor --resource-group ResourceGroup1
+      timeout-minutes: 5 
