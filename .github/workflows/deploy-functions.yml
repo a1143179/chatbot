@@ -62,17 +62,10 @@ jobs:
         mkdir -p deployment
         # Copy all files from api directory to deployment root
         cp -r api/* deployment/
-        # Copy host.json to root (it should be at root level)
-        cp api/host.json deployment/
-        # Copy package.json and other necessary files
-        cp api/package.json deployment/
-        cp api/package-lock.json deployment/
-        # Copy source files
-        cp -r api/src deployment/
-        # Copy function directories
-        cp -r api/health deployment/
-        cp -r api/test deployment/
-        cp -r api/process deployment/
+        # Ensure host.json is at the root level
+        ls -la deployment/
+        echo "Deployment package structure:"
+        find deployment/ -type f -name "*.json" | head -10
     
     - name: Login to Azure
       uses: azure/login@v2
