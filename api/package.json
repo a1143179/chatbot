@@ -11,8 +11,8 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "lint": "eslint src --ext .js --max-warnings 0",
-    "lint:fix": "eslint src --ext .js --fix",
+    "lint": "eslint . --ext .js --max-warnings 0 --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
+    "lint:fix": "eslint . --ext .js --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "pre-commit": "npm run lint && npm run test"
   },
   "dependencies": {
