@@ -36,9 +36,13 @@ jobs:
         cd api
         npm run lint
         
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
     - name: Deploy to Azure Functions
       uses: Azure/functions-action@v1
       with:
         app-name: 'chatbotprocessor'
-        package: './api'
-        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }} 
+        package: './api' 
