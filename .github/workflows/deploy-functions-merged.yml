@@ -57,6 +57,10 @@ jobs:
         ls -la deployment/
         echo "host.json location:"
         find deployment/ -name "host.json"
+        echo "Health function structure:"
+        ls -la deployment/health/
+        echo "Process function structure:"
+        ls -la deployment/process/
     
 
         
