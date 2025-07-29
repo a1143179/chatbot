@@ -56,17 +56,6 @@ jobs:
         cd api
         npm test
     
-    - name: Prepare deployment package
-      run: |
-        # Create deployment directory
-        mkdir -p deployment
-        # Copy all files from api directory to deployment root
-        cp -r api/* deployment/
-        # Ensure host.json is at the root level
-        ls -la deployment/
-        echo "Deployment package structure:"
-        find deployment/ -type f -name "*.json" | head -10
-    
     - name: Login to Azure
       uses: azure/login@v2
       with:
@@ -76,7 +65,7 @@ jobs:
       uses: Azure/functions-action@v1
       with:
         app-name: 'chatbotprocessor'
-        package: './deployment'
+        package: './api'
         respect-pom-xml: false
         respect-funcignore: false
         scm-do-build-during-deployment: false
