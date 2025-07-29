@@ -285,8 +285,8 @@ function App() {
         const vrm = gltf.userData.vrm;
         vrmRef.current = vrm;
         scene.add(vrm.scene);
-        // Position the model to be centered and slightly lower
-        vrm.scene.position.set(0, 1.0, 0); // Center the avatar and move down a little
+        // Position the model to be centered and moved up 50px from previous position
+        vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
         vrm.scene.rotation.y = Math.PI; // Face the camera
         vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
         // Enable shadows
@@ -296,18 +296,8 @@ function App() {
             child.receiveShadow = true;
           }
         });
-        // Load and play vrma_07.vrma animation
-        const animLoader = new GLTFLoader();
-        animLoader.load('/models/vrma_07.vrma', (animGltf: any) => {
-          if (animGltf.animations && animGltf.animations.length > 0) {
-            console.log('vrma_07.vrma tracks:', animGltf.animations[0].tracks.map((t: any) => t.name));
-            const mixer = new THREE.AnimationMixer(vrm.scene);
-            mixer.clipAction(animGltf.animations[0]).play();
-            mixerRef.current = mixer;
-          } else {
-            console.log('No animations found in vrma_07.vrma');
-          }
-        });
+        // Keep avatar in idle state (no animation)
+        console.log('Avatar loaded in idle state');
       },
       (progress: any) => {
         console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
@@ -337,7 +327,7 @@ function App() {
         renderer.setSize(window.innerWidth, window.innerHeight);
         // Ensure avatar stays centered and at correct height after resize
         if (vrmRef.current) {
-          vrmRef.current.scene.position.set(0, 1.0, 0);
+          vrmRef.current.scene.position.set(0, 0.75, 0);
         }
       }
     };
