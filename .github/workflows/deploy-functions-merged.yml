@@ -62,13 +62,15 @@ jobs:
     
     - name: Install Azure Functions Core Tools
       run: |
+        # Install Azure Functions Core Tools if not already installed
         npm install -g azure-functions-core-tools@4 --unsafe-perm true
-      timeout-minutes: 10
-        
-    - name: Deploy to Azure Functions
-      run: |
-        # Deploy from the prepared deployment directory
-        cd deployment
+        # Show structure for debugging
+        echo "API directory structure before deploy:"
+        ls -la api/
+        ls -la api/health/
+        ls -la api/process/
+        # Deploy directly from api directory
+        cd api
         func azure functionapp publish chatbotprocessor --javascript --force
       timeout-minutes: 20
         
