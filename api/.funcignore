@@ -10,4 +10,9 @@ local.settings.json
 *.log
 *.test.js
 *.test.ts
-.nvmrc 
+.nvmrc
+.gitignore
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log* 
