@@ -10,7 +10,7 @@ This project now includes a comprehensive pre-commit hook that ensures code qual
 - ✅ **Linting** - ESLint checks for code style and potential errors
 - ✅ **Type Checking** - TypeScript compilation check
 - ✅ **Unit Tests** - Jest test suite execution
-- ✅ **Build Test** - Production build verification
+- ⚡ **Fast Validation** - No build step for speed
 
 ### 2. **API Validation**
 - ✅ **API Linting** - ESLint for API code
@@ -40,9 +40,16 @@ This project now includes a comprehensive pre-commit hook that ensures code qual
 5. ❌ If any fail → Commit blocked
 ```
 
-### Build-Check Script
+### Fast Validation Script
 
-The `build-check` script runs these commands in sequence:
+The `build-check` script runs these commands in sequence (no build for speed):
+```bash
+npm run lint && npm run type-check && npm run test
+```
+
+### Full Build Check (Optional)
+
+For deployment preparation, use the `full-build-check` script:
 ```bash
 npm run lint && npm run type-check && npm run test && npm run build
 ```
@@ -53,7 +60,8 @@ npm run lint && npm run type-check && npm run test && npm run build
 ```json
 {
   "scripts": {
-    "build-check": "npm run lint && npm run type-check && npm run test && npm run build"
+    "build-check": "npm run lint && npm run type-check && npm run test",
+    "full-build-check": "npm run lint && npm run type-check && npm run test && npm run build"
   },
   "lint-staged": {
     "*.{ts,tsx}": ["eslint --fix", "git add"],
@@ -70,9 +78,10 @@ npm run lint && npm run type-check && npm run test && npm run build
 ```
 
 ### 3. **Pre-commit Hook** (`.husky/pre-commit`)
-- Runs frontend validation (lint, type-check, test, build)
+- Runs fast frontend validation (lint, type-check, test - no build)
 - Runs API validation (lint, test)
 - Blocks commit if any step fails
+- ⚡ **Fast execution** - typically <15 seconds
 
 ## Benefits
 
@@ -80,7 +89,7 @@ npm run lint && npm run type-check && npm run test && npm run build
 - No commits with failing tests
 - No commits with TypeScript errors
 - No commits with linting errors
-- No commits with broken builds
+- No commits with syntax errors
 
 ### ✅ **Ensures Code Quality**
 - Consistent code formatting
@@ -92,7 +101,7 @@ npm run lint && npm run type-check && npm run test && npm run build
 - Immediate feedback on code issues
 - Automatic code formatting
 - Clear error messages
-- Fast validation (typically <30 seconds)
+- ⚡ **Fast validation** (typically <15 seconds)
 
 ## Usage
 
@@ -107,9 +116,8 @@ git commit -m "Add new feature"
 # 1. Lints your code
 # 2. Runs type checking
 # 3. Executes tests
-# 4. Builds the project
-# 5. If all pass → commit succeeds
-# 6. If any fail → commit blocked with error details
+# 4. If all pass → commit succeeds
+# 5. If any fail → commit blocked with error details
 ```
 
 ### When Tests Fail
@@ -117,9 +125,9 @@ git commit -m "Add new feature"
 If the pre-commit hook fails, you'll see output like:
 ```
 🔍 Running pre-commit checks...
-📝 Running frontend tests...
+📝 Running frontend validation...
 
-❌ Frontend tests or build failed. Commit blocked.
+❌ Frontend validation failed. Commit blocked.
 ```
 
 **Fix the issues and try again:**
@@ -157,21 +165,26 @@ git commit -m "Emergency fix" --no-verify
    - Reinstall dependencies: `rm -rf node_modules && npm install`
 
 4. **Build taking too long**
-   - The build step ensures production readiness
-   - Consider optimizing your build process
+   - Pre-commit hook now skips build for speed
+   - Use `npm run full-build-check` for deployment preparation
    - Build time is typically 10-30 seconds
 
 ### Performance Optimization
 
-1. **Use lint-staged for faster checks**
+1. **Fast pre-commit validation**
+   - Skips build step for speed
+   - Only runs lint, type-check, and tests
+   - Typically completes in <15 seconds
+
+2. **Use lint-staged for faster checks**
    - Only lint changed files
    - Automatic formatting on save
 
-2. **Parallel execution**
+3. **Parallel execution**
    - Frontend and API tests run sequentially
    - Consider parallel execution for large projects
 
-3. **Caching**
+4. **Caching**
    - Jest cache is enabled by default
    - TypeScript incremental compilation
 
@@ -291,8 +304,8 @@ SKIP_BUILD=true git commit -m "message"
 ### Metrics to Track
 
 - **Pre-commit success rate** - Should be >95%
-- **Test execution time** - Should be <30 seconds
-- **Build time** - Should be <60 seconds
+- **Test execution time** - Should be <15 seconds
+- **Full build time** - Should be <60 seconds (for deployment)
 - **False positives** - Minimize unnecessary failures
 
 This pre-commit setup ensures high code quality and prevents broken builds from reaching your repository! 

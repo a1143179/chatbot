@@ -1,7 +1,7 @@
 echo "🔍 Running pre-commit checks..."
-echo "📝 Running frontend tests..."
+echo "📝 Running frontend validation..."
 
-# Run frontend tests and build
+# Run frontend validation (lint, type-check, tests - no build)
 npm run build-check
 
 if [ $? -eq 0 ]; then
@@ -13,10 +13,10 @@ if [ $? -eq 0 ]; then
     if [ $? -eq 0 ]; then
         echo ""
         echo "📊 Pre-commit Check Summary:"
-        echo "  Frontend Tests: ✅ PASSED"
+        echo "  Frontend Validation: ✅ PASSED"
         echo "  API Tests: ✅ PASSED"
         echo ""
-        echo "✅ All tests passed! Commit allowed."
+        echo "✅ All checks passed! Commit allowed."
     else
         echo ""
         echo "❌ API tests failed. Commit blocked."
@@ -24,6 +24,6 @@ if [ $? -eq 0 ]; then
     fi
 else
     echo ""
-    echo "❌ Frontend tests or build failed. Commit blocked."
+    echo "❌ Frontend validation failed. Commit blocked."
     exit 1
 fi
