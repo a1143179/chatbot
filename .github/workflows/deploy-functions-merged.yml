@@ -50,7 +50,7 @@ jobs:
         rm -rf deployment
         mkdir -p deployment/health
         # Copy host.json to deployment root
-        cp api/health/host.json deployment/
+        cp api/host.json deployment/
         # Copy index.js and function.json to health subdirectory
         cp api/health/index.js deployment/health/
         cp api/health/function.json deployment/health/
