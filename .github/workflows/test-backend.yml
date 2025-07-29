@@ -3,8 +3,6 @@ name: Test Backend
 on:
   push:
     branches: [ main, working ]
-  pull_request:
-    types: [ opened, synchronize, reopened ]
 
 jobs:
   test-backend:
