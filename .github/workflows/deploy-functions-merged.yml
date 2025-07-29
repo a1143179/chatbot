@@ -48,29 +48,9 @@ jobs:
       run: |
         npm install -g azure-functions-core-tools@4 --unsafe-perm true
     
-    - name: Prepare deployment package
-      run: |
-        cd api
-        # Create a clean deployment directory
-        rm -rf deployment
-        mkdir -p deployment
-        
-        # Copy only necessary files
-        cp -r health deployment/
-        cp -r process deployment/
-        cp host.json deployment/
-        cp package.json deployment/
-        
-        # Show deployment structure
-        echo "Deployment package structure:"
-        ls -la deployment/
-        ls -la deployment/health/
-        ls -la deployment/process/
-      timeout-minutes: 10
-    
     - name: Deploy to Azure Functions
       run: |
-        cd api/deployment
+        cd api
         # Deploy without remote build to avoid timeout
         func azure functionapp publish chatbotprocessor --javascript --force
       timeout-minutes: 25
