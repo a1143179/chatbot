@@ -280,7 +280,7 @@ function App() {
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
     loader.load(
-      '/models/pee.vrm',
+      '/models/cute-girl.vrm',
       (gltf: any) => {
         const vrm = gltf.userData.vrm;
         vrmRef.current = vrm;
@@ -314,12 +314,6 @@ function App() {
       },
       (error: any) => {
         console.error('Error loading VRM:', error);
-        // Add a simple cube as fallback
-        const geometry = new THREE.BoxGeometry(1, 2, 1);
-        const material = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(0, 0, 0);
-        scene.add(cube);
       }
     );
     // Animation loop
