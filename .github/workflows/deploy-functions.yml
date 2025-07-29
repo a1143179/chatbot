@@ -69,7 +69,6 @@ jobs:
         cp api/host.json deployment/
         # Copy function directories
         cp -r api/health deployment/
-        cp -r api/test deployment/
         cp -r api/process deployment/
         # Copy package files
         cp api/package.json deployment/
