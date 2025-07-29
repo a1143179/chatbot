@@ -286,7 +286,7 @@ function App() {
         vrmRef.current = vrm;
         scene.add(vrm.scene);
         // Position the model to be centered and moved up 50px from previous position
-        vrm.scene.position.set(0, -0.25, 0); // Center the avatar and move up 50px from -0.5 to -0.25
+        vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
         vrm.scene.rotation.y = Math.PI; // Face the camera
         vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
         // Enable shadows
@@ -327,7 +327,7 @@ function App() {
         renderer.setSize(window.innerWidth, window.innerHeight);
         // Ensure avatar stays centered and at correct height after resize
         if (vrmRef.current) {
-          vrmRef.current.scene.position.set(0, -0.25, 0);
+          vrmRef.current.scene.position.set(0, 0.75, 0);
         }
       }
     };

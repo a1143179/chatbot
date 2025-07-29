@@ -26,6 +26,13 @@ module.exports = async function (context, req) {
     if (!apiKey) {
         context.res = {
             status: 500,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '86400'
+            },
             body: {
                 error: 'Google AI API key not configured',
                 message: 'Please configure GOOGLE_AI_API_KEY environment variable in Azure portal'
@@ -37,6 +44,13 @@ module.exports = async function (context, req) {
     if (!prompt) {
         context.res = {
             status: 400,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '86400'
+            },
             body: {
                 error: 'Missing prompt parameter',
                 message: 'Please provide a prompt parameter'
