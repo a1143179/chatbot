@@ -82,13 +82,15 @@ jobs:
         echo "host.json location:"
         find deployment/ -name "host.json"
     
-    - name: Deploy to Azure Functions
+    - name: Clean and deploy to Azure Functions
       run: |
         # Install Azure Functions Core Tools
         npm install -g azure-functions-core-tools@4 --unsafe-perm true
         
-        # Deploy from the prepared deployment directory
+        # Clean wwwroot and deploy from the prepared deployment directory
         cd deployment
-        func azure functionapp publish chatbotprocessor --javascript
+        func azure functionapp publish chatbotprocessor --javascript --force
+    
+
     
  
