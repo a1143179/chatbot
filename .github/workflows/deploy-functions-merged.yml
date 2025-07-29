@@ -58,25 +58,7 @@ jobs:
         echo "host.json location:"
         find deployment/ -name "host.json"
     
-    - name: Clean wwwroot directory
-      run: |
-        # Install Azure Functions Core Tools
-        npm install -g azure-functions-core-tools@4 --unsafe-perm true
-        
-        # Create an empty zip file to clear the wwwroot directory
-        echo "Creating empty deployment to clear wwwroot..."
-        mkdir -p empty-deploy
-        cd empty-deploy
-        # Create a dummy file to make zip work
-        echo "placeholder" > placeholder.txt
-        zip -r ../empty.zip .
-        cd ..
-        
-        # Deploy empty zip to clear wwwroot
-        az functionapp deployment source config-zip --resource-group ResourceGroup1 --name chatbotprocessor --src empty.zip --timeout 60
-        
-        # Wait a moment for the cleanup to complete
-        sleep 10
+
         
     - name: Deploy to Azure Functions
       run: |
