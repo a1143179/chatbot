@@ -1,4 +1,4 @@
-module.exports = async function (context, req) {
+module.exports = async function (context, _req) {
     // Let Azure Functions handle CORS globally via host.json configuration
     
     // Check if Google AI API key is configured
