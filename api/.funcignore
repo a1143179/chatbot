@@ -13,8 +13,8 @@ local.settings.json
 .nvmrc
 .gitignore
 
-# Keep package.json but exclude other dependency files
-package.json  # Ignore package.json in deployment
+# Exclude dependency files from deployment
+package.json
 node_modules/
 package-lock.json
 npm-debug.log*
