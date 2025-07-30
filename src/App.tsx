@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
+import CorsTest from './components/CorsTest';
 
 // Type declarations for Web Speech API
 declare global {
@@ -400,6 +401,24 @@ function App() {
       setIsListening(false);
     }
   }, [isListening]);
+
+  // Simple routing
+  const [currentRoute, setCurrentRoute] = useState<string>('main');
+
+  // Check URL for route
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === '/test-cors') {
+      setCurrentRoute('cors-test');
+    } else {
+      setCurrentRoute('main');
+    }
+  }, []);
+
+  // Render CORS test page
+  if (currentRoute === 'cors-test') {
+    return <CorsTest />;
+  }
 
   return (
     <div className="App">
