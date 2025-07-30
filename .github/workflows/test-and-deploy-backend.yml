@@ -41,6 +41,13 @@ jobs:
         cd api
         func pack --build remote --force
         
+    - name: Upload Azure Functions package as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: azure-functions-production-package
+        path: api/api.zip
+        retention-days: 90
+        
     - name: Login to Azure
       uses: azure/login@v1
       with:

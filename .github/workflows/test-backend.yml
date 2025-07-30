@@ -41,4 +41,11 @@ jobs:
         func pack --build remote --force
         echo "Package size: $(ls -lh api.zip)"
         echo "Package contents:"
-        unzip -l api.zip | head -20 
+        unzip -l api.zip | head -20
+        
+    - name: Upload Azure Functions package as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: azure-functions-test-package
+        path: api/api.zip
+        retention-days: 30 
