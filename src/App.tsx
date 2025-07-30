@@ -185,6 +185,62 @@ function App() {
     }
   };
 
+  // Test file access directly
+  const testFileAccess = async () => {
+    const testFiles = [
+      './models/cute-girl.vrm',
+      '/models/cute-girl.vrm',
+      'models/cute-girl.vrm'
+    ];
+    
+    for (const file of testFiles) {
+      try {
+        const response = await fetch(file);
+        console.log(`Testing ${file}:`, response.status, response.statusText);
+        if (response.ok) {
+          const buffer = await response.arrayBuffer();
+          const view = new Uint8Array(buffer);
+          const magic = String.fromCharCode(...Array.from(view.slice(0, 4)));
+          console.log(`File ${file} magic:`, magic);
+          console.log(`File ${file} size:`, buffer.byteLength, 'bytes');
+        }
+      } catch (error) {
+        console.error(`Error testing ${file}:`, error);
+      }
+    }
+  };
+
+  // Simple VRM loading test
+  const testVRMLoading = async () => {
+    const testUrl = './models/cute-girl.vrm';
+    console.log('Testing VRM loading with:', testUrl);
+    
+    try {
+      const loader = new GLTFLoader();
+      loader.register((parser: any) => new VRMLoaderPlugin(parser));
+      
+      return new Promise((resolve, reject) => {
+        loader.load(
+          testUrl,
+          (gltf: any) => {
+            console.log('Test VRM loaded successfully');
+            resolve(gltf);
+          },
+          (progress: any) => {
+            console.log('Test loading progress:', progress);
+          },
+          (error: any) => {
+            console.error('Test VRM loading failed:', error);
+            reject(error);
+          }
+        );
+      });
+    } catch (error) {
+      console.error('Test VRM loading error:', error);
+      throw error;
+    }
+  };
+
   // Play animation clip
   const playAnimation = useCallback((clipIndex: number) => {
     const vrm = vrmRef.current;
@@ -504,6 +560,14 @@ function App() {
     // Load VRM model (official latest API)
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
+    
+    // Test file access first
+    testFileAccess();
+    
+    // Test VRM loading
+    testVRMLoading().catch(error => {
+      console.error('VRM loading test failed:', error);
+    });
     
     // Try multiple VRM files as fallback
     const vrmFiles = [
