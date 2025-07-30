@@ -45,7 +45,9 @@ jobs:
     - name: Build Azure Functions package with dependencies
       run: |
         cd api
-        func pack --build remote --force --javascript --include-settings
+        # Ensure node_modules is included
+        npm ci --production
+        func pack --build remote --force --javascript --include-settings --include-dependencies
         
     - name: Upload Azure Functions package as artifact
       uses: actions/upload-artifact@v4

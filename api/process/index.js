@@ -35,7 +35,7 @@ module.exports = async function (context, req) {
         'Access-Control-Allow-Credentials': 'true'
     });
     
-    // Handle CORS preflight requests - let Azure Functions handle this
+    // Handle CORS preflight requests - ALWAYS return 200 for OPTIONS
     if (req.method === 'OPTIONS') {
         console.log('Handling CORS preflight request');
         context.res = {
