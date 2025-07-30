@@ -8,6 +8,7 @@
   "cors": {
     "allowedOrigins": [
       "https://a1143179.github.io",
+      "https://a1143179.github.io/chatbot",
       "http://localhost:3000",
       "http://localhost:3001"
     ],
