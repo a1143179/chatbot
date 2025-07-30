@@ -270,6 +270,42 @@ const CorsTest: React.FC = () => {
     }
   };
 
+  const showCurlCommands = () => {
+    const curlCommands = {
+      options: `curl -X OPTIONS "https://chatbotprocessor.azurewebsites.net/api/process" \\
+  -H "Origin: http://localhost:3000" \\
+  -H "Access-Control-Request-Method: POST" \\
+  -H "Access-Control-Request-Headers: Content-Type" \\
+  -v`,
+      
+      post: `curl -X POST "https://chatbotprocessor.azurewebsites.net/api/process" \\
+  -H "Content-Type: application/json" \\
+  -H "Origin: http://localhost:3000" \\
+  -d '{"prompt": "Hello from curl test"}' \\
+  -v`,
+      
+      simple: `curl -X POST "https://chatbotprocessor.azurewebsites.net/api/process" \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt": "Simple test"}' \\
+  -v`,
+      
+      health: `curl -X GET "https://chatbotprocessor.azurewebsites.net/api/process" \\
+  -H "Content-Type: application/json" \\
+  -v`
+    };
+
+    const result: TestResult = {
+      success: true,
+      message: 'Curl Commands for Testing',
+      details: {
+        note: 'Use these curl commands to test CORS from terminal:',
+        commands: curlCommands
+      }
+    };
+
+    setSimpleResult(result);
+  };
+
   const renderResult = (result: TestResult | null, testName: string) => {
     if (!result) return null;
 
@@ -397,6 +433,26 @@ const CorsTest: React.FC = () => {
           {loading === 'network' ? 'Testing...' : 'Test Network Connection'}
         </button>
         {renderResult(simpleResult, 'Network')}
+      </div>
+
+      <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', borderRadius: '5px' }}>
+        <h2>🔧 Test 6: Curl Commands</h2>
+        <p>Shows curl commands to test CORS from terminal (bypasses browser CORS restrictions).</p>
+        <button 
+          onClick={showCurlCommands} 
+          style={{
+            padding: '10px 20px',
+            margin: '5px',
+            border: 'none',
+            borderRadius: '3px',
+            backgroundColor: '#17a2b8',
+            color: 'white',
+            cursor: 'pointer'
+          }}
+        >
+          Show Curl Commands
+        </button>
+        {renderResult(simpleResult, 'Curl')}
       </div>
 
       <style>{`

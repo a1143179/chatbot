@@ -28,7 +28,7 @@ module.exports = async function (context, req) {
     
     // Helper function to create CORS headers
     const getCorsHeaders = () => ({
-        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Origin': '*', // Allow all origins for testing
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
         'Access-Control-Max-Age': '86400',

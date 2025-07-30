@@ -37,7 +37,7 @@ describe('Process Function Tests', () => {
     await processFunction(mockContext, req);
     
     expect(mockContext.res.status).toBe(200);
-    expect(mockContext.res.headers['Access-Control-Allow-Origin']).toBe('http://localhost:3000');
+    expect(mockContext.res.headers['Access-Control-Allow-Origin']).toBe('*');
     expect(mockContext.res.headers['Access-Control-Allow-Methods']).toBe('POST, GET, OPTIONS');
   });
 
@@ -52,7 +52,7 @@ describe('Process Function Tests', () => {
     await processFunction(mockContext, req);
     
     expect(mockContext.res.status).toBe(200);
-    expect(mockContext.res.headers['Access-Control-Allow-Origin']).toBe('https://a1143179.github.io');
+    expect(mockContext.res.headers['Access-Control-Allow-Origin']).toBe('*');
     expect(mockContext.res.headers['Access-Control-Allow-Methods']).toBe('POST, GET, OPTIONS');
   });
 
