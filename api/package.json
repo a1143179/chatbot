@@ -2,7 +2,6 @@
   "name": "chatbot-api",
   "version": "1.0.0",
   "description": "Azure Functions for Chatbot API",
-  "type": "module",
   "engines": {
     "node": ">=18.0.0"
   },
