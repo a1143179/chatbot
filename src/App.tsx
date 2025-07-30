@@ -99,349 +99,50 @@ const phonemeToMouthShape: { [key: string]: string[] } = {
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
   const vrmRef = useRef<VRM | null>(null);
-  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-  const animationClipsRef = useRef<THREE.AnimationClip[]>([]);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // VRM and VRMA selection
+  // VRM selection only
   const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
-  const [selectedVRMA, setSelectedVRMA] = useState<string>('VRMA_01.vrma');
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-     function setVrmMouthShape(shape: string, value: number) {
-     const vrm = vrmRef.current;
-     if (!vrm) return;
-     
-     // VRM 1.x
-     if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
-       (vrm as any).expressionManager.setValue(shape, value);
-     } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
-       (vrm as any).blendShapeProxy.setValue(shape, value);
-     }
-   }
+  function setVrmMouthShape(shape: string, value: number) {
+    const vrm = vrmRef.current;
+    if (!vrm) return;
+    
+    // VRM 1.x
+    if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
+      (vrm as any).expressionManager.setValue(shape, value);
+    } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
+      (vrm as any).blendShapeProxy.setValue(shape, value);
+    }
+  }
 
-       // Reset VRM pose to default position
-    const resetVRMPose = useCallback(() => {
-      const vrm = vrmRef.current;
-      if (!vrm) return;
-      
-      console.log('Resetting VRM pose to default position...');
-      
-      // Reset all bone rotations to default pose
-      vrm.scene.traverse((child: any) => {
-        if (child.isBone) {
-          // Reset rotation and quaternion to identity
-          child.rotation.set(0, 0, 0);
-          child.quaternion.set(0, 0, 0, 1);
-          
-          // Don't reset position to avoid scaling issues
-          // child.position.set(0, 0, 0);
-        }
-      });
-      
-      // Force VRM update
-      vrm.update(0);
-      
-      // Additional pose correction for arms to ensure they point down
-      setTimeout(() => {
-        if (vrmRef.current) {
-          console.log('Applying additional pose correction for arms...');
-          
-          // Set specific arm bone rotations for natural idle pose
-          vrmRef.current.scene.traverse((child: any) => {
-            if (child.isBone) {
-              const boneName = child.name.toLowerCase();
-              
-              // Set left arm bones to point down (natural idle pose)
-              if (boneName.includes('left') && (boneName.includes('arm') || boneName.includes('shoulder'))) {
-                child.rotation.set(0, 0, 0);
-                child.quaternion.set(0, 0, 0, 1);
-              }
-              
-              // Set right arm bones to point down (natural idle pose)
-              if (boneName.includes('right') && (boneName.includes('arm') || boneName.includes('shoulder'))) {
-                child.rotation.set(0, 0, 0);
-                child.quaternion.set(0, 0, 0, 1);
-              }
-              
-              // Set upper arm bones specifically
-              if (boneName.includes('upperarm')) {
-                child.rotation.set(0, 0, 0);
-                child.quaternion.set(0, 0, 0, 1);
-              }
-              
-              // Set forearm bones specifically
-              if (boneName.includes('forearm')) {
-                child.rotation.set(0, 0, 0);
-                child.quaternion.set(0, 0, 0, 1);
-              }
-              
-              // Set hand bones specifically
-              if (boneName.includes('hand')) {
-                child.rotation.set(0, 0, 0);
-                child.quaternion.set(0, 0, 0, 1);
-              }
-            }
-          });
-          
-          vrmRef.current.update(0);
-        }
-      }, 100);
-    }, []);
+  // Set VRM to natural idle pose with arms hanging down
+  const setVRMIdlePose = useCallback(() => {
+    const vrm = vrmRef.current;
+    if (!vrm) return;
     
-    // Set VRM to idle pose with arms pointing down
-    const setVRMIdlePose = useCallback(() => {
-      const vrm = vrmRef.current;
-      if (!vrm) return;
-      
-      console.log('Setting VRM to idle pose with arms pointing down...');
-      
-      // Debug: Log all bone names first
-      console.log('Available bones:');
-      vrm.scene.traverse((child: any) => {
-        if (child.isBone) {
-          console.log('Bone:', child.name);
-        }
-      });
-      
-      // Reset all bones first
-      vrm.scene.traverse((child: any) => {
-        if (child.isBone) {
-          child.rotation.set(0, 0, 0);
-          child.quaternion.set(0, 0, 0, 1);
-        }
-      });
-      
-      // Force VRM update
-      vrm.update(0);
-      
-      // Set specific idle pose for arms with more precise targeting
-      setTimeout(() => {
-        if (vrmRef.current) {
-          console.log('Applying precise arm pose correction...');
-          
-          vrmRef.current.scene.traverse((child: any) => {
-            if (child.isBone) {
-              const boneName = child.name.toLowerCase();
-              console.log('Processing bone:', boneName);
-              
-              // More comprehensive arm bone detection
-              if (boneName.includes('arm') || boneName.includes('shoulder') || 
-                  boneName.includes('upperarm') || boneName.includes('forearm') || 
-                  boneName.includes('hand') || boneName.includes('elbow') ||
-                  boneName.includes('wrist') || boneName.includes('finger')) {
-                
-                console.log('Resetting arm bone:', boneName);
-                child.rotation.set(0, 0, 0);
-                child.quaternion.set(0, 0, 0, 1);
-              }
-            }
-          });
-          
-          vrmRef.current.update(0);
-          console.log('Idle pose applied');
-        }
-      }, 200);
-        }, []);
+    console.log('Setting VRM to natural idle pose...');
     
-    // Force reset all bones to identity
-    const forceResetAllBones = useCallback(() => {
-      const vrm = vrmRef.current;
-      if (!vrm) return;
-      
-      console.log('Force resetting ALL bones to identity...');
-      
-      // Reset every single bone to identity
-      vrm.scene.traverse((child: any) => {
-        if (child.isBone) {
-          console.log('Force resetting bone:', child.name);
-          child.rotation.set(0, 0, 0);
-          child.quaternion.set(0, 0, 0, 1);
-          child.position.set(0, 0, 0);
-        }
-      });
-      
-      // Force VRM update multiple times
-      vrm.update(0);
-      
-      setTimeout(() => {
-        if (vrmRef.current) {
-          vrmRef.current.update(0);
-          console.log('Force reset completed');
-        }
-      }, 100);
-        }, []);
-    
-    // Apply VRMA to VRM model (similar to Rhodonite Editor)
-    const applyVRMAToVRM = useCallback((vrmaFile: string) => {
-      const vrm = vrmRef.current;
-      if (!vrm) {
-        console.warn('Cannot apply VRMA: VRM not available');
-        return;
+    // Reset all bones to identity for natural pose
+    vrm.scene.traverse((child: any) => {
+      if (child.isBone) {
+        child.rotation.set(0, 0, 0);
+        child.quaternion.set(0, 0, 0, 1);
       }
-      
-      console.log(`Applying VRMA ${vrmaFile} to VRM model...`);
-      
-      // Load VRMA file
-      const loader = new GLTFLoader();
-      loader.load(`./models/vrma/${vrmaFile}`, (gltf) => {
-        console.log('VRMA loaded:', gltf);
-        
-        if (gltf.animations && gltf.animations.length > 0) {
-          // Create animation mixer for VRM
-          const mixer = new THREE.AnimationMixer(vrm.scene);
-          mixerRef.current = mixer;
-          
-          // Store animation clips
-          animationClipsRef.current = gltf.animations;
-          
-          // Apply each animation to VRM
-          gltf.animations.forEach((clip, index) => {
-            const action = mixer.clipAction(clip);
-            action.setLoop(THREE.LoopOnce, 1);
-            action.clampWhenFinished = true;
-            action.timeScale = 0.5;
-            
-            console.log(`Applied VRMA animation ${index}:`, clip.name);
-          });
-          
-          console.log(`Successfully applied ${gltf.animations.length} animations from VRMA to VRM`);
-        } else {
-          console.warn('No animations found in VRMA file');
-        }
-      }, undefined, (error) => {
-        console.error('Failed to load VRMA:', error);
-      });
-    }, []);
+    });
     
-    // Load VRMA animation files and apply to VRM
-   const loadVRMAAnimations = useCallback(async (vrmaFile: string) => {
-     const loader = new GLTFLoader();
-     const clips: THREE.AnimationClip[] = [];
-
-     try {
-       console.log(`Loading VRMA file: ./models/vrma/${vrmaFile}`);
-       const gltf = await new Promise<any>((resolve, reject) => {
-         loader.load(`./models/vrma/${vrmaFile}`, resolve, undefined, reject);
-       });
-       
-       console.log('VRMA loaded successfully:', gltf);
-       console.log('VRMA animations:', gltf.animations);
-       
-       if (gltf.animations && gltf.animations.length > 0) {
-         clips.push(...gltf.animations);
-         console.log(`Loaded animation from ${vrmaFile}:`, gltf.animations.length, 'clips');
-         
-         // Log animation details
-         gltf.animations.forEach((clip: any, index: number) => {
-           console.log(`Animation ${index}:`, {
-             name: clip.name,
-             duration: clip.duration,
-             tracks: clip.tracks.length
-           });
-         });
-         
-         // Apply VRMA animations to VRM model
-         const vrm = vrmRef.current;
-         if (vrm && clips.length > 0) {
-           console.log('Applying VRMA animations to VRM model...');
-           
-           // Create animation mixer for VRM
-           const mixer = new THREE.AnimationMixer(vrm.scene);
-           mixerRef.current = mixer;
-           
-           // Apply each animation clip to the VRM
-           clips.forEach((clip, index) => {
-             const action = mixer.clipAction(clip);
-             action.setLoop(THREE.LoopOnce, 1);
-             action.clampWhenFinished = true;
-             action.timeScale = 0.5; // Play at half speed
-             
-             console.log(`Applied animation ${index}:`, clip.name);
-           });
-           
-           console.log('VRMA animations successfully applied to VRM');
-         }
-       } else {
-         console.warn(`No animations found in ${vrmaFile}`);
-       }
-     } catch (error) {
-       console.error(`Failed to load animation from ${vrmaFile}:`, error);
-     }
-
-     animationClipsRef.current = clips;
-     console.log('Total animation clips loaded:', clips.length);
-   }, []);
-
-     // Play animation clip
-   const playAnimation = useCallback((clipIndex: number) => {
-     const vrm = vrmRef.current;
-     const clips = animationClipsRef.current;
-     
-     console.log('playAnimation called with:', { clipIndex, vrm: !!vrm, clips: !!clips, clipsLength: clips?.length });
-     
-     if (!vrm) {
-       console.warn('Cannot play animation: VRM not available');
-       return;
-     }
-     
-     if (!clips || clips.length === 0) {
-       console.warn('Cannot play animation: No animation clips available');
-       return;
-     }
-     
-     if (clipIndex >= clips.length) {
-       console.warn(`Cannot play animation: clipIndex ${clipIndex} >= clips.length ${clips.length}`);
-       return;
-     }
-
-     // Stop current animation
-     if (mixerRef.current) {
-       console.log('Stopping current animation');
-       mixerRef.current.stopAllAction();
-     }
-
-     // Create new mixer for VRM
-     console.log('Creating new animation mixer for VRM');
-     const mixer = new THREE.AnimationMixer(vrm.scene);
-     mixerRef.current = mixer;
-     
-     const clip = clips[clipIndex];
-     console.log('Animation clip details:', {
-       name: clip.name,
-       duration: clip.duration,
-       tracks: clip.tracks.length
-     });
-     
-     // Apply animation to VRM
-     const action = mixer.clipAction(clip);
-     action.setLoop(THREE.LoopOnce, 1);
-     action.clampWhenFinished = true;
-     action.timeScale = 0.5; // Play at half speed
-     
-     // Reset VRM pose before playing animation
-     resetVRMPose();
-     
-     // Play the animation
-     action.play();
-
-     console.log(`Playing VRMA animation clip ${clipIndex}:`, clip.name);
-     console.log('Action details:', {
-       isRunning: action.isRunning(),
-       time: action.time,
-       duration: action.getClip().duration,
-       timeScale: action.timeScale
-     });
-   }, [resetVRMPose]);
-
-
+    // Force VRM update
+    vrm.update(0);
+    console.log('Natural idle pose applied');
+  }, []);
 
   // Improved lip sync based on text analysis
   const analyzeTextForLipSync = useCallback((text: string): string[] => {
@@ -533,29 +234,15 @@ function App() {
     // Start lip sync when speech starts
     utterance.onstart = () => {
       startLipSync(text);
-      // Play animation if available
-      console.log('Speech started, checking for animations...');
-      console.log('Available animation clips:', animationClipsRef.current.length);
-      if (animationClipsRef.current.length > 0) {
-        const randomClipIndex = Math.floor(Math.random() * animationClipsRef.current.length);
-        console.log(`Playing random animation clip: ${randomClipIndex}`);
-        playAnimation(randomClipIndex);
-      } else {
-        console.log('No animation clips available');
-      }
     };
     
     // Stop lip sync when speech ends
     utterance.onend = () => {
       stopLipSync();
-      // Stop any playing animation
-      if (mixerRef.current) {
-        mixerRef.current.stopAllAction();
-      }
     };
 
     synthesisRef.current.speak(utterance);
-  }, [startLipSync, stopLipSync, playAnimation]);
+  }, [startLipSync, stopLipSync]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -608,107 +295,7 @@ function App() {
     }
   }, [speakText]);
 
-  // useEffect(() => {
-  //   if (!mountRef.current) return;
-
-  //   // Initialize Three.js scene
-  //   const scene = new THREE.Scene();
-  //   sceneRef.current = scene;
-  //   scene.background = new THREE.Color(0xf0f0f0);
-
-  //   // Setup camera
-  //   const camera = new THREE.PerspectiveCamera(
-  //     75,
-  //     window.innerWidth / window.innerHeight,
-  //     0.1,
-  //     1000
-  //   );
-  //   cameraRef.current = camera;
-  //   camera.position.set(0, 1.5, 3);
-
-  //   // Setup renderer
-  //   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  //   rendererRef.current = renderer;
-  //   renderer.setSize(window.innerWidth, window.innerHeight);
-  //   renderer.setPixelRatio(window.devicePixelRatio);
-  //   renderer.shadowMap.enabled = true;
-  //   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  //   mountRef.current.appendChild(renderer.domElement);
-
-  //   // Add lights
-  //   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-  //   scene.add(ambientLight);
-
-  //   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  //   directionalLight.position.set(1, 1, 1);
-  //   directionalLight.castShadow = true;
-  //   scene.add(directionalLight);
-
-  //   // Load VRM model
-  //   const loader = new GLTFLoader();
-  //   const plugin = new VRMLoaderPlugin();
-  //   loader.register((parser: any) => plugin.createPlugin(parser));
-
-  //   loader.load(
-  //     '/models/cute-girl.vrm',
-  //     (gltf: any) => {
-  //       const vrm = plugin.createVRMInstance(gltf);
-  //       vrmRef.current = vrm;
-  //       scene.add(vrm.scene);
-
-  //       // Position the model
-  //       vrm.scene.position.set(0, 0, 0);
-  //       vrm.scene.scale.setScalar(1);
-
-  //       // Enable shadows
-  //       vrm.scene.traverse((child: any) => {
-  //         if (child instanceof THREE.Mesh) {
-  //           child.castShadow = true;
-  //           child.receiveShadow = true;
-  //         }
-  //       });
-
-  //       // Animation loop
-  //       const animate = () => {
-  //         requestAnimationFrame(animate);
-          
-  //         // Update VRM
-  //         const delta = 0.016; // 60fps
-  //         vrm.update(delta);
-          
-  //         renderer.render(scene, camera);
-  //       };
-  //       animate();
-  //     },
-  //     (progress: any) => {
-  //       console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
-  //     },
-  //     (error: any) => {
-  //       console.error('Error loading VRM:', error);
-  //     }
-  //   );
-
-  //   // Handle window resize
-  //   const handleResize = () => {
-  //     if (camera && renderer) {
-  //       camera.aspect = window.innerWidth / window.innerHeight;
-  //       camera.updateProjectionMatrix();
-  //       renderer.setSize(window.innerWidth, window.innerHeight);
-  //     }
-  //   };
-  //   window.addEventListener('resize', handleResize);
-
-  //   // Cleanup
-  //   return () => {
-  //     window.removeEventListener('resize', handleResize);
-  //     if (mountRef.current && renderer.domElement) {
-  //       mountRef.current.removeChild(renderer.domElement);
-  //     }
-  //     renderer.dispose();
-  //   };
-  // }, []);
-
-  // Initialize speech recognition
+  // Initialize Three.js scene and VRM
   useEffect(() => {
     const mountElement = mountRef.current;
     if (!mountElement) return;
@@ -729,6 +316,7 @@ function App() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mountElement.appendChild(renderer.domElement);
+    
     // Add lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -736,6 +324,7 @@ function App() {
     directionalLight.position.set(1, 1, 1);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
+    
     // Load VRM model (official latest API)
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
@@ -757,21 +346,16 @@ function App() {
           loader.load(url, resolve, undefined, reject);
         });
         
-                 console.log('VRM loaded successfully:', vrmFile);
-         const vrm = gltf.userData.vrm;
-         vrmRef.current = vrm;
-         scene.add(vrm.scene);
-         
-         // Position the model and lock its position
-         vrm.scene.position.set(0, 0.75, 0);
-         vrm.scene.rotation.y = Math.PI;
-         vrm.scene.scale.setScalar(1.2);
-         
-         // Lock the position to prevent movement during animation
-         vrm.scene.position.set(0, 0.75, 0);
-         vrm.scene.userData.originalPosition = { x: 0, y: 0.75, z: 0 };
-         vrm.scene.userData.originalRotation = { x: 0, y: Math.PI, z: 0 };
-         vrm.scene.userData.originalScale = { x: 1.2, y: 1.2, z: 1.2 };
+        console.log('VRM loaded successfully:', vrmFile);
+        const vrm = gltf.userData.vrm;
+        vrmRef.current = vrm;
+        scene.add(vrm.scene);
+        
+        // Position the model
+        vrm.scene.position.set(0, 0.75, 0);
+        vrm.scene.rotation.y = Math.PI;
+        vrm.scene.scale.setScalar(1.2);
+        
         // Enable shadows
         vrm.scene.traverse((child: any) => {
           if (child instanceof THREE.Mesh) {
@@ -781,31 +365,9 @@ function App() {
         });
         console.log('Avatar loaded successfully');
         
-                 // Set proper idle pose with arms pointing down first
-         setVRMIdlePose();
-         
-         // Apply VRMA animations to VRM model
-         applyVRMAToVRM(selectedVRMA);
-         
-         // Additional delay to ensure everything is properly set
-         setTimeout(() => {
-           if (vrmRef.current) {
-             console.log('Final pose and animation adjustment...');
-             setVRMIdlePose();
-             
-             // Ensure animations are properly applied
-             if (mixerRef.current && animationClipsRef.current.length > 0) {
-               console.log('Re-applying animations to VRM...');
-               animationClipsRef.current.forEach((clip, index) => {
-                 const action = mixerRef.current!.clipAction(clip);
-                 action.setLoop(THREE.LoopOnce, 1);
-                 action.clampWhenFinished = true;
-                 action.timeScale = 0.5;
-                 console.log(`Re-applied animation ${index}:`, clip.name);
-               });
-             }
-           }
-         }, 500);
+        // Set natural idle pose with arms hanging down
+        setVRMIdlePose();
+        
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
       }
@@ -813,45 +375,20 @@ function App() {
     
     // Load initial VRM model
     loadVRMModel(selectedVRM);
-         // Animation loop
-     const animate = () => {
-       requestAnimationFrame(animate);
-       const delta = 0.016; // 60fps
-       
-       if (vrmRef.current) {
-         vrmRef.current.update(delta);
-         
-         // Lock VRM position during animation to prevent falling/movement
-         const originalPos = vrmRef.current.scene.userData.originalPosition;
-         const originalRot = vrmRef.current.scene.userData.originalRotation;
-         const originalScale = vrmRef.current.scene.userData.originalScale;
-         
-         if (originalPos) {
-           vrmRef.current.scene.position.set(originalPos.x, originalPos.y, originalPos.z);
-         }
-         if (originalRot) {
-           vrmRef.current.scene.rotation.set(originalRot.x, originalRot.y, originalRot.z);
-         }
-         if (originalScale) {
-           vrmRef.current.scene.scale.set(originalScale.x, originalScale.y, originalScale.z);
-         }
-       }
-       
-       if (mixerRef.current) {
-         mixerRef.current.update(delta);
-         // Debug mixer state
-         const mixer = mixerRef.current as any;
-         if (mixer._actions && mixer._actions.length > 0) {
-           const action = mixer._actions[0];
-           if (action && action.isRunning()) {
-             console.log('Animation is running, time:', action.time);
-           }
-         }
-       }
-       
-       renderer.render(scene, camera);
-     };
+    
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      const delta = 0.016; // 60fps
+      
+      if (vrmRef.current) {
+        vrmRef.current.update(delta);
+      }
+      
+      renderer.render(scene, camera);
+    };
     animate();
+    
     // Handle window resize
     const handleResize = () => {
       if (camera && renderer) {
@@ -865,17 +402,16 @@ function App() {
       }
     };
     window.addEventListener('resize', handleResize);
+    
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       if (mountElement && renderer.domElement) {
         mountElement.removeChild(renderer.domElement);
       }
-             renderer.dispose();
-     };
-       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose, setVRMIdlePose, forceResetAllBones, applyVRMAToVRM]);
-
-
+      renderer.dispose();
+    };
+  }, [selectedVRM, setVRMIdlePose]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -932,66 +468,6 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
-     // Handle VRMA animation change
-   const handleVRMAChange = useCallback(async (vrmaFile: string) => {
-     setSelectedVRMA(vrmaFile);
-     // Use the new VRMA application method
-     applyVRMAToVRM(vrmaFile);
-   }, [applyVRMAToVRM]);
-
-     // Test animation function
-   const testAnimation = useCallback(() => {
-     console.log('Testing animation...');
-     console.log('Current VRM:', vrmRef.current);
-     console.log('Current animation clips:', animationClipsRef.current);
-     console.log('Current mixer:', mixerRef.current);
-     
-     if (animationClipsRef.current.length > 0) {
-       console.log('Attempting to play animation 0...');
-       playAnimation(0);
-     } else {
-       console.log('No animations available for testing');
-     }
-   }, [playAnimation]);
-
-   // Test slow animation function
-   const testSlowAnimation = useCallback(() => {
-     console.log('Testing slow animation...');
-     
-     if (animationClipsRef.current.length > 0) {
-       const vrm = vrmRef.current;
-       const clips = animationClipsRef.current;
-       
-       if (!vrm || !clips) return;
-       
-       // Stop current animation
-       if (mixerRef.current) {
-         mixerRef.current.stopAllAction();
-       }
-       
-       // Create new mixer and play animation very slowly
-       const mixer = new THREE.AnimationMixer(vrm.scene);
-       mixerRef.current = mixer;
-       
-       const clip = clips[0];
-               const action = mixer.clipAction(clip);
-        action.setLoop(THREE.LoopOnce, 1);
-        action.clampWhenFinished = true;
-        action.timeScale = 0.2; // Play at 1/5 speed
-        
-        // Reset VRM pose before playing animation to fix arm positions
-        resetVRMPose();
-        
-        action.play();
-       
-       console.log('Playing slow animation:', {
-         name: clip.name,
-         duration: clip.duration,
-         timeScale: action.timeScale
-       });
-     }
-   }, [resetVRMPose]);
-
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
 
@@ -1014,103 +490,41 @@ function App() {
     <div className="App">
       <div ref={mountRef} style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }} />
       
-             {/* Model selection controls */}
-       <div className="model-controls">
-         <div className="control-group">
-           <label htmlFor="vrm-select">VRM Model:</label>
-           <select 
-             id="vrm-select"
-             value={selectedVRM}
-             onChange={(e) => handleVRMChange(e.target.value)}
-             className="model-select"
-           >
-             <option value="cute-girl.vrm">Cute Girl</option>
-             <option value="twitch-girl.vrm">Twitch Girl</option>
-             <option value="Nahida.vrm">Nahida</option>
-             <option value="star-rail.vrm">Star Rail</option>
-             <option value="pee.vrm">Pee</option>
-           </select>
-         </div>
-         
-                   <div className="control-group">
-            <label htmlFor="vrma-select">VRMA Animation:</label>
-            <select 
-              id="vrma-select"
-              value={selectedVRMA}
-              onChange={(e) => handleVRMAChange(e.target.value)}
-              className="model-select"
-            >
-              <option value="VRMA_01.vrma">Animation 01</option>
-              <option value="VRMA_02.vrma">Animation 02</option>
-              <option value="VRMA_03.vrma">Animation 03</option>
-              <option value="VRMA_04.vrma">Animation 04</option>
-              <option value="VRMA_05.vrma">Animation 05</option>
-              <option value="VRMA_06.vrma">Animation 06</option>
-              <option value="VRMA_07.vrma">Animation 07</option>
-            </select>
-                         <button 
-               onClick={testAnimation}
-               className="test-animation-btn"
-               style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px' }}
-             >
-               Test Animation
-             </button>
-                           <button 
-                onClick={testSlowAnimation}
-                className="test-animation-btn"
-                style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px' }}
-              >
-                Test Slow Animation
-              </button>
-                             <button 
-                 onClick={resetVRMPose}
-                 className="test-animation-btn"
-                 style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#ff6b6b' }}
-               >
-                 Reset Pose
-               </button>
-                               <button 
-                  onClick={setVRMIdlePose}
-                  className="test-animation-btn"
-                  style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#4CAF50' }}
-                >
-                  Set Idle Pose
-                </button>
-                                 <button 
-                   onClick={forceResetAllBones}
-                   className="test-animation-btn"
-                   style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#FF9800' }}
-                 >
-                   Force Reset All
-                 </button>
-                 <button 
-                   onClick={() => applyVRMAToVRM(selectedVRMA)}
-                   className="test-animation-btn"
-                   style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#9C27B0' }}
-                 >
-                   Apply VRMA
-                 </button>
+      {/* Model selection controls */}
+      <div className="model-controls">
+        <div className="control-group">
+          <label htmlFor="vrm-select">VRM Model:</label>
+          <select 
+            id="vrm-select"
+            value={selectedVRM}
+            onChange={(e) => handleVRMChange(e.target.value)}
+            className="model-select"
+          >
+            <option value="cute-girl.vrm">Cute Girl</option>
+            <option value="twitch-girl.vrm">Twitch Girl</option>
+            <option value="Nahida.vrm">Nahida</option>
+            <option value="star-rail.vrm">Star Rail</option>
+            <option value="pee.vrm">Pee</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Voice control overlay */}
+      <div className="voice-controls">
+        <button 
+          className={`voice-button ${isListening ? 'listening' : ''}`}
+          onClick={isListening ? stopListening : startListening}
+          disabled={isProcessing}
+        >
+          {isListening ? 'Stop Recording' : 'Start Recording'}
+        </button>
+        
+        {isProcessing && (
+          <div className="processing-indicator">
+            Processing...
           </div>
-       </div>
-
-       {/* Voice control overlay */}
-       <div className="voice-controls">
-         <button 
-           className={`voice-button ${isListening ? 'listening' : ''}`}
-           onClick={isListening ? stopListening : startListening}
-           disabled={isProcessing}
-         >
-           {isListening ? 'Stop Recording' : 'Start Recording'}
-         </button>
-         
-         {isProcessing && (
-           <div className="processing-indicator">
-             Processing...
-           </div>
-         )}
-       </div>
-
-
+        )}
+      </div>
 
       {/* Chat history overlay */}
       <div className="chat-history">
