@@ -133,16 +133,31 @@ function App() {
     const clips: THREE.AnimationClip[] = [];
 
     try {
+      console.log(`Loading VRMA file: ./models/vrma/${vrmaFile}`);
       const gltf = await new Promise<any>((resolve, reject) => {
         loader.load(`./models/vrma/${vrmaFile}`, resolve, undefined, reject);
       });
       
+      console.log('VRMA loaded successfully:', gltf);
+      console.log('VRMA animations:', gltf.animations);
+      
       if (gltf.animations && gltf.animations.length > 0) {
         clips.push(...gltf.animations);
         console.log(`Loaded animation from ${vrmaFile}:`, gltf.animations.length, 'clips');
+        
+        // Log animation details
+        gltf.animations.forEach((clip: any, index: number) => {
+          console.log(`Animation ${index}:`, {
+            name: clip.name,
+            duration: clip.duration,
+            tracks: clip.tracks.length
+          });
+        });
+      } else {
+        console.warn(`No animations found in ${vrmaFile}`);
       }
     } catch (error) {
-      console.warn(`Failed to load animation from ${vrmaFile}:`, error);
+      console.error(`Failed to load animation from ${vrmaFile}:`, error);
     }
 
     animationClipsRef.current = clips;
@@ -154,26 +169,47 @@ function App() {
     const vrm = vrmRef.current;
     const clips = animationClipsRef.current;
     
-    if (!vrm || !clips || clipIndex >= clips.length) {
-      console.warn('Cannot play animation: VRM or clip not available');
+    console.log('playAnimation called with:', { clipIndex, vrm: !!vrm, clips: !!clips, clipsLength: clips?.length });
+    
+    if (!vrm) {
+      console.warn('Cannot play animation: VRM not available');
+      return;
+    }
+    
+    if (!clips || clips.length === 0) {
+      console.warn('Cannot play animation: No animation clips available');
+      return;
+    }
+    
+    if (clipIndex >= clips.length) {
+      console.warn(`Cannot play animation: clipIndex ${clipIndex} >= clips.length ${clips.length}`);
       return;
     }
 
     // Stop current animation
     if (mixerRef.current) {
+      console.log('Stopping current animation');
       mixerRef.current.stopAllAction();
     }
 
     // Create new mixer and play animation
+    console.log('Creating new animation mixer');
     const mixer = new THREE.AnimationMixer(vrm.scene);
     mixerRef.current = mixer;
     
-    const action = mixer.clipAction(clips[clipIndex]);
+    const clip = clips[clipIndex];
+    console.log('Animation clip details:', {
+      name: clip.name,
+      duration: clip.duration,
+      tracks: clip.tracks.length
+    });
+    
+    const action = mixer.clipAction(clip);
     action.setLoop(THREE.LoopOnce, 1);
     action.clampWhenFinished = true;
     action.play();
 
-    console.log(`Playing animation clip ${clipIndex}:`, clips[clipIndex].name);
+    console.log(`Playing animation clip ${clipIndex}:`, clip.name);
   }, []);
 
 
@@ -269,9 +305,14 @@ function App() {
     utterance.onstart = () => {
       startLipSync(text);
       // Play animation if available
+      console.log('Speech started, checking for animations...');
+      console.log('Available animation clips:', animationClipsRef.current.length);
       if (animationClipsRef.current.length > 0) {
         const randomClipIndex = Math.floor(Math.random() * animationClipsRef.current.length);
+        console.log(`Playing random animation clip: ${randomClipIndex}`);
         playAnimation(randomClipIndex);
+      } else {
+        console.log('No animation clips available');
       }
     };
     
@@ -612,6 +653,16 @@ function App() {
     await loadVRMAAnimations(vrmaFile);
   }, [loadVRMAAnimations]);
 
+  // Test animation function
+  const testAnimation = useCallback(() => {
+    console.log('Testing animation...');
+    if (animationClipsRef.current.length > 0) {
+      playAnimation(0);
+    } else {
+      console.log('No animations available for testing');
+    }
+  }, [playAnimation]);
+
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
 
@@ -652,23 +703,30 @@ function App() {
            </select>
          </div>
          
-         <div className="control-group">
-           <label htmlFor="vrma-select">VRMA Animation:</label>
-           <select 
-             id="vrma-select"
-             value={selectedVRMA}
-             onChange={(e) => handleVRMAChange(e.target.value)}
-             className="model-select"
-           >
-             <option value="VRMA_01.vrma">Animation 01</option>
-             <option value="VRMA_02.vrma">Animation 02</option>
-             <option value="VRMA_03.vrma">Animation 03</option>
-             <option value="VRMA_04.vrma">Animation 04</option>
-             <option value="VRMA_05.vrma">Animation 05</option>
-             <option value="VRMA_06.vrma">Animation 06</option>
-             <option value="VRMA_07.vrma">Animation 07</option>
-           </select>
-         </div>
+                   <div className="control-group">
+            <label htmlFor="vrma-select">VRMA Animation:</label>
+            <select 
+              id="vrma-select"
+              value={selectedVRMA}
+              onChange={(e) => handleVRMAChange(e.target.value)}
+              className="model-select"
+            >
+              <option value="VRMA_01.vrma">Animation 01</option>
+              <option value="VRMA_02.vrma">Animation 02</option>
+              <option value="VRMA_03.vrma">Animation 03</option>
+              <option value="VRMA_04.vrma">Animation 04</option>
+              <option value="VRMA_05.vrma">Animation 05</option>
+              <option value="VRMA_06.vrma">Animation 06</option>
+              <option value="VRMA_07.vrma">Animation 07</option>
+            </select>
+            <button 
+              onClick={testAnimation}
+              className="test-animation-btn"
+              style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px' }}
+            >
+              Test Animation
+            </button>
+          </div>
        </div>
 
        {/* Voice control overlay */}
