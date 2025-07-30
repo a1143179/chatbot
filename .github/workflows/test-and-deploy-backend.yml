@@ -36,6 +36,18 @@ jobs:
         cd api
         npm run lint
         
+    - name: Build Azure Functions package
+      run: |
+        cd api
+        func pack --build remote --force
+        
+    - name: Upload Azure Functions package as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: azure-functions-package
+        path: api/api.zip
+        retention-days: 30
+        
     - name: Login to Azure
       uses: azure/login@v1
       with:
