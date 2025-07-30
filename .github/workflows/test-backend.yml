@@ -33,4 +33,12 @@ jobs:
     - name: Validate Azure Functions
       run: |
         cd api
-        npm run lint 
+        npm run lint
+        
+    - name: Build Azure Functions package (verify .funcignore)
+      run: |
+        cd api
+        func pack --build remote --force
+        echo "Package size: $(ls -lh api.zip)"
+        echo "Package contents:"
+        unzip -l api.zip | head -20 

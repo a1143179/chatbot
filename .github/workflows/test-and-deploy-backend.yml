@@ -36,6 +36,11 @@ jobs:
         cd api
         npm run lint
         
+    - name: Build Azure Functions package
+      run: |
+        cd api
+        func pack --build remote --force
+        
     - name: Login to Azure
       uses: azure/login@v1
       with:
@@ -45,4 +50,4 @@ jobs:
       uses: Azure/functions-action@v1
       with:
         app-name: 'chatbotprocessor'
-        package: './api' 
+        package: './api/api.zip' 
