@@ -42,10 +42,10 @@ jobs:
         cd api
         npm run lint
         
-    - name: Build Azure Functions package
+    - name: Build Azure Functions package with dependencies
       run: |
         cd api
-        func pack --build remote --force --javascript
+        func pack --build remote --force --javascript --include-settings
         
     - name: Upload Azure Functions package as artifact
       uses: actions/upload-artifact@v4
