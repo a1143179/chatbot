@@ -159,6 +159,32 @@ function App() {
     console.log('Total animation clips loaded:', clips.length);
   }, []);
 
+  // Validate VRM file content
+  const validateVRMFile = async (url: string): Promise<boolean> => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`HTTP error: ${response.status}`);
+        return false;
+      }
+      
+      const buffer = await response.arrayBuffer();
+      const view = new Uint8Array(buffer);
+      
+      // Check if it starts with glTF magic number
+      if (view.length < 4) return false;
+      
+      // glTF binary format starts with "glTF"
+      const magic = String.fromCharCode(...Array.from(view.slice(0, 4)));
+      console.log('File magic:', magic);
+      
+      return magic === 'glTF';
+    } catch (error) {
+      console.error('Error validating VRM file:', error);
+      return false;
+    }
+  };
+
   // Play animation clip
   const playAnimation = useCallback((clipIndex: number) => {
     const vrm = vrmRef.current;
@@ -481,13 +507,17 @@ function App() {
     
     // Try multiple VRM files as fallback
     const vrmFiles = [
+      './models/cute-girl.vrm',
+      './models/twitch-girl.vrm',
+      './models/Nahida.vrm',
+      './models/star-rail.vrm',
       '/models/cute-girl.vrm',
       '/models/twitch-girl.vrm',
       '/models/Nahida.vrm',
       '/models/star-rail.vrm'
     ];
     
-    const tryLoadVRM = (fileIndex: number) => {
+    const tryLoadVRM = async (fileIndex: number) => {
       if (fileIndex >= vrmFiles.length) {
         console.error('All VRM files failed to load');
         setVrmLoadingStatus('Failed to load any VRM files');
@@ -502,72 +532,68 @@ function App() {
       
       // Add cache-busting parameter
       const url = `${vrmFile}?t=${Date.now()}`;
+      console.log('Full URL:', url);
       
-      // First check if file is accessible
-      fetch(url, { method: 'HEAD' })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          console.log(`File ${vrmFile} is accessible`);
-          setVrmLoadingStatus(`File ${vrmFile} is accessible, loading...`);
-          
-          // Proceed with loading
-          loader.load(
-            url,
-            (gltf: any) => {
-              console.log('VRM loaded successfully:', vrmFile);
-              setVrmLoadingStatus('VRM loaded successfully!');
-              setVrmLoadingError(null);
-              const vrm = gltf.userData.vrm;
-              vrmRef.current = vrm;
-              scene.add(vrm.scene);
-              // Position the model to be centered and moved up 50px from previous position
-              vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
-              vrm.scene.rotation.y = Math.PI; // Face the camera
-              vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
-              // Enable shadows
-              vrm.scene.traverse((child: any) => {
-                if (child instanceof THREE.Mesh) {
-                  child.castShadow = true;
-                  child.receiveShadow = true;
-                }
-              });
-              // Load animations after VRM is loaded
-              loadVRMAAnimations().catch(console.error);
-              console.log('Avatar loaded with animation support');
-            },
-            (progress: any) => {
-              const percent = (progress.loaded / progress.total) * 100;
-              console.log('Loading progress:', percent, '%');
-              setVrmLoadingStatus(`Loading ${vrmFile}... ${Math.round(percent)}%`);
-            },
-            (error: any) => {
-              console.error(`Error loading VRM (${vrmFile}):`, error);
-              console.error('Error details:', {
-                message: error.message,
-                type: error.type,
-                target: error.target
-              });
-              
-              setVrmLoadingError(`Failed to load ${vrmFile}: ${error.message}`);
-              
-              // Try next file
-              setTimeout(() => {
-                tryLoadVRM(fileIndex + 1);
-              }, 1000);
+      // First validate the file content
+      const isValid = await validateVRMFile(url);
+      if (!isValid) {
+        console.error(`File ${vrmFile} is not a valid VRM file`);
+        setVrmLoadingError(`File ${vrmFile} is not a valid VRM file`);
+        setTimeout(() => {
+          tryLoadVRM(fileIndex + 1);
+        }, 1000);
+        return;
+      }
+      
+      console.log(`File ${vrmFile} is a valid VRM file`);
+      setVrmLoadingStatus(`File ${vrmFile} is valid, loading...`);
+      
+      // Proceed with loading
+      loader.load(
+        url,
+        (gltf: any) => {
+          console.log('VRM loaded successfully:', vrmFile);
+          setVrmLoadingStatus('VRM loaded successfully!');
+          setVrmLoadingError(null);
+          const vrm = gltf.userData.vrm;
+          vrmRef.current = vrm;
+          scene.add(vrm.scene);
+          // Position the model to be centered and moved up 50px from previous position
+          vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
+          vrm.scene.rotation.y = Math.PI; // Face the camera
+          vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
+          // Enable shadows
+          vrm.scene.traverse((child: any) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
             }
-          );
-        })
-        .catch(error => {
-          console.error(`File ${vrmFile} is not accessible:`, error);
-          setVrmLoadingError(`File ${vrmFile} is not accessible: ${error.message}`);
+          });
+          // Load animations after VRM is loaded
+          loadVRMAAnimations().catch(console.error);
+          console.log('Avatar loaded with animation support');
+        },
+        (progress: any) => {
+          const percent = (progress.loaded / progress.total) * 100;
+          console.log('Loading progress:', percent, '%');
+          setVrmLoadingStatus(`Loading ${vrmFile}... ${Math.round(percent)}%`);
+        },
+        (error: any) => {
+          console.error(`Error loading VRM (${vrmFile}):`, error);
+          console.error('Error details:', {
+            message: error.message,
+            type: error.type,
+            target: error.target
+          });
+          
+          setVrmLoadingError(`Failed to load ${vrmFile}: ${error.message}`);
           
           // Try next file
           setTimeout(() => {
             tryLoadVRM(fileIndex + 1);
           }, 1000);
-        });
+        }
+      );
     };
     
     tryLoadVRM(0);
