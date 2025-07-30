@@ -100,10 +100,9 @@ module.exports = async function (context, req) {
         console.log('Calling Google AI API with prompt:', prompt);
         
         // Call Google AI Studio API
-        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
