@@ -275,7 +275,13 @@ const CorsTest: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+    <div style={{ 
+      maxWidth: '800px', 
+      margin: '0 auto', 
+      padding: '20px',
+      minHeight: '100vh',
+      overflowY: 'auto'
+    }}>
       <h1>🔍 CORS Test for Azure Functions</h1>
       <p>Testing CORS functionality for your chatbot API.</p>
       
@@ -391,6 +397,9 @@ const CorsTest: React.FC = () => {
           border-radius: 3px;
           font-family: monospace;
           white-space: pre-wrap;
+          max-height: 400px;
+          overflow-y: auto;
+          overflow-x: auto;
         }
         .success {
           background-color: #d4edda;
@@ -408,6 +417,11 @@ const CorsTest: React.FC = () => {
           border-radius: 3px;
           overflow-x: auto;
           font-size: 12px;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        body {
+          overflow-y: auto;
         }
       `}</style>
     </div>
