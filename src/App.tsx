@@ -207,13 +207,17 @@ function App() {
     const action = mixer.clipAction(clip);
     action.setLoop(THREE.LoopOnce, 1);
     action.clampWhenFinished = true;
+    
+    // Slow down the animation by setting timeScale
+    action.timeScale = 0.5; // Play at half speed
     action.play();
 
     console.log(`Playing animation clip ${clipIndex}:`, clip.name);
     console.log('Action details:', {
       isRunning: action.isRunning(),
       time: action.time,
-      duration: action.getClip().duration
+      duration: action.getClip().duration,
+      timeScale: action.timeScale
     });
   }, []);
 
@@ -533,14 +537,21 @@ function App() {
           loader.load(url, resolve, undefined, reject);
         });
         
-        console.log('VRM loaded successfully:', vrmFile);
-        const vrm = gltf.userData.vrm;
-        vrmRef.current = vrm;
-        scene.add(vrm.scene);
-        // Position the model to be centered and moved up 50px from previous position
-        vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
-        vrm.scene.rotation.y = Math.PI; // Face the camera
-        vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
+                 console.log('VRM loaded successfully:', vrmFile);
+         const vrm = gltf.userData.vrm;
+         vrmRef.current = vrm;
+         scene.add(vrm.scene);
+         
+         // Position the model and lock its position
+         vrm.scene.position.set(0, 0.75, 0);
+         vrm.scene.rotation.y = Math.PI;
+         vrm.scene.scale.setScalar(1.2);
+         
+         // Lock the position to prevent movement during animation
+         vrm.scene.position.set(0, 0.75, 0);
+         vrm.scene.userData.originalPosition = { x: 0, y: 0.75, z: 0 };
+         vrm.scene.userData.originalRotation = { x: 0, y: Math.PI, z: 0 };
+         vrm.scene.userData.originalScale = { x: 1.2, y: 1.2, z: 1.2 };
         // Enable shadows
         vrm.scene.traverse((child: any) => {
           if (child instanceof THREE.Mesh) {
@@ -559,26 +570,44 @@ function App() {
     
     // Load initial VRM model
     loadVRMModel(selectedVRM);
-    // Animation loop
-    const animate = () => {
-      requestAnimationFrame(animate);
-      const delta = 0.016; // 60fps
-      if (vrmRef.current) {
-        vrmRef.current.update(delta);
-      }
-      if (mixerRef.current) {
-        mixerRef.current.update(delta);
-        // Debug mixer state
-        const mixer = mixerRef.current as any;
-        if (mixer._actions && mixer._actions.length > 0) {
-          const action = mixer._actions[0];
-          if (action && action.isRunning()) {
-            console.log('Animation is running, time:', action.time);
-          }
-        }
-      }
-      renderer.render(scene, camera);
-    };
+         // Animation loop
+     const animate = () => {
+       requestAnimationFrame(animate);
+       const delta = 0.016; // 60fps
+       
+       if (vrmRef.current) {
+         vrmRef.current.update(delta);
+         
+         // Lock VRM position during animation to prevent falling/movement
+         const originalPos = vrmRef.current.scene.userData.originalPosition;
+         const originalRot = vrmRef.current.scene.userData.originalRotation;
+         const originalScale = vrmRef.current.scene.userData.originalScale;
+         
+         if (originalPos) {
+           vrmRef.current.scene.position.set(originalPos.x, originalPos.y, originalPos.z);
+         }
+         if (originalRot) {
+           vrmRef.current.scene.rotation.set(originalRot.x, originalRot.y, originalRot.z);
+         }
+         if (originalScale) {
+           vrmRef.current.scene.scale.set(originalScale.x, originalScale.y, originalScale.z);
+         }
+       }
+       
+       if (mixerRef.current) {
+         mixerRef.current.update(delta);
+         // Debug mixer state
+         const mixer = mixerRef.current as any;
+         if (mixer._actions && mixer._actions.length > 0) {
+           const action = mixer._actions[0];
+           if (action && action.isRunning()) {
+             console.log('Animation is running, time:', action.time);
+           }
+         }
+       }
+       
+       renderer.render(scene, camera);
+     };
     animate();
     // Handle window resize
     const handleResize = () => {
@@ -666,20 +695,54 @@ function App() {
     await loadVRMAAnimations(vrmaFile);
   }, [loadVRMAAnimations]);
 
-  // Test animation function
-  const testAnimation = useCallback(() => {
-    console.log('Testing animation...');
-    console.log('Current VRM:', vrmRef.current);
-    console.log('Current animation clips:', animationClipsRef.current);
-    console.log('Current mixer:', mixerRef.current);
-    
-    if (animationClipsRef.current.length > 0) {
-      console.log('Attempting to play animation 0...');
-      playAnimation(0);
-    } else {
-      console.log('No animations available for testing');
-    }
-  }, [playAnimation]);
+     // Test animation function
+   const testAnimation = useCallback(() => {
+     console.log('Testing animation...');
+     console.log('Current VRM:', vrmRef.current);
+     console.log('Current animation clips:', animationClipsRef.current);
+     console.log('Current mixer:', mixerRef.current);
+     
+     if (animationClipsRef.current.length > 0) {
+       console.log('Attempting to play animation 0...');
+       playAnimation(0);
+     } else {
+       console.log('No animations available for testing');
+     }
+   }, [playAnimation]);
+
+   // Test slow animation function
+   const testSlowAnimation = useCallback(() => {
+     console.log('Testing slow animation...');
+     
+     if (animationClipsRef.current.length > 0) {
+       const vrm = vrmRef.current;
+       const clips = animationClipsRef.current;
+       
+       if (!vrm || !clips) return;
+       
+       // Stop current animation
+       if (mixerRef.current) {
+         mixerRef.current.stopAllAction();
+       }
+       
+       // Create new mixer and play animation very slowly
+       const mixer = new THREE.AnimationMixer(vrm.scene);
+       mixerRef.current = mixer;
+       
+       const clip = clips[0];
+       const action = mixer.clipAction(clip);
+       action.setLoop(THREE.LoopOnce, 1);
+       action.clampWhenFinished = true;
+       action.timeScale = 0.2; // Play at 1/5 speed
+       action.play();
+       
+       console.log('Playing slow animation:', {
+         name: clip.name,
+         duration: clip.duration,
+         timeScale: action.timeScale
+       });
+     }
+   }, []);
 
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
@@ -737,13 +800,20 @@ function App() {
               <option value="VRMA_06.vrma">Animation 06</option>
               <option value="VRMA_07.vrma">Animation 07</option>
             </select>
-            <button 
-              onClick={testAnimation}
-              className="test-animation-btn"
-              style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px' }}
-            >
-              Test Animation
-            </button>
+                         <button 
+               onClick={testAnimation}
+               className="test-animation-btn"
+               style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px' }}
+             >
+               Test Animation
+             </button>
+             <button 
+               onClick={testSlowAnimation}
+               className="test-animation-btn"
+               style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px' }}
+             >
+               Test Slow Animation
+             </button>
           </div>
        </div>
 
