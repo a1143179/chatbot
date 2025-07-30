@@ -26,35 +26,8 @@ describe('Process Function Tests', () => {
     mockContext.res = {};
   });
 
-  test('should handle OPTIONS request for CORS with localhost', async () => {
-    const req = createMockRequest('OPTIONS', null, {
-      'origin': 'http://localhost:3000'
-    });
-    
-    // Import the function
-    const processFunction = require('./process/index');
-    
-    await processFunction(mockContext, req);
-    
-    expect(mockContext.res.status).toBe(200);
-    expect(mockContext.res.headers['Access-Control-Allow-Origin']).toBe('*');
-    expect(mockContext.res.headers['Access-Control-Allow-Methods']).toBe('POST, GET, OPTIONS');
-  });
-
-  test('should handle OPTIONS request for CORS with production domain', async () => {
-    const req = createMockRequest('OPTIONS', null, {
-      'origin': 'https://a1143179.github.io'
-    });
-    
-    // Import the function
-    const processFunction = require('./process/index');
-    
-    await processFunction(mockContext, req);
-    
-    expect(mockContext.res.status).toBe(200);
-    expect(mockContext.res.headers['Access-Control-Allow-Origin']).toBe('*');
-    expect(mockContext.res.headers['Access-Control-Allow-Methods']).toBe('POST, GET, OPTIONS');
-  });
+  // OPTIONS requests are now handled globally by Azure Functions
+  // No need to test them at function level
 
   test('should reject non-POST requests', async () => {
     const req = createMockRequest('GET');
