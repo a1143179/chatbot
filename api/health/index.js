@@ -7,7 +7,10 @@ module.exports = async function (context, _req) {
     context.res = {
         status: 200,
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
         },
         body: {
             status: 'healthy',
