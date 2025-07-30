@@ -15,7 +15,7 @@ local.settings.json
 
 # Exclude dependency files from deployment
 package.json
-node_modules/
+node_modules
 package-lock.json
 npm-debug.log*
 yarn-debug.log*
@@ -25,4 +25,5 @@ yarn-error.log*
 .eslintrc*
 .prettierrc*
 jest.config.*
-tsconfig.json 
+tsconfig.json
+eslint.config.js 
