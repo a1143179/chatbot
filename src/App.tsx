@@ -115,17 +115,37 @@ function App() {
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  function setVrmMouthShape(shape: string, value: number) {
-    const vrm = vrmRef.current;
-    if (!vrm) return;
-    
-    // VRM 1.x
-    if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
-      (vrm as any).expressionManager.setValue(shape, value);
-    } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
-      (vrm as any).blendShapeProxy.setValue(shape, value);
-    }
-  }
+     function setVrmMouthShape(shape: string, value: number) {
+     const vrm = vrmRef.current;
+     if (!vrm) return;
+     
+     // VRM 1.x
+     if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
+       (vrm as any).expressionManager.setValue(shape, value);
+     } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
+       (vrm as any).blendShapeProxy.setValue(shape, value);
+     }
+   }
+
+   // Reset VRM pose to default position
+   const resetVRMPose = useCallback(() => {
+     const vrm = vrmRef.current;
+     if (!vrm) return;
+     
+     console.log('Resetting VRM pose to default position...');
+     
+     // Reset all bone rotations to default pose
+     vrm.scene.traverse((child: any) => {
+       if (child.isBone) {
+         child.rotation.set(0, 0, 0);
+         child.quaternion.set(0, 0, 0, 1);
+         child.position.set(0, 0, 0);
+       }
+     });
+     
+     // Force VRM update
+     vrm.update(0);
+   }, []);
 
   // Load VRMA animation files
   const loadVRMAAnimations = useCallback(async (vrmaFile: string) => {
@@ -204,13 +224,17 @@ function App() {
       tracks: clip.tracks.length
     });
     
-    const action = mixer.clipAction(clip);
-    action.setLoop(THREE.LoopOnce, 1);
-    action.clampWhenFinished = true;
-    
-    // Slow down the animation by setting timeScale
-    action.timeScale = 0.5; // Play at half speed
-    action.play();
+         const action = mixer.clipAction(clip);
+     action.setLoop(THREE.LoopOnce, 1);
+     action.clampWhenFinished = true;
+     
+     // Slow down the animation by setting timeScale
+     action.timeScale = 0.5; // Play at half speed
+     
+     // Reset VRM pose before playing animation to fix arm positions
+     resetVRMPose();
+     
+     action.play();
 
     console.log(`Playing animation clip ${clipIndex}:`, clip.name);
     console.log('Action details:', {
@@ -219,7 +243,7 @@ function App() {
       duration: action.getClip().duration,
       timeScale: action.timeScale
     });
-  }, []);
+  }, [resetVRMPose]);
 
 
 
@@ -730,11 +754,15 @@ function App() {
        mixerRef.current = mixer;
        
        const clip = clips[0];
-       const action = mixer.clipAction(clip);
-       action.setLoop(THREE.LoopOnce, 1);
-       action.clampWhenFinished = true;
-       action.timeScale = 0.2; // Play at 1/5 speed
-       action.play();
+               const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+        action.timeScale = 0.2; // Play at 1/5 speed
+        
+        // Reset VRM pose before playing animation to fix arm positions
+        resetVRMPose();
+        
+        action.play();
        
        console.log('Playing slow animation:', {
          name: clip.name,
@@ -742,7 +770,7 @@ function App() {
          timeScale: action.timeScale
        });
      }
-   }, []);
+   }, [resetVRMPose]);
 
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
@@ -807,13 +835,20 @@ function App() {
              >
                Test Animation
              </button>
-             <button 
-               onClick={testSlowAnimation}
-               className="test-animation-btn"
-               style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px' }}
-             >
-               Test Slow Animation
-             </button>
+                           <button 
+                onClick={testSlowAnimation}
+                className="test-animation-btn"
+                style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px' }}
+              >
+                Test Slow Animation
+              </button>
+              <button 
+                onClick={resetVRMPose}
+                className="test-animation-btn"
+                style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#ff6b6b' }}
+              >
+                Reset Pose
+              </button>
           </div>
        </div>
 
