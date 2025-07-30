@@ -99,11 +99,17 @@ const phonemeToMouthShape: { [key: string]: string[] } = {
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
   const vrmRef = useRef<VRM | null>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const animationClipsRef = useRef<THREE.AnimationClip[]>([]);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // VRM and VRMA selection
+  const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
+  const [selectedVRMA, setSelectedVRMA] = useState<string>('VRMA_01.vrma');
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
@@ -120,6 +126,55 @@ function App() {
       (vrm as any).blendShapeProxy.setValue(shape, value);
     }
   }
+
+  // Load VRMA animation files
+  const loadVRMAAnimations = useCallback(async (vrmaFile: string) => {
+    const loader = new GLTFLoader();
+    const clips: THREE.AnimationClip[] = [];
+
+    try {
+      const gltf = await new Promise<any>((resolve, reject) => {
+        loader.load(`./models/vrma/${vrmaFile}`, resolve, undefined, reject);
+      });
+      
+      if (gltf.animations && gltf.animations.length > 0) {
+        clips.push(...gltf.animations);
+        console.log(`Loaded animation from ${vrmaFile}:`, gltf.animations.length, 'clips');
+      }
+    } catch (error) {
+      console.warn(`Failed to load animation from ${vrmaFile}:`, error);
+    }
+
+    animationClipsRef.current = clips;
+    console.log('Total animation clips loaded:', clips.length);
+  }, []);
+
+  // Play animation clip
+  const playAnimation = useCallback((clipIndex: number) => {
+    const vrm = vrmRef.current;
+    const clips = animationClipsRef.current;
+    
+    if (!vrm || !clips || clipIndex >= clips.length) {
+      console.warn('Cannot play animation: VRM or clip not available');
+      return;
+    }
+
+    // Stop current animation
+    if (mixerRef.current) {
+      mixerRef.current.stopAllAction();
+    }
+
+    // Create new mixer and play animation
+    const mixer = new THREE.AnimationMixer(vrm.scene);
+    mixerRef.current = mixer;
+    
+    const action = mixer.clipAction(clips[clipIndex]);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+
+    console.log(`Playing animation clip ${clipIndex}:`, clips[clipIndex].name);
+  }, []);
 
 
 
@@ -213,15 +268,24 @@ function App() {
     // Start lip sync when speech starts
     utterance.onstart = () => {
       startLipSync(text);
+      // Play animation if available
+      if (animationClipsRef.current.length > 0) {
+        const randomClipIndex = Math.floor(Math.random() * animationClipsRef.current.length);
+        playAnimation(randomClipIndex);
+      }
     };
     
     // Stop lip sync when speech ends
     utterance.onend = () => {
       stopLipSync();
+      // Stop any playing animation
+      if (mixerRef.current) {
+        mixerRef.current.stopAllAction();
+      }
     };
 
     synthesisRef.current.speak(utterance);
-  }, [startLipSync, stopLipSync]);
+  }, [startLipSync, stopLipSync, playAnimation]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -406,68 +470,58 @@ function App() {
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
     
-    // Load VRM model
-    const vrmFiles = [
-      './models/cute-girl.vrm',
-      './models/twitch-girl.vrm',
-      './models/Nahida.vrm',
-      './models/star-rail.vrm'
-    ];
-    
-    const tryLoadVRM = async (fileIndex: number) => {
-      if (fileIndex >= vrmFiles.length) {
-        console.error('All VRM files failed to load');
-        return;
+    // Load VRM model function
+    const loadVRMModel = async (vrmFile: string) => {
+      console.log(`Loading VRM file: ${vrmFile}`);
+      
+      // Remove existing VRM from scene
+      if (vrmRef.current) {
+        scene.remove(vrmRef.current.scene);
       }
       
-      const vrmFile = vrmFiles[fileIndex];
-      console.log(`Attempting to load VRM file: ${vrmFile}`);
-      
       // Add cache-busting parameter
-      const url = `${vrmFile}?t=${Date.now()}`;
+      const url = `./models/vrm/${vrmFile}?t=${Date.now()}`;
       
-      loader.load(
-        url,
-        (gltf: any) => {
-          console.log('VRM loaded successfully:', vrmFile);
-          const vrm = gltf.userData.vrm;
-          vrmRef.current = vrm;
-          scene.add(vrm.scene);
-          // Position the model to be centered and moved up 50px from previous position
-          vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
-          vrm.scene.rotation.y = Math.PI; // Face the camera
-          vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
-          // Enable shadows
-          vrm.scene.traverse((child: any) => {
-            if (child instanceof THREE.Mesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-          console.log('Avatar loaded successfully');
-        },
-        (progress: any) => {
-          const percent = (progress.loaded / progress.total) * 100;
-          console.log('Loading progress:', percent, '%');
-        },
-        (error: any) => {
-          console.error(`Error loading VRM (${vrmFile}):`, error);
-          
-          // Try next file
-          setTimeout(() => {
-            tryLoadVRM(fileIndex + 1);
-          }, 1000);
-        }
-      );
+      try {
+        const gltf = await new Promise<any>((resolve, reject) => {
+          loader.load(url, resolve, undefined, reject);
+        });
+        
+        console.log('VRM loaded successfully:', vrmFile);
+        const vrm = gltf.userData.vrm;
+        vrmRef.current = vrm;
+        scene.add(vrm.scene);
+        // Position the model to be centered and moved up 50px from previous position
+        vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
+        vrm.scene.rotation.y = Math.PI; // Face the camera
+        vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
+        // Enable shadows
+        vrm.scene.traverse((child: any) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        console.log('Avatar loaded successfully');
+        
+        // Load VRMA animations after VRM is loaded
+        await loadVRMAAnimations(selectedVRMA);
+      } catch (error) {
+        console.error(`Error loading VRM (${vrmFile}):`, error);
+      }
     };
     
-    tryLoadVRM(0);
+    // Load initial VRM model
+    loadVRMModel(selectedVRM);
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
       const delta = 0.016; // 60fps
       if (vrmRef.current) {
         vrmRef.current.update(delta);
+      }
+      if (mixerRef.current) {
+        mixerRef.current.update(delta);
       }
       renderer.render(scene, camera);
     };
@@ -493,7 +547,7 @@ function App() {
       }
              renderer.dispose();
      };
-       }, []);
+       }, [selectedVRM, selectedVRMA, loadVRMAAnimations]);
 
 
 
@@ -546,6 +600,18 @@ function App() {
     }
   }, [isListening]);
 
+  // Handle VRM model change
+  const handleVRMChange = useCallback(async (vrmFile: string) => {
+    setSelectedVRM(vrmFile);
+    // The VRM will be reloaded in the useEffect when selectedVRM changes
+  }, []);
+
+  // Handle VRMA animation change
+  const handleVRMAChange = useCallback(async (vrmaFile: string) => {
+    setSelectedVRMA(vrmaFile);
+    await loadVRMAAnimations(vrmaFile);
+  }, [loadVRMAAnimations]);
+
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
 
@@ -568,22 +634,59 @@ function App() {
     <div className="App">
       <div ref={mountRef} style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }} />
       
-      {/* Voice control overlay */}
-      <div className="voice-controls">
-        <button 
-          className={`voice-button ${isListening ? 'listening' : ''}`}
-          onClick={isListening ? stopListening : startListening}
-          disabled={isProcessing}
-        >
-          {isListening ? 'Stop Recording' : 'Start Recording'}
-        </button>
-        
-        {isProcessing && (
-          <div className="processing-indicator">
-            Processing...
-          </div>
-        )}
-      </div>
+             {/* Model selection controls */}
+       <div className="model-controls">
+         <div className="control-group">
+           <label htmlFor="vrm-select">VRM Model:</label>
+           <select 
+             id="vrm-select"
+             value={selectedVRM}
+             onChange={(e) => handleVRMChange(e.target.value)}
+             className="model-select"
+           >
+             <option value="cute-girl.vrm">Cute Girl</option>
+             <option value="twitch-girl.vrm">Twitch Girl</option>
+             <option value="Nahida.vrm">Nahida</option>
+             <option value="star-rail.vrm">Star Rail</option>
+             <option value="pee.vrm">Pee</option>
+           </select>
+         </div>
+         
+         <div className="control-group">
+           <label htmlFor="vrma-select">VRMA Animation:</label>
+           <select 
+             id="vrma-select"
+             value={selectedVRMA}
+             onChange={(e) => handleVRMAChange(e.target.value)}
+             className="model-select"
+           >
+             <option value="VRMA_01.vrma">Animation 01</option>
+             <option value="VRMA_02.vrma">Animation 02</option>
+             <option value="VRMA_03.vrma">Animation 03</option>
+             <option value="VRMA_04.vrma">Animation 04</option>
+             <option value="VRMA_05.vrma">Animation 05</option>
+             <option value="VRMA_06.vrma">Animation 06</option>
+             <option value="VRMA_07.vrma">Animation 07</option>
+           </select>
+         </div>
+       </div>
+
+       {/* Voice control overlay */}
+       <div className="voice-controls">
+         <button 
+           className={`voice-button ${isListening ? 'listening' : ''}`}
+           onClick={isListening ? stopListening : startListening}
+           disabled={isProcessing}
+         >
+           {isListening ? 'Stop Recording' : 'Start Recording'}
+         </button>
+         
+         {isProcessing && (
+           <div className="processing-indicator">
+             Processing...
+           </div>
+         )}
+       </div>
 
 
 
