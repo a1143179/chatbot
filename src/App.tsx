@@ -111,22 +111,32 @@ function App() {
     setIsProcessing(true);
     
     try {
+      console.log('Making API request to:', config.apiUrl);
+      console.log('Request payload:', { prompt: userInput });
+      
       // Use configuration for API URL
       const response = await fetch(config.apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           prompt: userInput
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error('API request failed');
+        const errorText = await response.text();
+        console.error('API request failed:', response.status, errorText);
+        throw new Error(`API request failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('API response data:', data);
       const aiResponse = data.response;
       
       // Add AI response to chat
@@ -140,7 +150,7 @@ function App() {
       console.error('Error processing with AI:', error);
       const errorMessage: ChatMessage = { 
         role: 'assistant', 
-        content: 'Sorry, an error occurred while processing your request.' 
+        content: `Sorry, an error occurred while processing your request: ${error instanceof Error ? error.message : 'Unknown error'}` 
       };
       setChatHistory(prev => [...prev, errorMessage]);
     } finally {
