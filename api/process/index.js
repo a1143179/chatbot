@@ -31,8 +31,7 @@ module.exports = async function (context, req) {
         'Access-Control-Allow-Origin': '*', // Allow all origins for testing
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Max-Age': '86400',
-        'Access-Control-Allow-Credentials': 'true'
+        'Access-Control-Max-Age': '86400'
     });
     
     // Handle CORS preflight requests - ALWAYS return 200 for OPTIONS
