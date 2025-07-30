@@ -17,6 +17,9 @@ const CorsTest: React.FC = () => {
     setLoading('options');
     try {
       console.log('Testing OPTIONS request...');
+      console.log('Request URL:', config.apiUrl);
+      console.log('Request origin:', window.location.origin);
+      
       const response = await fetch(config.apiUrl, {
         method: 'OPTIONS',
         headers: {
@@ -48,7 +51,13 @@ const CorsTest: React.FC = () => {
       const result: TestResult = {
         success: false,
         message: `OPTIONS Request Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        details: { error }
+        details: { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          type: error instanceof Error ? error.constructor.name : typeof error,
+          url: config.apiUrl,
+          origin: window.location.origin,
+          note: 'This usually indicates a CORS preflight failure or network issue'
+        }
       };
       setOptionsResult(result);
       console.error('❌ OPTIONS request error:', error);
