@@ -203,6 +203,14 @@ function App() {
       
       console.log('Setting VRM to idle pose with arms pointing down...');
       
+      // Debug: Log all bone names first
+      console.log('Available bones:');
+      vrm.scene.traverse((child: any) => {
+        if (child.isBone) {
+          console.log('Bone:', child.name);
+        }
+      });
+      
       // Reset all bones first
       vrm.scene.traverse((child: any) => {
         if (child.isBone) {
@@ -214,17 +222,23 @@ function App() {
       // Force VRM update
       vrm.update(0);
       
-      // Set specific idle pose for arms
+      // Set specific idle pose for arms with more precise targeting
       setTimeout(() => {
         if (vrmRef.current) {
+          console.log('Applying precise arm pose correction...');
+          
           vrmRef.current.scene.traverse((child: any) => {
             if (child.isBone) {
               const boneName = child.name.toLowerCase();
+              console.log('Processing bone:', boneName);
               
-              // Ensure arms are in natural hanging position
+              // More comprehensive arm bone detection
               if (boneName.includes('arm') || boneName.includes('shoulder') || 
                   boneName.includes('upperarm') || boneName.includes('forearm') || 
-                  boneName.includes('hand')) {
+                  boneName.includes('hand') || boneName.includes('elbow') ||
+                  boneName.includes('wrist') || boneName.includes('finger')) {
+                
+                console.log('Resetting arm bone:', boneName);
                 child.rotation.set(0, 0, 0);
                 child.quaternion.set(0, 0, 0, 1);
               }
@@ -232,11 +246,40 @@ function App() {
           });
           
           vrmRef.current.update(0);
+          console.log('Idle pose applied');
         }
       }, 200);
+        }, []);
+    
+    // Force reset all bones to identity
+    const forceResetAllBones = useCallback(() => {
+      const vrm = vrmRef.current;
+      if (!vrm) return;
+      
+      console.log('Force resetting ALL bones to identity...');
+      
+      // Reset every single bone to identity
+      vrm.scene.traverse((child: any) => {
+        if (child.isBone) {
+          console.log('Force resetting bone:', child.name);
+          child.rotation.set(0, 0, 0);
+          child.quaternion.set(0, 0, 0, 1);
+          child.position.set(0, 0, 0);
+        }
+      });
+      
+      // Force VRM update multiple times
+      vrm.update(0);
+      
+      setTimeout(() => {
+        if (vrmRef.current) {
+          vrmRef.current.update(0);
+          console.log('Force reset completed');
+        }
+      }, 100);
     }, []);
-
-  // Load VRMA animation files
+    
+    // Load VRMA animation files
   const loadVRMAAnimations = useCallback(async (vrmaFile: string) => {
     const loader = new GLTFLoader();
     const clips: THREE.AnimationClip[] = [];
@@ -754,7 +797,7 @@ function App() {
       }
              renderer.dispose();
      };
-       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose, setVRMIdlePose]);
+       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose, setVRMIdlePose, forceResetAllBones]);
 
 
 
@@ -949,13 +992,20 @@ function App() {
                >
                  Reset Pose
                </button>
-               <button 
-                 onClick={setVRMIdlePose}
-                 className="test-animation-btn"
-                 style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#4CAF50' }}
-               >
-                 Set Idle Pose
-               </button>
+                               <button 
+                  onClick={setVRMIdlePose}
+                  className="test-animation-btn"
+                  style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#4CAF50' }}
+                >
+                  Set Idle Pose
+                </button>
+                <button 
+                  onClick={forceResetAllBones}
+                  className="test-animation-btn"
+                  style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#FF9800' }}
+                >
+                  Force Reset All
+                </button>
           </div>
        </div>
 
