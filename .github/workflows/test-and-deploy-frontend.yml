@@ -1,8 +1,7 @@
 name: Test and Deploy Frontend
 
 on:
-  pull_request:
-    types: [ closed ]
+  push:
     branches: [ main ]
 
 permissions:
@@ -13,7 +12,6 @@ permissions:
 jobs:
   test-and-deploy-frontend:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
