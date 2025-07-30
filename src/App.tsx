@@ -59,10 +59,48 @@ interface ChatMessage {
   content: string;
 }
 
+// Phoneme to mouth shape mapping for Chinese
+const phonemeToMouthShape: { [key: string]: string[] } = {
+  // Vowels
+  'a': ['A'],
+  'e': ['E'],
+  'i': ['I'],
+  'o': ['O'],
+  'u': ['U'],
+  // Consonants that affect mouth shape
+  'b': ['A'],
+  'p': ['A'],
+  'm': ['A'],
+  'f': ['A'],
+  'v': ['A'],
+  'w': ['O'],
+  'y': ['I'],
+  // Chinese specific sounds
+  'zh': ['A'],
+  'ch': ['A'],
+  'sh': ['A'],
+  'r': ['A'],
+  'z': ['A'],
+  'c': ['A'],
+  's': ['A'],
+  'h': ['A'],
+  'l': ['A'],
+  'n': ['A'],
+  'ng': ['A'],
+  'j': ['I'],
+  'q': ['I'],
+  'x': ['I'],
+  'g': ['A'],
+  'k': ['A'],
+  'd': ['A'],
+  't': ['A']
+};
+
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
   const vrmRef = useRef<VRM | null>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const animationClipsRef = useRef<THREE.AnimationClip[]>([]);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
@@ -76,6 +114,7 @@ function App() {
   function setVrmMouthShape(shape: string, value: number) {
     const vrm = vrmRef.current;
     if (!vrm) return;
+    
     // VRM 1.x
     if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
       (vrm as any).expressionManager.setValue(shape, value);
@@ -84,29 +123,176 @@ function App() {
     }
   }
 
+  // Load VRMA animation files
+  const loadVRMAAnimations = useCallback(async () => {
+    const animationFiles = [
+      '/models/VRMA_01.vrma',
+      '/models/VRMA_02.vrma',
+      '/models/VRMA_03.vrma',
+      '/models/VRMA_04.vrma',
+      '/models/VRMA_05.vrma',
+      '/models/VRMA_06.vrma',
+      '/models/VRMA_07.vrma'
+    ];
+
+    const loader = new GLTFLoader();
+    const clips: THREE.AnimationClip[] = [];
+
+    for (const file of animationFiles) {
+      try {
+        const gltf = await new Promise<any>((resolve, reject) => {
+          loader.load(file, resolve, undefined, reject);
+        });
+        
+        if (gltf.animations && gltf.animations.length > 0) {
+          clips.push(...gltf.animations);
+          console.log(`Loaded animation from ${file}:`, gltf.animations.length, 'clips');
+        }
+      } catch (error) {
+        console.warn(`Failed to load animation from ${file}:`, error);
+      }
+    }
+
+    animationClipsRef.current = clips;
+    console.log('Total animation clips loaded:', clips.length);
+  }, []);
+
+  // Play animation clip
+  const playAnimation = useCallback((clipIndex: number) => {
+    const vrm = vrmRef.current;
+    const clips = animationClipsRef.current;
+    
+    if (!vrm || !clips || clipIndex >= clips.length) {
+      console.warn('Cannot play animation: VRM or clip not available');
+      return;
+    }
+
+    // Stop current animation
+    if (mixerRef.current) {
+      mixerRef.current.stopAllAction();
+    }
+
+    // Create new mixer and play animation
+    const mixer = new THREE.AnimationMixer(vrm.scene);
+    mixerRef.current = mixer;
+    
+    const action = mixer.clipAction(clips[clipIndex]);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+
+    console.log(`Playing animation clip ${clipIndex}:`, clips[clipIndex].name);
+  }, []);
+
+  // Improved lip sync based on text analysis
+  const analyzeTextForLipSync = useCallback((text: string): string[] => {
+    const phonemes: string[] = [];
+    const words = text.toLowerCase().split(/\s+/);
+    
+    words.forEach(word => {
+      // Simple Chinese character to pinyin approximation
+      // This is a basic implementation - for better results, you'd want a proper Chinese-to-pinyin library
+      const chars = word.split('');
+      chars.forEach(char => {
+        // Map Chinese characters to approximate phonemes
+        if (/[aeiou]/.test(char)) {
+          phonemes.push(char);
+        } else if (/[bpmfw]/.test(char)) {
+          phonemes.push('b');
+        } else if (/[dtnl]/.test(char)) {
+          phonemes.push('d');
+        } else if (/[gkh]/.test(char)) {
+          phonemes.push('g');
+        } else if (/[jqx]/.test(char)) {
+          phonemes.push('j');
+        } else if (/[zhchsh]/.test(char)) {
+          phonemes.push('zh');
+        } else if (/[zcs]/.test(char)) {
+          phonemes.push('z');
+        } else {
+          // Default to 'a' for unknown characters
+          phonemes.push('a');
+        }
+      });
+    });
+    
+    return phonemes;
+  }, []);
+
+  const startLipSync = useCallback((text: string) => {
+    const phonemes = analyzeTextForLipSync(text);
+    let currentIndex = 0;
+    
+    // Clear any existing lip sync
+    if (lipSyncIntervalRef.current) {
+      clearInterval(lipSyncIntervalRef.current);
+    }
+    
+    // Reset all mouth shapes
+    ['A', 'I', 'U', 'E', 'O'].forEach(shape => setVrmMouthShape(shape, 0));
+    
+    lipSyncIntervalRef.current = setInterval(() => {
+      if (currentIndex >= phonemes.length) {
+        // End of text, close mouth
+        ['A', 'I', 'U', 'E', 'O'].forEach(shape => setVrmMouthShape(shape, 0));
+        if (lipSyncIntervalRef.current) {
+          clearInterval(lipSyncIntervalRef.current);
+        }
+        return;
+      }
+      
+      const phoneme = phonemes[currentIndex];
+      const shapes = phonemeToMouthShape[phoneme] || ['A'];
+      
+      // Set mouth shapes
+      ['A', 'I', 'U', 'E', 'O'].forEach(shape => {
+        const value = shapes.includes(shape) ? 1.0 : 0.0;
+        setVrmMouthShape(shape, value);
+      });
+      
+      currentIndex++;
+    }, 150); // Adjust timing based on speech rate
+  }, [analyzeTextForLipSync]);
+
+  const stopLipSync = useCallback(() => {
+    if (lipSyncIntervalRef.current) {
+      clearInterval(lipSyncIntervalRef.current);
+      lipSyncIntervalRef.current = null;
+    }
+    // Reset mouth shapes
+    ['A', 'I', 'U', 'E', 'O'].forEach(shape => setVrmMouthShape(shape, 0));
+  }, []);
+
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
+    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'zh-CN';
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
 
-    // 启动嘴型同步
+    // Start lip sync when speech starts
     utterance.onstart = () => {
-      const mouthShapes = ['A', 'I', 'U', 'E', 'O'];
-      lipSyncIntervalRef.current = setInterval(() => {
-        const shape = mouthShapes[Math.floor(Math.random() * mouthShapes.length)];
-        mouthShapes.forEach(s => setVrmMouthShape(s, s === shape ? 1 : 0));
-      }, 100);
+      startLipSync(text);
+      // Optionally play a speaking animation
+      if (animationClipsRef.current.length > 0) {
+        // Play a random speaking animation
+        const randomClipIndex = Math.floor(Math.random() * animationClipsRef.current.length);
+        playAnimation(randomClipIndex);
+      }
     };
-    // 停止嘴型同步
+    
+    // Stop lip sync when speech ends
     utterance.onend = () => {
-      if (lipSyncIntervalRef.current) clearInterval(lipSyncIntervalRef.current);
-      ['A', 'I', 'U', 'E', 'O'].forEach(s => setVrmMouthShape(s, 0));
+      stopLipSync();
+      // Stop any playing animation
+      if (mixerRef.current) {
+        mixerRef.current.stopAllAction();
+      }
     };
 
     synthesisRef.current.speak(utterance);
-  }, []);
+  }, [playAnimation, startLipSync, stopLipSync]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -291,7 +477,7 @@ function App() {
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
     loader.load(
-      '/chatbot/models/cute-girl.vrm',
+      '/models/cute-girl.vrm',
       (gltf: any) => {
         const vrm = gltf.userData.vrm;
         vrmRef.current = vrm;
@@ -307,8 +493,9 @@ function App() {
             child.receiveShadow = true;
           }
         });
-        // Keep avatar in idle state (no animation)
-        console.log('Avatar loaded in idle state');
+        // Load animations after VRM is loaded
+        loadVRMAAnimations().catch(console.error);
+        console.log('Avatar loaded with animation support');
       },
       (progress: any) => {
         console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
@@ -349,9 +536,11 @@ function App() {
       if (mountElement && renderer.domElement) {
         mountElement.removeChild(renderer.domElement);
       }
-      renderer.dispose();
-    };
-  }, []);
+             renderer.dispose();
+     };
+   }, [loadVRMAAnimations]);
+
+
 
   // Initialize speech recognition
   useEffect(() => {
@@ -386,7 +575,7 @@ function App() {
 
     // Initialize speech synthesis
     synthesisRef.current = window.speechSynthesis;
-  }, [processWithAI]);
+  }, [processWithAI]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening && !isProcessing) {
