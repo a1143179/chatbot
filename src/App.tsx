@@ -210,6 +210,11 @@ function App() {
     action.play();
 
     console.log(`Playing animation clip ${clipIndex}:`, clip.name);
+    console.log('Action details:', {
+      isRunning: action.isRunning(),
+      time: action.time,
+      duration: action.getClip().duration
+    });
   }, []);
 
 
@@ -563,6 +568,14 @@ function App() {
       }
       if (mixerRef.current) {
         mixerRef.current.update(delta);
+        // Debug mixer state
+        const mixer = mixerRef.current as any;
+        if (mixer._actions && mixer._actions.length > 0) {
+          const action = mixer._actions[0];
+          if (action && action.isRunning()) {
+            console.log('Animation is running, time:', action.time);
+          }
+        }
       }
       renderer.render(scene, camera);
     };
@@ -656,7 +669,12 @@ function App() {
   // Test animation function
   const testAnimation = useCallback(() => {
     console.log('Testing animation...');
+    console.log('Current VRM:', vrmRef.current);
+    console.log('Current animation clips:', animationClipsRef.current);
+    console.log('Current mixer:', mixerRef.current);
+    
     if (animationClipsRef.current.length > 0) {
+      console.log('Attempting to play animation 0...');
       playAnimation(0);
     } else {
       console.log('No animations available for testing');
