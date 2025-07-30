@@ -99,15 +99,11 @@ const phonemeToMouthShape: { [key: string]: string[] } = {
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
   const vrmRef = useRef<VRM | null>(null);
-  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-  const animationClipsRef = useRef<THREE.AnimationClip[]>([]);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [vrmLoadingStatus, setVrmLoadingStatus] = useState<string>('Initializing...');
-  const [vrmLoadingError, setVrmLoadingError] = useState<string | null>(null);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
@@ -125,68 +121,7 @@ function App() {
     }
   }
 
-  // Load VRMA animation files
-  const loadVRMAAnimations = useCallback(async () => {
-    const animationFiles = [
-      '/models/VRMA_01.vrma',
-      '/models/VRMA_02.vrma',
-      '/models/VRMA_03.vrma',
-      '/models/VRMA_04.vrma',
-      '/models/VRMA_05.vrma',
-      '/models/VRMA_06.vrma',
-      '/models/VRMA_07.vrma'
-    ];
 
-    const loader = new GLTFLoader();
-    const clips: THREE.AnimationClip[] = [];
-
-    for (const file of animationFiles) {
-      try {
-        const gltf = await new Promise<any>((resolve, reject) => {
-          loader.load(file, resolve, undefined, reject);
-        });
-        
-        if (gltf.animations && gltf.animations.length > 0) {
-          clips.push(...gltf.animations);
-          console.log(`Loaded animation from ${file}:`, gltf.animations.length, 'clips');
-        }
-      } catch (error) {
-        console.warn(`Failed to load animation from ${file}:`, error);
-      }
-    }
-
-    animationClipsRef.current = clips;
-    console.log('Total animation clips loaded:', clips.length);
-  }, []);
-
-
-
-  // Play animation clip
-  const playAnimation = useCallback((clipIndex: number) => {
-    const vrm = vrmRef.current;
-    const clips = animationClipsRef.current;
-    
-    if (!vrm || !clips || clipIndex >= clips.length) {
-      console.warn('Cannot play animation: VRM or clip not available');
-      return;
-    }
-
-    // Stop current animation
-    if (mixerRef.current) {
-      mixerRef.current.stopAllAction();
-    }
-
-    // Create new mixer and play animation
-    const mixer = new THREE.AnimationMixer(vrm.scene);
-    mixerRef.current = mixer;
-    
-    const action = mixer.clipAction(clips[clipIndex]);
-    action.setLoop(THREE.LoopOnce, 1);
-    action.clampWhenFinished = true;
-    action.play();
-
-    console.log(`Playing animation clip ${clipIndex}:`, clips[clipIndex].name);
-  }, []);
 
   // Improved lip sync based on text analysis
   const analyzeTextForLipSync = useCallback((text: string): string[] => {
@@ -278,25 +213,15 @@ function App() {
     // Start lip sync when speech starts
     utterance.onstart = () => {
       startLipSync(text);
-      // Optionally play a speaking animation
-      if (animationClipsRef.current.length > 0) {
-        // Play a random speaking animation
-        const randomClipIndex = Math.floor(Math.random() * animationClipsRef.current.length);
-        playAnimation(randomClipIndex);
-      }
     };
     
     // Stop lip sync when speech ends
     utterance.onend = () => {
       stopLipSync();
-      // Stop any playing animation
-      if (mixerRef.current) {
-        mixerRef.current.stopAllAction();
-      }
     };
 
     synthesisRef.current.speak(utterance);
-  }, [playAnimation, startLipSync, stopLipSync]);
+  }, [startLipSync, stopLipSync]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -492,15 +417,11 @@ function App() {
     const tryLoadVRM = async (fileIndex: number) => {
       if (fileIndex >= vrmFiles.length) {
         console.error('All VRM files failed to load');
-        setVrmLoadingStatus('Failed to load any VRM files');
-        setVrmLoadingError('All VRM files failed to load. Please check the console for details.');
         return;
       }
       
       const vrmFile = vrmFiles[fileIndex];
       console.log(`Attempting to load VRM file: ${vrmFile}`);
-      setVrmLoadingStatus(`Loading ${vrmFile}...`);
-      setVrmLoadingError(null);
       
       // Add cache-busting parameter
       const url = `${vrmFile}?t=${Date.now()}`;
@@ -509,8 +430,6 @@ function App() {
         url,
         (gltf: any) => {
           console.log('VRM loaded successfully:', vrmFile);
-          setVrmLoadingStatus('VRM loaded successfully!');
-          setVrmLoadingError(null);
           const vrm = gltf.userData.vrm;
           vrmRef.current = vrm;
           scene.add(vrm.scene);
@@ -525,18 +444,14 @@ function App() {
               child.receiveShadow = true;
             }
           });
-          // Load animations after VRM is loaded
-          loadVRMAAnimations().catch(console.error);
-          console.log('Avatar loaded with animation support');
+          console.log('Avatar loaded successfully');
         },
         (progress: any) => {
           const percent = (progress.loaded / progress.total) * 100;
           console.log('Loading progress:', percent, '%');
-          setVrmLoadingStatus(`Loading ${vrmFile}... ${Math.round(percent)}%`);
         },
         (error: any) => {
           console.error(`Error loading VRM (${vrmFile}):`, error);
-          setVrmLoadingError(`Failed to load ${vrmFile}: ${error.message}`);
           
           // Try next file
           setTimeout(() => {
@@ -553,9 +468,6 @@ function App() {
       const delta = 0.016; // 60fps
       if (vrmRef.current) {
         vrmRef.current.update(delta);
-      }
-      if (mixerRef.current) {
-        mixerRef.current.update(delta);
       }
       renderer.render(scene, camera);
     };
@@ -581,7 +493,7 @@ function App() {
       }
              renderer.dispose();
      };
-   }, [loadVRMAAnimations]);
+       }, []);
 
 
 
@@ -673,15 +585,7 @@ function App() {
         )}
       </div>
 
-      {/* VRM Loading Status */}
-      {vrmLoadingStatus && (
-        <div className="vrm-loading-status">
-          <div className="status-text">{vrmLoadingStatus}</div>
-          {vrmLoadingError && (
-            <div className="error-text">{vrmLoadingError}</div>
-          )}
-        </div>
-      )}
+
 
       {/* Chat history overlay */}
       <div className="chat-history">
