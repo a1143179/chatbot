@@ -13,7 +13,7 @@ permissions:
 jobs:
   test-and-deploy-frontend:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && github.ref == 'refs/heads/main'
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
