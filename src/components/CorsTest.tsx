@@ -163,6 +163,52 @@ const CorsTest: React.FC = () => {
     }
   };
 
+  const testHealthCheck = async () => {
+    setLoading('health');
+    try {
+      console.log('Testing health check...');
+      const response = await fetch(config.apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result: TestResult = {
+        success: response.status === 405, // Expected: Method Not Allowed
+        message: `Health Check - Status: ${response.status}`,
+        details: {
+          status: response.status,
+          statusText: response.statusText,
+          allHeaders: Object.fromEntries(response.headers.entries()),
+          note: '405 Method Not Allowed is expected for GET requests'
+        }
+      };
+
+      if (response.status === 405) {
+        result.details!.note = '✅ API is accessible - 405 is expected for GET requests';
+      } else {
+        const errorText = await response.text();
+        result.details!.error = errorText;
+      }
+
+      setSimpleResult(result);
+    } catch (error) {
+      const result: TestResult = {
+        success: false,
+        message: `Health Check Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          note: 'This indicates the API is not accessible'
+        }
+      };
+      setSimpleResult(result);
+      console.error('❌ Health check error:', error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const renderResult = (result: TestResult | null, testName: string) => {
     if (!result) return null;
 
@@ -242,6 +288,27 @@ const CorsTest: React.FC = () => {
           {loading === 'simple' ? 'Testing...' : 'Test Simple Fetch'}
         </button>
         {renderResult(simpleResult, 'Simple')}
+      </div>
+
+      <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', borderRadius: '5px' }}>
+        <h2>🏥 Test 4: Health Check</h2>
+        <p>Tests if the API is accessible (expects 405 Method Not Allowed).</p>
+        <button 
+          onClick={testHealthCheck} 
+          disabled={loading === 'health'}
+          style={{
+            padding: '10px 20px',
+            margin: '5px',
+            border: 'none',
+            borderRadius: '3px',
+            backgroundColor: loading === 'health' ? '#6c757d' : '#28a745',
+            color: 'white',
+            cursor: loading === 'health' ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading === 'health' ? 'Testing...' : 'Test Health Check'}
+        </button>
+        {renderResult(simpleResult, 'Health')}
       </div>
 
       <style>{`
