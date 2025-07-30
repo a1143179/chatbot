@@ -2,7 +2,7 @@
   "name": "chatbot",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://a1143179.github.io/chatbot",
+  "homepage": ".",
   "engines": {
     "node": "22.14.0"
   },
