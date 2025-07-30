@@ -137,8 +137,10 @@ function App() {
       // Reset only bone rotations to default pose, don't change position or scale
       vrm.scene.traverse((child: any) => {
         if (child.isBone) {
+          // Reset rotation and quaternion
           child.rotation.set(0, 0, 0);
           child.quaternion.set(0, 0, 0, 1);
+          
           // Don't reset position to avoid scaling issues
           // child.position.set(0, 0, 0);
         }
@@ -146,6 +148,40 @@ function App() {
       
       // Force VRM update
       vrm.update(0);
+      
+      // Additional pose correction for arms
+      setTimeout(() => {
+        if (vrmRef.current) {
+          console.log('Applying additional pose correction...');
+          
+          // Set specific arm bone rotations for natural pose
+          vrmRef.current.scene.traverse((child: any) => {
+            if (child.isBone) {
+              const boneName = child.name.toLowerCase();
+              
+              // Set left arm bones to natural position
+              if (boneName.includes('left') && boneName.includes('arm')) {
+                child.rotation.set(0, 0, 0);
+                child.quaternion.set(0, 0, 0, 1);
+              }
+              
+              // Set right arm bones to natural position
+              if (boneName.includes('right') && boneName.includes('arm')) {
+                child.rotation.set(0, 0, 0);
+                child.quaternion.set(0, 0, 0, 1);
+              }
+              
+              // Set shoulder bones to natural position
+              if (boneName.includes('shoulder')) {
+                child.rotation.set(0, 0, 0);
+                child.quaternion.set(0, 0, 0, 1);
+              }
+            }
+          });
+          
+          vrmRef.current.update(0);
+        }
+      }, 100);
     }, []);
 
   // Load VRMA animation files
@@ -586,8 +622,11 @@ function App() {
         });
         console.log('Avatar loaded successfully');
         
-        // Load VRMA animations after VRM is loaded
-        await loadVRMAAnimations(selectedVRMA);
+                 // Load VRMA animations after VRM is loaded
+         await loadVRMAAnimations(selectedVRMA);
+         
+         // Set proper default pose with arms at sides
+         resetVRMPose();
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
       }
@@ -655,7 +694,7 @@ function App() {
       }
              renderer.dispose();
      };
-       }, [selectedVRM, selectedVRMA, loadVRMAAnimations]);
+       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose]);
 
 
 
