@@ -277,105 +277,169 @@ function App() {
           console.log('Force reset completed');
         }
       }, 100);
+        }, []);
+    
+    // Apply VRMA to VRM model (similar to Rhodonite Editor)
+    const applyVRMAToVRM = useCallback((vrmaFile: string) => {
+      const vrm = vrmRef.current;
+      if (!vrm) {
+        console.warn('Cannot apply VRMA: VRM not available');
+        return;
+      }
+      
+      console.log(`Applying VRMA ${vrmaFile} to VRM model...`);
+      
+      // Load VRMA file
+      const loader = new GLTFLoader();
+      loader.load(`./models/vrma/${vrmaFile}`, (gltf) => {
+        console.log('VRMA loaded:', gltf);
+        
+        if (gltf.animations && gltf.animations.length > 0) {
+          // Create animation mixer for VRM
+          const mixer = new THREE.AnimationMixer(vrm.scene);
+          mixerRef.current = mixer;
+          
+          // Store animation clips
+          animationClipsRef.current = gltf.animations;
+          
+          // Apply each animation to VRM
+          gltf.animations.forEach((clip, index) => {
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopOnce, 1);
+            action.clampWhenFinished = true;
+            action.timeScale = 0.5;
+            
+            console.log(`Applied VRMA animation ${index}:`, clip.name);
+          });
+          
+          console.log(`Successfully applied ${gltf.animations.length} animations from VRMA to VRM`);
+        } else {
+          console.warn('No animations found in VRMA file');
+        }
+      }, undefined, (error) => {
+        console.error('Failed to load VRMA:', error);
+      });
     }, []);
     
-    // Load VRMA animation files
-  const loadVRMAAnimations = useCallback(async (vrmaFile: string) => {
-    const loader = new GLTFLoader();
-    const clips: THREE.AnimationClip[] = [];
+    // Load VRMA animation files and apply to VRM
+   const loadVRMAAnimations = useCallback(async (vrmaFile: string) => {
+     const loader = new GLTFLoader();
+     const clips: THREE.AnimationClip[] = [];
 
-    try {
-      console.log(`Loading VRMA file: ./models/vrma/${vrmaFile}`);
-      const gltf = await new Promise<any>((resolve, reject) => {
-        loader.load(`./models/vrma/${vrmaFile}`, resolve, undefined, reject);
-      });
-      
-      console.log('VRMA loaded successfully:', gltf);
-      console.log('VRMA animations:', gltf.animations);
-      
-      if (gltf.animations && gltf.animations.length > 0) {
-        clips.push(...gltf.animations);
-        console.log(`Loaded animation from ${vrmaFile}:`, gltf.animations.length, 'clips');
-        
-        // Log animation details
-        gltf.animations.forEach((clip: any, index: number) => {
-          console.log(`Animation ${index}:`, {
-            name: clip.name,
-            duration: clip.duration,
-            tracks: clip.tracks.length
-          });
-        });
-      } else {
-        console.warn(`No animations found in ${vrmaFile}`);
-      }
-    } catch (error) {
-      console.error(`Failed to load animation from ${vrmaFile}:`, error);
-    }
+     try {
+       console.log(`Loading VRMA file: ./models/vrma/${vrmaFile}`);
+       const gltf = await new Promise<any>((resolve, reject) => {
+         loader.load(`./models/vrma/${vrmaFile}`, resolve, undefined, reject);
+       });
+       
+       console.log('VRMA loaded successfully:', gltf);
+       console.log('VRMA animations:', gltf.animations);
+       
+       if (gltf.animations && gltf.animations.length > 0) {
+         clips.push(...gltf.animations);
+         console.log(`Loaded animation from ${vrmaFile}:`, gltf.animations.length, 'clips');
+         
+         // Log animation details
+         gltf.animations.forEach((clip: any, index: number) => {
+           console.log(`Animation ${index}:`, {
+             name: clip.name,
+             duration: clip.duration,
+             tracks: clip.tracks.length
+           });
+         });
+         
+         // Apply VRMA animations to VRM model
+         const vrm = vrmRef.current;
+         if (vrm && clips.length > 0) {
+           console.log('Applying VRMA animations to VRM model...');
+           
+           // Create animation mixer for VRM
+           const mixer = new THREE.AnimationMixer(vrm.scene);
+           mixerRef.current = mixer;
+           
+           // Apply each animation clip to the VRM
+           clips.forEach((clip, index) => {
+             const action = mixer.clipAction(clip);
+             action.setLoop(THREE.LoopOnce, 1);
+             action.clampWhenFinished = true;
+             action.timeScale = 0.5; // Play at half speed
+             
+             console.log(`Applied animation ${index}:`, clip.name);
+           });
+           
+           console.log('VRMA animations successfully applied to VRM');
+         }
+       } else {
+         console.warn(`No animations found in ${vrmaFile}`);
+       }
+     } catch (error) {
+       console.error(`Failed to load animation from ${vrmaFile}:`, error);
+     }
 
-    animationClipsRef.current = clips;
-    console.log('Total animation clips loaded:', clips.length);
-  }, []);
+     animationClipsRef.current = clips;
+     console.log('Total animation clips loaded:', clips.length);
+   }, []);
 
-  // Play animation clip
-  const playAnimation = useCallback((clipIndex: number) => {
-    const vrm = vrmRef.current;
-    const clips = animationClipsRef.current;
-    
-    console.log('playAnimation called with:', { clipIndex, vrm: !!vrm, clips: !!clips, clipsLength: clips?.length });
-    
-    if (!vrm) {
-      console.warn('Cannot play animation: VRM not available');
-      return;
-    }
-    
-    if (!clips || clips.length === 0) {
-      console.warn('Cannot play animation: No animation clips available');
-      return;
-    }
-    
-    if (clipIndex >= clips.length) {
-      console.warn(`Cannot play animation: clipIndex ${clipIndex} >= clips.length ${clips.length}`);
-      return;
-    }
+     // Play animation clip
+   const playAnimation = useCallback((clipIndex: number) => {
+     const vrm = vrmRef.current;
+     const clips = animationClipsRef.current;
+     
+     console.log('playAnimation called with:', { clipIndex, vrm: !!vrm, clips: !!clips, clipsLength: clips?.length });
+     
+     if (!vrm) {
+       console.warn('Cannot play animation: VRM not available');
+       return;
+     }
+     
+     if (!clips || clips.length === 0) {
+       console.warn('Cannot play animation: No animation clips available');
+       return;
+     }
+     
+     if (clipIndex >= clips.length) {
+       console.warn(`Cannot play animation: clipIndex ${clipIndex} >= clips.length ${clips.length}`);
+       return;
+     }
 
-    // Stop current animation
-    if (mixerRef.current) {
-      console.log('Stopping current animation');
-      mixerRef.current.stopAllAction();
-    }
+     // Stop current animation
+     if (mixerRef.current) {
+       console.log('Stopping current animation');
+       mixerRef.current.stopAllAction();
+     }
 
-    // Create new mixer and play animation
-    console.log('Creating new animation mixer');
-    const mixer = new THREE.AnimationMixer(vrm.scene);
-    mixerRef.current = mixer;
-    
-    const clip = clips[clipIndex];
-    console.log('Animation clip details:', {
-      name: clip.name,
-      duration: clip.duration,
-      tracks: clip.tracks.length
-    });
-    
-         const action = mixer.clipAction(clip);
+     // Create new mixer for VRM
+     console.log('Creating new animation mixer for VRM');
+     const mixer = new THREE.AnimationMixer(vrm.scene);
+     mixerRef.current = mixer;
+     
+     const clip = clips[clipIndex];
+     console.log('Animation clip details:', {
+       name: clip.name,
+       duration: clip.duration,
+       tracks: clip.tracks.length
+     });
+     
+     // Apply animation to VRM
+     const action = mixer.clipAction(clip);
      action.setLoop(THREE.LoopOnce, 1);
      action.clampWhenFinished = true;
-     
-     // Slow down the animation by setting timeScale
      action.timeScale = 0.5; // Play at half speed
      
-     // Reset VRM pose before playing animation to fix arm positions
+     // Reset VRM pose before playing animation
      resetVRMPose();
      
+     // Play the animation
      action.play();
 
-    console.log(`Playing animation clip ${clipIndex}:`, clip.name);
-    console.log('Action details:', {
-      isRunning: action.isRunning(),
-      time: action.time,
-      duration: action.getClip().duration,
-      timeScale: action.timeScale
-    });
-  }, [resetVRMPose]);
+     console.log(`Playing VRMA animation clip ${clipIndex}:`, clip.name);
+     console.log('Action details:', {
+       isRunning: action.isRunning(),
+       time: action.time,
+       duration: action.getClip().duration,
+       timeScale: action.timeScale
+     });
+   }, [resetVRMPose]);
 
 
 
@@ -717,17 +781,29 @@ function App() {
         });
         console.log('Avatar loaded successfully');
         
-                 // Load VRMA animations after VRM is loaded
-         await loadVRMAAnimations(selectedVRMA);
-         
-         // Set proper idle pose with arms pointing down
+                 // Set proper idle pose with arms pointing down first
          setVRMIdlePose();
          
-         // Additional delay to ensure pose is properly set
+         // Apply VRMA animations to VRM model
+         applyVRMAToVRM(selectedVRMA);
+         
+         // Additional delay to ensure everything is properly set
          setTimeout(() => {
            if (vrmRef.current) {
-             console.log('Final pose adjustment for idle position...');
+             console.log('Final pose and animation adjustment...');
              setVRMIdlePose();
+             
+             // Ensure animations are properly applied
+             if (mixerRef.current && animationClipsRef.current.length > 0) {
+               console.log('Re-applying animations to VRM...');
+               animationClipsRef.current.forEach((clip, index) => {
+                 const action = mixerRef.current!.clipAction(clip);
+                 action.setLoop(THREE.LoopOnce, 1);
+                 action.clampWhenFinished = true;
+                 action.timeScale = 0.5;
+                 console.log(`Re-applied animation ${index}:`, clip.name);
+               });
+             }
            }
          }, 500);
       } catch (error) {
@@ -797,7 +873,7 @@ function App() {
       }
              renderer.dispose();
      };
-       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose, setVRMIdlePose, forceResetAllBones]);
+       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose, setVRMIdlePose, forceResetAllBones, applyVRMAToVRM]);
 
 
 
@@ -856,11 +932,12 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
-  // Handle VRMA animation change
-  const handleVRMAChange = useCallback(async (vrmaFile: string) => {
-    setSelectedVRMA(vrmaFile);
-    await loadVRMAAnimations(vrmaFile);
-  }, [loadVRMAAnimations]);
+     // Handle VRMA animation change
+   const handleVRMAChange = useCallback(async (vrmaFile: string) => {
+     setSelectedVRMA(vrmaFile);
+     // Use the new VRMA application method
+     applyVRMAToVRM(vrmaFile);
+   }, [applyVRMAToVRM]);
 
      // Test animation function
    const testAnimation = useCallback(() => {
@@ -999,13 +1076,20 @@ function App() {
                 >
                   Set Idle Pose
                 </button>
-                <button 
-                  onClick={forceResetAllBones}
-                  className="test-animation-btn"
-                  style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#FF9800' }}
-                >
-                  Force Reset All
-                </button>
+                                 <button 
+                   onClick={forceResetAllBones}
+                   className="test-animation-btn"
+                   style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#FF9800' }}
+                 >
+                   Force Reset All
+                 </button>
+                 <button 
+                   onClick={() => applyVRMAToVRM(selectedVRMA)}
+                   className="test-animation-btn"
+                   style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#9C27B0' }}
+                 >
+                   Apply VRMA
+                 </button>
           </div>
        </div>
 
