@@ -127,25 +127,26 @@ function App() {
      }
    }
 
-   // Reset VRM pose to default position
-   const resetVRMPose = useCallback(() => {
-     const vrm = vrmRef.current;
-     if (!vrm) return;
-     
-     console.log('Resetting VRM pose to default position...');
-     
-     // Reset all bone rotations to default pose
-     vrm.scene.traverse((child: any) => {
-       if (child.isBone) {
-         child.rotation.set(0, 0, 0);
-         child.quaternion.set(0, 0, 0, 1);
-         child.position.set(0, 0, 0);
-       }
-     });
-     
-     // Force VRM update
-     vrm.update(0);
-   }, []);
+       // Reset VRM pose to default position
+    const resetVRMPose = useCallback(() => {
+      const vrm = vrmRef.current;
+      if (!vrm) return;
+      
+      console.log('Resetting VRM pose to default position...');
+      
+      // Reset only bone rotations to default pose, don't change position or scale
+      vrm.scene.traverse((child: any) => {
+        if (child.isBone) {
+          child.rotation.set(0, 0, 0);
+          child.quaternion.set(0, 0, 0, 1);
+          // Don't reset position to avoid scaling issues
+          // child.position.set(0, 0, 0);
+        }
+      });
+      
+      // Force VRM update
+      vrm.update(0);
+    }, []);
 
   // Load VRMA animation files
   const loadVRMAAnimations = useCallback(async (vrmaFile: string) => {
