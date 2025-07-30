@@ -6,18 +6,10 @@
     "version": "[4.*, 5.0.0)"
   },
   "cors": {
-    "allowedOrigins": [
-      "https://a1143179.github.io",
-      "https://a1143179.github.io/chatbot",
-      "https://a1143179.github.io/chatbot/",
-      "https://a1143179.github.io/",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "*"
-    ],
+    "allowedOrigins": ["*"],
     "allowedMethods": ["GET", "POST", "OPTIONS"],
     "allowedHeaders": ["Content-Type", "Authorization", "X-Requested-With", "Origin", "Accept"],
     "maxAge": 86400,
-    "allowCredentials": true
+    "allowCredentials": false
   }
 } 
