@@ -16,7 +16,10 @@ module.exports = async function (context, req) {
         context.res = {
             status: 405,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
             },
             body: {
                 error: 'Method not allowed',
@@ -37,7 +40,10 @@ module.exports = async function (context, req) {
         context.res = {
             status: 400,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
             },
             body: {
                 error: 'Invalid request body',
@@ -59,7 +65,10 @@ module.exports = async function (context, req) {
         context.res = {
             status: 500,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
             },
             body: {
                 error: 'Google AI API key not configured',
@@ -74,7 +83,10 @@ module.exports = async function (context, req) {
         context.res = {
             status: 400,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
             },
             body: {
                 error: 'Missing or invalid prompt parameter',
@@ -131,7 +143,10 @@ module.exports = async function (context, req) {
         context.res = {
             status: 200,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
             },
             body: {
                 response: aiResponse,
@@ -146,7 +161,10 @@ module.exports = async function (context, req) {
         context.res = {
             status: 500,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
             },
             body: {
                 error: 'Error occurred while processing request',
