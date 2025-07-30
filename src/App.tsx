@@ -134,10 +134,10 @@ function App() {
       
       console.log('Resetting VRM pose to default position...');
       
-      // Reset only bone rotations to default pose, don't change position or scale
+      // Reset all bone rotations to default pose
       vrm.scene.traverse((child: any) => {
         if (child.isBone) {
-          // Reset rotation and quaternion
+          // Reset rotation and quaternion to identity
           child.rotation.set(0, 0, 0);
           child.quaternion.set(0, 0, 0, 1);
           
@@ -149,30 +149,42 @@ function App() {
       // Force VRM update
       vrm.update(0);
       
-      // Additional pose correction for arms
+      // Additional pose correction for arms to ensure they point down
       setTimeout(() => {
         if (vrmRef.current) {
-          console.log('Applying additional pose correction...');
+          console.log('Applying additional pose correction for arms...');
           
-          // Set specific arm bone rotations for natural pose
+          // Set specific arm bone rotations for natural idle pose
           vrmRef.current.scene.traverse((child: any) => {
             if (child.isBone) {
               const boneName = child.name.toLowerCase();
               
-              // Set left arm bones to natural position
-              if (boneName.includes('left') && boneName.includes('arm')) {
+              // Set left arm bones to point down (natural idle pose)
+              if (boneName.includes('left') && (boneName.includes('arm') || boneName.includes('shoulder'))) {
                 child.rotation.set(0, 0, 0);
                 child.quaternion.set(0, 0, 0, 1);
               }
               
-              // Set right arm bones to natural position
-              if (boneName.includes('right') && boneName.includes('arm')) {
+              // Set right arm bones to point down (natural idle pose)
+              if (boneName.includes('right') && (boneName.includes('arm') || boneName.includes('shoulder'))) {
                 child.rotation.set(0, 0, 0);
                 child.quaternion.set(0, 0, 0, 1);
               }
               
-              // Set shoulder bones to natural position
-              if (boneName.includes('shoulder')) {
+              // Set upper arm bones specifically
+              if (boneName.includes('upperarm')) {
+                child.rotation.set(0, 0, 0);
+                child.quaternion.set(0, 0, 0, 1);
+              }
+              
+              // Set forearm bones specifically
+              if (boneName.includes('forearm')) {
+                child.rotation.set(0, 0, 0);
+                child.quaternion.set(0, 0, 0, 1);
+              }
+              
+              // Set hand bones specifically
+              if (boneName.includes('hand')) {
                 child.rotation.set(0, 0, 0);
                 child.quaternion.set(0, 0, 0, 1);
               }
@@ -182,6 +194,46 @@ function App() {
           vrmRef.current.update(0);
         }
       }, 100);
+    }, []);
+    
+    // Set VRM to idle pose with arms pointing down
+    const setVRMIdlePose = useCallback(() => {
+      const vrm = vrmRef.current;
+      if (!vrm) return;
+      
+      console.log('Setting VRM to idle pose with arms pointing down...');
+      
+      // Reset all bones first
+      vrm.scene.traverse((child: any) => {
+        if (child.isBone) {
+          child.rotation.set(0, 0, 0);
+          child.quaternion.set(0, 0, 0, 1);
+        }
+      });
+      
+      // Force VRM update
+      vrm.update(0);
+      
+      // Set specific idle pose for arms
+      setTimeout(() => {
+        if (vrmRef.current) {
+          vrmRef.current.scene.traverse((child: any) => {
+            if (child.isBone) {
+              const boneName = child.name.toLowerCase();
+              
+              // Ensure arms are in natural hanging position
+              if (boneName.includes('arm') || boneName.includes('shoulder') || 
+                  boneName.includes('upperarm') || boneName.includes('forearm') || 
+                  boneName.includes('hand')) {
+                child.rotation.set(0, 0, 0);
+                child.quaternion.set(0, 0, 0, 1);
+              }
+            }
+          });
+          
+          vrmRef.current.update(0);
+        }
+      }, 200);
     }, []);
 
   // Load VRMA animation files
@@ -625,8 +677,16 @@ function App() {
                  // Load VRMA animations after VRM is loaded
          await loadVRMAAnimations(selectedVRMA);
          
-         // Set proper default pose with arms at sides
-         resetVRMPose();
+         // Set proper idle pose with arms pointing down
+         setVRMIdlePose();
+         
+         // Additional delay to ensure pose is properly set
+         setTimeout(() => {
+           if (vrmRef.current) {
+             console.log('Final pose adjustment for idle position...');
+             setVRMIdlePose();
+           }
+         }, 500);
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
       }
@@ -694,7 +754,7 @@ function App() {
       }
              renderer.dispose();
      };
-       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose]);
+       }, [selectedVRM, selectedVRMA, loadVRMAAnimations, resetVRMPose, setVRMIdlePose]);
 
 
 
@@ -882,13 +942,20 @@ function App() {
               >
                 Test Slow Animation
               </button>
-              <button 
-                onClick={resetVRMPose}
-                className="test-animation-btn"
-                style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#ff6b6b' }}
-              >
-                Reset Pose
-              </button>
+                             <button 
+                 onClick={resetVRMPose}
+                 className="test-animation-btn"
+                 style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#ff6b6b' }}
+               >
+                 Reset Pose
+               </button>
+               <button 
+                 onClick={setVRMIdlePose}
+                 className="test-animation-btn"
+                 style={{ marginTop: '5px', padding: '5px 10px', fontSize: '12px', marginLeft: '5px', backgroundColor: '#4CAF50' }}
+               >
+                 Set Idle Pose
+               </button>
           </div>
        </div>
 
