@@ -1,30 +1,13 @@
 module.exports = async function (context, req) {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-        context.res = {
-            status: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
-            },
-            body: {}
-        };
-        return;
-    }
-
+    // Let Azure Functions handle CORS globally via host.json configuration
+    
     // Check if Google AI API key is configured
     const apiKeyConfigured = !!process.env.GOOGLE_AI_API_KEY;
     
     context.res = {
         status: 200,
         headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Access-Control-Max-Age': '86400'
+            'Content-Type': 'application/json'
         },
         body: {
             status: 'healthy',
