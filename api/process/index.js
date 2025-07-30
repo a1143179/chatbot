@@ -1,8 +1,13 @@
 const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
+    console.log('Process function called with method:', req.method);
+    console.log('Request headers:', req.headers);
+    console.log('Request body:', req.body);
+    
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
+        console.log('Handling CORS preflight request');
         context.res = {
             status: 200,
             headers: {
@@ -16,14 +21,60 @@ module.exports = async function (context, req) {
         return;
     }
     
+    // Validate request method
+    if (req.method !== 'POST') {
+        console.log('Invalid method:', req.method);
+        context.res = {
+            status: 405,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '86400'
+            },
+            body: {
+                error: 'Method not allowed',
+                message: 'Only POST method is supported'
+            }
+        };
+        return;
+    }
+    
     // Get request body
     const body = req.body;
+    console.log('Request body type:', typeof body);
+    console.log('Request body:', body);
+    
+    // Validate request body
+    if (!body || typeof body !== 'object') {
+        console.log('Invalid request body:', body);
+        context.res = {
+            status: 400,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '86400'
+            },
+            body: {
+                error: 'Invalid request body',
+                message: 'Request body must be a JSON object'
+            }
+        };
+        return;
+    }
+    
     const { prompt } = body;
+    console.log('Extracted prompt:', prompt);
     
     // Get environment variable for Google AI API key
     const apiKey = process.env.GOOGLE_AI_API_KEY;
+    console.log('API key configured:', !!apiKey);
     
     if (!apiKey) {
+        console.log('Google AI API key not configured');
         context.res = {
             status: 500,
             headers: {
@@ -41,7 +92,8 @@ module.exports = async function (context, req) {
         return;
     }
     
-    if (!prompt) {
+    if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+        console.log('Missing or invalid prompt:', prompt);
         context.res = {
             status: 400,
             headers: {
@@ -52,14 +104,16 @@ module.exports = async function (context, req) {
                 'Access-Control-Max-Age': '86400'
             },
             body: {
-                error: 'Missing prompt parameter',
-                message: 'Please provide a prompt parameter'
+                error: 'Missing or invalid prompt parameter',
+                message: 'Please provide a valid prompt parameter as a string'
             }
         };
         return;
     }
     
     try {
+        console.log('Calling Google AI API with prompt:', prompt);
+        
         // Call Google AI Studio API
         const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
             method: 'POST',
@@ -82,18 +136,23 @@ module.exports = async function (context, req) {
             })
         });
         
+        console.log('Google AI API response status:', response.status);
+        
         if (!response.ok) {
             const errorData = await response.text();
+            console.log('Google AI API error response:', errorData);
             throw new Error(`Google AI API error: ${response.status} - ${errorData}`);
         }
         
         const data = await response.json();
+        console.log('Google AI API response data:', data);
         
         if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
             throw new Error('Invalid response format from Google AI API');
         }
         
         const aiResponse = data.candidates[0].content.parts[0].text;
+        console.log('AI response:', aiResponse);
         
         // Return response
         context.res = {
