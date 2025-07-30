@@ -167,6 +167,9 @@ const CorsTest: React.FC = () => {
     setLoading('health');
     try {
       console.log('Testing health check...');
+      console.log('API URL:', config.apiUrl);
+      console.log('Current origin:', window.location.origin);
+      
       const response = await fetch(config.apiUrl, {
         method: 'GET',
         headers: {
@@ -199,11 +202,69 @@ const CorsTest: React.FC = () => {
         message: `Health Check Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         details: { 
           error: error instanceof Error ? error.message : 'Unknown error',
-          note: 'This indicates the API is not accessible'
+          type: error instanceof Error ? error.constructor.name : typeof error,
+          url: config.apiUrl,
+          origin: window.location.origin,
+          note: 'This indicates the API is not accessible or blocked by CORS',
+          possibleCauses: [
+            'CORS policy blocking the request',
+            'Network connectivity issues',
+            'API server down',
+            'Browser security restrictions'
+          ]
         }
       };
       setSimpleResult(result);
       console.error('❌ Health check error:', error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const testNetworkConnection = async () => {
+    setLoading('network');
+    try {
+      console.log('Testing network connection...');
+      
+      // Test basic connectivity
+      const response = await fetch('https://httpbin.org/get', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result: TestResult = {
+        success: response.ok,
+        message: `Network Test - Status: ${response.status}`,
+        details: {
+          status: response.status,
+          statusText: response.statusText,
+          note: response.ok ? '✅ Basic network connectivity is working' : '❌ Network connectivity issues',
+          testUrl: 'https://httpbin.org/get',
+          apiUrl: config.apiUrl
+        }
+      };
+
+      if (response.ok) {
+        const data = await response.json();
+        result.details!.response = { origin: data.origin };
+      }
+
+      setSimpleResult(result);
+    } catch (error) {
+      const result: TestResult = {
+        success: false,
+        message: `Network Test Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          note: '❌ Basic network connectivity is not working',
+          testUrl: 'https://httpbin.org/get',
+          apiUrl: config.apiUrl
+        }
+      };
+      setSimpleResult(result);
+      console.error('❌ Network test error:', error);
     } finally {
       setLoading(null);
     }
@@ -223,7 +284,13 @@ const CorsTest: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+    <div style={{ 
+      maxWidth: '800px', 
+      margin: '0 auto', 
+      padding: '20px',
+      minHeight: '100vh',
+      overflowY: 'auto'
+    }}>
       <h1>🔍 CORS Test for Azure Functions</h1>
       <p>Testing CORS functionality for your chatbot API.</p>
       
@@ -311,6 +378,27 @@ const CorsTest: React.FC = () => {
         {renderResult(simpleResult, 'Health')}
       </div>
 
+      <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', borderRadius: '5px' }}>
+        <h2>🌐 Test 5: Network Connection</h2>
+        <p>Tests if you can connect to a public API (e.g., httpbin.org) to check network connectivity.</p>
+        <button 
+          onClick={testNetworkConnection} 
+          disabled={loading === 'network'}
+          style={{
+            padding: '10px 20px',
+            margin: '5px',
+            border: 'none',
+            borderRadius: '3px',
+            backgroundColor: loading === 'network' ? '#6c757d' : '#007bff',
+            color: 'white',
+            cursor: loading === 'network' ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading === 'network' ? 'Testing...' : 'Test Network Connection'}
+        </button>
+        {renderResult(simpleResult, 'Network')}
+      </div>
+
       <style>{`
         .result {
           margin: 10px 0;
@@ -318,6 +406,9 @@ const CorsTest: React.FC = () => {
           border-radius: 3px;
           font-family: monospace;
           white-space: pre-wrap;
+          max-height: 400px;
+          overflow-y: auto;
+          overflow-x: auto;
         }
         .success {
           background-color: #d4edda;
@@ -335,6 +426,11 @@ const CorsTest: React.FC = () => {
           border-radius: 3px;
           overflow-x: auto;
           font-size: 12px;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        body {
+          overflow-y: auto;
         }
       `}</style>
     </div>
