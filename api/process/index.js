@@ -1,4 +1,4 @@
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
     console.log('Process function called with method:', req.method);
