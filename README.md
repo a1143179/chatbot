@@ -11,15 +11,19 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 - 🌐 **Cloud Deployment**: GitHub Pages (Frontend) + Azure Functions (Backend)
 - 🔄 **Real-time Processing**: Voice-to-text → AI processing → Text-to-speech
 - 🚀 **Automated CI/CD**: GitHub Actions for seamless deployment
+- 🧪 **Comprehensive Testing**: Jest tests for both frontend and backend
+- 📝 **Code Quality**: ESLint + TypeScript for code quality assurance
 
 ## Tech Stack
 
-- **Frontend**: React + TypeScript + Three.js + VRM
+- **Frontend**: React 19 + TypeScript + Three.js + VRM
 - **Backend**: Azure Functions (Node.js 22, Consumption Plan)
 - **AI Service**: Google AI Studio (Gemini Pro)
 - **Speech**: Web Speech API (STT + TTS)
 - **Deployment**: GitHub Pages + Azure Functions + GitHub Actions
 - **CI/CD**: GitHub Actions with automated testing and deployment
+- **Testing**: Jest + React Testing Library
+- **Code Quality**: ESLint + TypeScript
 
 ## Project Structure
 
@@ -32,6 +36,9 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 │   ├── process/            # Process function directory
 │   │   ├── function.json   # Function configuration
 │   │   └── index.js        # Function entry point
+│   ├── testhealth/         # Test health function
+│   │   ├── function.json   # Function configuration
+│   │   └── index.js        # Function entry point
 │   ├── src/
 │   │   └── functions/      # Function source code
 │   │       ├── health.js   # Health check endpoint
@@ -42,21 +49,40 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 ├── public/
 │   ├── models/             # VRM Model Files
 │   │   ├── cute-girl.vrm
+│   │   ├── Nahida.vrm
+│   │   ├── pee.vrm
+│   │   ├── star-rail.vrm
+│   │   ├── twitch-girl.vrm
 │   │   └── *.vrma         # Animation files
 │   └── index.html
 ├── src/
 │   ├── App.tsx            # Main Application Component
 │   ├── config.ts          # Environment Configuration
+│   ├── types/             # TypeScript type definitions
+│   │   └── global.d.ts    # Global type declarations
 │   └── App.css            # Style Files
 ├── .github/workflows/      # GitHub Actions
-│   ├── deploy-frontend.yml # GitHub Pages Deployment
-│   ├── deploy-functions.yml # Azure Functions Deployment
+│   ├── test-backend.yml   # Backend testing workflow
+│   ├── test-frontend.yml  # Frontend testing workflow
+│   ├── test-and-deploy-backend.yml # Backend deployment
+│   ├── test-and-deploy-frontend.yml # Frontend deployment
 │   └── auto-create-pr.yml # Auto PR Creation
+├── scripts/               # Development scripts
+│   ├── check-all.sh      # Full project check script
+│   ├── pre-commit.sh     # Pre-commit hook script
+│   └── run-tests.js      # Test runner script
 ├── DEPLOYMENT.md          # Detailed Deployment Guide
+├── NODE_22_UPGRADE.md    # Node.js 22 upgrade documentation
 └── README.md
 ```
 
 ## Local Development
+
+### Prerequisites
+
+- **Node.js 22**: Required for both frontend and backend
+- **npm**: Package manager
+- **Azure Functions Core Tools**: For local backend development
 
 ### Frontend Development
 
@@ -73,6 +99,19 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 3. **Access Application**:
    Open http://localhost:3000
 
+4. **Run Tests**:
+   ```bash
+   npm test
+   npm run test:watch
+   ```
+
+5. **Code Quality Checks**:
+   ```bash
+   npm run lint
+   npm run type-check
+   npm run pre-commit
+   ```
+
 ### Backend Development
 
 1. **Navigate to API directory**:
@@ -87,12 +126,63 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 
 3. **Start Azure Functions locally**:
    ```bash
+   npm start
+   # or
    func start
    ```
 
 4. **Test endpoints**:
    - Health: http://localhost:7071/api/health
    - Process: http://localhost:7071/api/process
+   - Test Health: http://localhost:7071/api/testhealth
+
+5. **Run Tests**:
+   ```bash
+   npm test
+   npm run test:coverage
+   npm run lint
+   ```
+
+### Full Project Testing
+
+```bash
+# Run all tests and checks
+npm run full-pre-commit
+
+# Build check
+npm run full-build-check
+```
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+1. **Test Backend** (`test-backend.yml`)
+   - Triggers: Push to `main` or `working` branches
+   - Runs: Backend tests, linting, and validation
+   - Excludes: Merge commits
+
+2. **Test Frontend** (`test-frontend.yml`)
+   - Triggers: Push to `main` or `working` branches
+   - Runs: Frontend tests, linting, and type checking
+   - Excludes: Merge commits
+
+3. **Deploy Backend** (`test-and-deploy-backend.yml`)
+   - Triggers: PR merged to `main`
+   - Runs: Tests + Deploy to Azure Functions
+   - Environment: Production
+
+4. **Deploy Frontend** (`test-and-deploy-frontend.yml`)
+   - Triggers: PR merged to `main`
+   - Runs: Tests + Deploy to GitHub Pages
+   - Environment: Production
+
+### Pre-commit Hooks
+
+The project uses Husky for pre-commit hooks:
+- **Frontend**: ESLint + TypeScript + Jest tests
+- **Backend**: ESLint + Jest tests
+- **Full Check**: Both frontend and backend validation
 
 ## Deployment Configuration
 
@@ -109,12 +199,12 @@ Configure the following environment variables:
 ### Deployment Steps
 
 1. **Setup Azure Functions**
-   - Create Function App in Azure Portal (Node.js 20, Consumption Plan)
+   - Create Function App in Azure Portal (Node.js 22, Consumption Plan)
    - Configure environment variables
    - Get Function App URL
 
 2. **Setup GitHub Repository**
-   - Configure GitHub Secrets
+   - Configure GitHub Secrets (`AZURE_CREDENTIALS`)
    - Enable GitHub Pages
    - Update configuration files
 
@@ -141,6 +231,11 @@ Configure the following environment variables:
 - **Purpose**: Process user input and return AI response
 - **Request Body**: `{ "prompt": "user message" }`
 - **Response**: JSON with AI response, timestamp, and model info
+
+### Test Health
+- **URL**: `GET /api/testhealth`
+- **Purpose**: Test endpoint for development
+- **Response**: JSON with test status
 
 ## Deployment URLs
 
@@ -194,6 +289,24 @@ module.exports = async function (context, req) {
 }
 ```
 
+## Node.js 22 Upgrade
+
+This project has been upgraded to Node.js 22 for:
+- **Better Performance**: Faster startup times and memory management
+- **Enhanced Security**: Latest security patches and crypto modules
+- **Modern Features**: ES2022 support and improved TypeScript compatibility
+
+### Local Development with Node.js 22
+
+```bash
+# Using nvm
+nvm install 22
+nvm use 22
+
+# Verify version
+node --version  # Should show v22.x.x
+```
+
 ## Cost Optimization
 
 - **GitHub Pages**: Free for public repositories
@@ -205,6 +318,7 @@ module.exports = async function (context, req) {
 ### Frontend Tests
 ```bash
 npm test
+npm run test:watch
 ```
 
 ### Backend Tests
@@ -219,6 +333,15 @@ npm run test:coverage
 cd api
 func start
 curl http://localhost:7071/api/health
+```
+
+### Full Test Suite
+```bash
+# Run all tests
+npm run full-pre-commit
+
+# Build verification
+npm run full-build-check
 ```
 
 ## Troubleshooting
@@ -246,12 +369,42 @@ curl http://localhost:7071/api/health
    - Ensure HTTPS is used (required for Web Speech API)
    - Check browser permissions for microphone access
 
+5. **Node.js version issues**
+   - Ensure Node.js 22 is installed locally
+   - Use `.nvmrc` files for automatic version switching
+   - Clear node_modules and reinstall if needed
+
 ### Recent Fixes
 
+- ✅ **Upgraded to Node.js 22**: Better performance and security
 - ✅ **Fixed deployment structure**: Using traditional Azure Functions model
 - ✅ **Added proper function.json files**: For each function directory
 - ✅ **Improved deployment workflow**: With cleanup and proper package structure
-- ✅ **Removed conflicting workflows**: Eliminated auto-generated Azure workflow
+- ✅ **Enhanced CI/CD pipeline**: Comprehensive testing and deployment
+- ✅ **Added pre-commit hooks**: Code quality assurance
+- ✅ **Improved test coverage**: Both frontend and backend tests
+
+## Development Scripts
+
+### Available Scripts
+
+**Frontend Scripts:**
+- `npm start` - Start development server
+- `npm test` - Run tests
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript check
+
+**Backend Scripts:**
+- `cd api && npm test` - Run backend tests
+- `cd api && npm run lint` - Run backend linting
+- `cd api && npm start` - Start local functions
+
+**Full Project Scripts:**
+- `npm run full-pre-commit` - Run all tests and checks
+- `npm run full-build-check` - Complete build verification
+- `npm run api:test` - Test backend from root
+- `npm run api:lint` - Lint backend from root
 
 ## License
 
@@ -314,3 +467,5 @@ This project uses a **frontend-backend separation** architecture:
 ---
 
 For detailed deployment steps, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+For Node.js 22 upgrade details, see [NODE_22_UPGRADE.md](NODE_22_UPGRADE.md).
