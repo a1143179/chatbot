@@ -6,7 +6,7 @@ module.exports = async function (context, req) {
     console.log('Request body:', req.body);
     
     // Get the origin from request headers
-    const origin = req.headers.origin || req.headers.Origin;
+    const origin = req.headers.origin || req.headers.Origin || req.headers['x-origin'];
     console.log('Request origin:', origin);
     
     // Define allowed origins
@@ -14,12 +14,26 @@ module.exports = async function (context, req) {
         'https://a1143179.github.io',
         'https://a1143179.github.io/chatbot',
         'http://localhost:3000',
-        'http://localhost:3001'
+        'http://localhost:3001',
+        'https://a1143179.github.io/chatbot/',
+        'https://a1143179.github.io/'
     ];
     
     // Determine the CORS origin to return
-    const corsOrigin = allowedOrigins.includes(origin) ? origin : 'https://a1143179.github.io';
+    let corsOrigin = 'https://a1143179.github.io'; // default
+    if (origin && allowedOrigins.includes(origin)) {
+        corsOrigin = origin;
+    }
     console.log('CORS origin to return:', corsOrigin);
+    
+    // Helper function to create CORS headers
+    const getCorsHeaders = () => ({
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Max-Age': '86400',
+        'Access-Control-Allow-Credentials': 'true'
+    });
     
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -27,10 +41,8 @@ module.exports = async function (context, req) {
         context.res = {
             status: 200,
             headers: {
-                'Access-Control-Allow-Origin': corsOrigin,
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
+                ...getCorsHeaders(),
+                'Content-Type': 'application/json'
             },
             body: {}
         };
@@ -44,10 +56,7 @@ module.exports = async function (context, req) {
             status: 405,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': corsOrigin,
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
+                ...getCorsHeaders()
             },
             body: {
                 error: 'Method not allowed',
@@ -69,10 +78,7 @@ module.exports = async function (context, req) {
             status: 400,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': corsOrigin,
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
+                ...getCorsHeaders()
             },
             body: {
                 error: 'Invalid request body',
@@ -95,10 +101,7 @@ module.exports = async function (context, req) {
             status: 500,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': corsOrigin,
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
+                ...getCorsHeaders()
             },
             body: {
                 error: 'Google AI API key not configured',
@@ -114,10 +117,7 @@ module.exports = async function (context, req) {
             status: 400,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': corsOrigin,
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
+                ...getCorsHeaders()
             },
             body: {
                 error: 'Missing or invalid prompt parameter',
@@ -175,10 +175,7 @@ module.exports = async function (context, req) {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': corsOrigin,
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
+                ...getCorsHeaders()
             },
             body: {
                 response: aiResponse,
@@ -194,10 +191,7 @@ module.exports = async function (context, req) {
             status: 500,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': corsOrigin,
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
+                ...getCorsHeaders()
             },
             body: {
                 error: 'Error occurred while processing request',

@@ -9,11 +9,14 @@
     "allowedOrigins": [
       "https://a1143179.github.io",
       "https://a1143179.github.io/chatbot",
+      "https://a1143179.github.io/chatbot/",
+      "https://a1143179.github.io/",
       "http://localhost:3000",
       "http://localhost:3001"
     ],
     "allowedMethods": ["GET", "POST", "OPTIONS"],
-    "allowedHeaders": ["Content-Type", "Authorization"],
-    "maxAge": 86400
+    "allowedHeaders": ["Content-Type", "Authorization", "X-Requested-With"],
+    "maxAge": 86400,
+    "allowCredentials": true
   }
 } 
