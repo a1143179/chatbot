@@ -85,6 +85,7 @@ function App() {
   // Voice selection state
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [voiceLanguageFilter, setVoiceLanguageFilter] = useState<string>('all');
   
   // Mouse control states
   const [isMouseDown, setIsMouseDown] = useState(false);
@@ -787,6 +788,25 @@ function App() {
           <option value="english">English</option>
         </select>
         
+        {/* Voice language filter */}
+        <select 
+          value={voiceLanguageFilter}
+          onChange={(e) => setVoiceLanguageFilter(e.target.value)}
+          className="voice-language-filter"
+        >
+          <option value="all">All Languages</option>
+          <option value="en">English</option>
+          <option value="zh">Chinese</option>
+          <option value="ja">Japanese</option>
+          <option value="ko">Korean</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="it">Italian</option>
+          <option value="pt">Portuguese</option>
+          <option value="ru">Russian</option>
+        </select>
+        
         {/* Voice selector */}
         <select 
           value={selectedVoice?.name || ''}
@@ -798,7 +818,8 @@ function App() {
         >
           <option value="">Default Voice</option>
           {availableVoices
-            .filter(voice => voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en'))
+            .filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter))
+            .sort((a, b) => a.name.localeCompare(b.name))
             .map((voice) => (
               <option key={voice.name} value={voice.name}>
                 {voice.name} ({voice.lang})
@@ -935,7 +956,9 @@ function App() {
             <p><strong>Language:</strong> {selectedVoice.lang}</p>
             <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
             <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
-            <p><strong>Available Voices:</strong> {availableVoices.length}</p>
+            <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
+            <p><strong>Filtered Voices:</strong> {availableVoices.filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter)).length}</p>
+            <p><strong>Current Filter:</strong> {voiceLanguageFilter === 'all' ? 'All Languages' : voiceLanguageFilter.toUpperCase()}</p>
           </div>
         </div>
       )}
