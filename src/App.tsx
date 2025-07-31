@@ -488,6 +488,9 @@ function App() {
       vrmRef.current.scene.rotation.y += deltaX * 0.01;
     } else if (mouseButton === 2) { // Right button - vertical rotation
       vrmRef.current.scene.rotation.x += deltaY * 0.01;
+    } else if (mouseButton === 1) { // Middle button - panning
+      vrmRef.current.scene.position.x += deltaX * 0.01;
+      vrmRef.current.scene.position.y -= deltaY * 0.01; // Inverted Y for natural panning
     }
 
     setLastMouseX(event.clientX);
