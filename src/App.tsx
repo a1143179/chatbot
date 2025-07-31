@@ -472,6 +472,32 @@ function App() {
     }
   }, []);
 
+  // Handle VRM zoom
+  const zoomIn = useCallback(() => {
+    if (vrmRef.current) {
+      vrmRef.current.scene.scale.multiplyScalar(1.1); // Scale up by 10%
+    }
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    if (vrmRef.current) {
+      vrmRef.current.scene.scale.multiplyScalar(0.9); // Scale down by 10%
+    }
+  }, []);
+
+  // Handle VRM movement
+  const moveUp = useCallback(() => {
+    if (vrmRef.current) {
+      vrmRef.current.scene.position.y += 0.1; // Move up by 0.1 units
+    }
+  }, []);
+
+  const moveDown = useCallback(() => {
+    if (vrmRef.current) {
+      vrmRef.current.scene.position.y -= 0.1; // Move down by 0.1 units
+    }
+  }, []);
+
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
 
@@ -525,6 +551,38 @@ function App() {
             title="Rotate Right"
           >
             ↷
+          </button>
+        </div>
+        <div className="control-group">
+          <button 
+            onClick={zoomIn}
+            className="control-button"
+            title="Zoom In"
+          >
+            🔍+
+          </button>
+          <button 
+            onClick={zoomOut}
+            className="control-button"
+            title="Zoom Out"
+          >
+            🔍-
+          </button>
+        </div>
+        <div className="control-group">
+          <button 
+            onClick={moveUp}
+            className="control-button"
+            title="Move Up"
+          >
+            ↑
+          </button>
+          <button 
+            onClick={moveDown}
+            className="control-button"
+            title="Move Down"
+          >
+            ↓
           </button>
         </div>
       </div>
