@@ -47,6 +47,41 @@ export function analyzeVRM(vrm: any): VRMAnalysis {
     if (expressionManager.expressions) {
       console.log('Direct expressions:', expressionManager.expressions);
     }
+    
+    // Try to access _expressions array
+    if (expressionManager._expressions) {
+      console.log('_expressions array:', expressionManager._expressions);
+      console.log('_expressions length:', expressionManager._expressions.length);
+      
+      // Extract expression names from _expressions
+      const expressionNames = expressionManager._expressions.map((expr: any) => {
+        if (expr && expr.name) {
+          return expr.name;
+        }
+        return null;
+      }).filter((name: string | null) => name !== null);
+      
+      if (expressionNames.length > 0) {
+        analysis.expressionNames = expressionNames;
+        console.log('Extracted expression names from _expressions:', expressionNames);
+      }
+    }
+    
+    // Try to access mouthExpressionNames
+    if (expressionManager.mouthExpressionNames) {
+      console.log('mouthExpressionNames:', expressionManager.mouthExpressionNames);
+      analysis.expressionNames = [...analysis.expressionNames, ...expressionManager.mouthExpressionNames];
+    }
+    
+    // Try to access _expressionMap
+    if (expressionManager._expressionMap) {
+      console.log('_expressionMap keys:', Object.keys(expressionManager._expressionMap));
+      const mapKeys = Object.keys(expressionManager._expressionMap);
+      if (mapKeys.length > 0) {
+        analysis.expressionNames = [...analysis.expressionNames, ...mapKeys];
+        console.log('Added _expressionMap keys to expression names');
+      }
+    }
   }
 
   // Check for blend shape proxy

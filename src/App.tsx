@@ -604,6 +604,34 @@ function App() {
                 if ((vrmRef.current as any).expressionManager.expressions) {
                   console.log('Direct expressions:', (vrmRef.current as any).expressionManager.expressions);
                 }
+                
+                // Try to access _expressions array
+                if ((vrmRef.current as any).expressionManager._expressions) {
+                  console.log('_expressions array:', (vrmRef.current as any).expressionManager._expressions);
+                  console.log('_expressions length:', (vrmRef.current as any).expressionManager._expressions.length);
+                  
+                  // Extract expression names from _expressions
+                  const expressionNames = (vrmRef.current as any).expressionManager._expressions.map((expr: any) => {
+                    if (expr && expr.name) {
+                      return expr.name;
+                    }
+                    return null;
+                  }).filter((name: string | null) => name !== null);
+                  
+                  if (expressionNames.length > 0) {
+                    console.log('Extracted expression names from _expressions:', expressionNames);
+                  }
+                }
+                
+                // Try to access mouthExpressionNames
+                if ((vrmRef.current as any).expressionManager.mouthExpressionNames) {
+                  console.log('mouthExpressionNames:', (vrmRef.current as any).expressionManager.mouthExpressionNames);
+                }
+                
+                // Try to access _expressionMap
+                if ((vrmRef.current as any).expressionManager._expressionMap) {
+                  console.log('_expressionMap keys:', Object.keys((vrmRef.current as any).expressionManager._expressionMap));
+                }
               }
               
               if ((vrmRef.current as any).blendShapeProxy) {
