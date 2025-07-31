@@ -795,24 +795,36 @@ function App() {
   }, []);
 
   const handleMouseMove = useCallback((event: React.MouseEvent) => {
-    if (!isMouseDown || !cameraRef.current) return;
+    if (!isMouseDown) return;
 
     const deltaX = event.clientX - lastMouseX;
     const deltaY = event.clientY - lastMouseY;
 
-    const camera = cameraRef.current;
-
-    if (mouseButton === 0) { // Left button - horizontal rotation
-      camera.rotation.y += deltaX * 0.01;
-    } else if (mouseButton === 2) { // Right button - vertical rotation
-      camera.rotation.x += deltaY * 0.01;
-    } else if (mouseButton === 1) { // Middle button - panning
-      camera.position.x += deltaX * 0.01;
-      camera.position.y -= deltaY * 0.01; // Inverted Y for natural panning
+    if (mouseButton === 0) { // Left button - rotate avatar
+      if (vrmRef.current) {
+        const vrm = vrmRef.current;
+        vrm.scene.rotation.y += deltaX * 0.01;
+        vrm.scene.rotation.x += deltaY * 0.01;
+      }
+    } else if (mouseButton === 1) { // Middle button - pan camera (reversed direction)
+      if (cameraRef.current) {
+        const camera = cameraRef.current;
+        camera.position.x += deltaX * 0.01;
+        camera.position.y += deltaY * 0.01; // Reversed Y direction (removed negative sign)
+        
+        // Save camera state to cookie after movement
+        saveCameraState(camera);
+      }
+    } else if (mouseButton === 2) { // Right button - zoom camera
+      if (cameraRef.current) {
+        const camera = cameraRef.current;
+        const zoomFactor = deltaY > 0 ? 0.95 : 1.05;
+        camera.position.z *= zoomFactor;
+        
+        // Save camera state to cookie after zoom
+        saveCameraState(camera);
+      }
     }
-
-    // Save camera state to cookie after movement
-    saveCameraState(camera);
 
     setLastMouseX(event.clientX);
     setLastMouseY(event.clientY);
