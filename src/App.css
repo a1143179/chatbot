@@ -278,6 +278,9 @@ body {
   position: relative;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-width: 400px; /* Ensure minimum width for 3D scene */
+  display: flex;
+  justify-content: center; /* Center the 3D scene horizontally */
+  align-items: center; /* Center the 3D scene vertically */
 }
 
 /* Right column - Chat History */
