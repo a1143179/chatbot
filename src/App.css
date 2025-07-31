@@ -311,9 +311,9 @@ body {
 /* VRM Analysis Results */
 .vrm-analysis {
   position: absolute;
-  top: 20px;
-  left: 240px;
-  width: 300px;
+  top: 280px; /* Position below the model-selector */
+  left: 20px;
+  width: 200px;
   max-height: 300px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 15px;

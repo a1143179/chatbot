@@ -845,6 +845,24 @@ function App() {
         </select>
       </div>
 
+      {/* VRM Analysis Results - positioned below dropdowns */}
+      {vrmAnalysis && (
+        <div className="vrm-analysis">
+          <h3>VRM Analysis Results</h3>
+          <div className="analysis-content">
+            <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
+            <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
+            <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
+            <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
+            {suggestedMouthShape && (
+              <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
+            )}
+            <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
+            <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
+          </div>
+        </div>
+      )}
+
       {/* Voice control overlay */}
       <div className="voice-controls">
         <button 
@@ -929,24 +947,6 @@ function App() {
         ))}
       </div>
 
-      {/* VRM Analysis Results */}
-      {vrmAnalysis && (
-        <div className="vrm-analysis">
-          <h3>VRM Analysis Results</h3>
-          <div className="analysis-content">
-            <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
-            <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
-            <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
-            <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
-            {suggestedMouthShape && (
-              <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
-            )}
-            <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
-            <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
-          </div>
-        </div>
-      )}
-      
       {/* Voice Info */}
       {selectedVoice && (
         <div className="voice-info">
