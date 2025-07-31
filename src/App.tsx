@@ -137,22 +137,22 @@ function App() {
     const naturalPose = {
       [VRMHumanBoneName.LeftUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(-15), 0, THREE.MathUtils.degToRad(-10))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(70))
         ).toArray(),
       },
       [VRMHumanBoneName.RightUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(-15), 0, THREE.MathUtils.degToRad(10))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(-70))
         ).toArray(),
       },
       [VRMHumanBoneName.LeftLowerArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(15))
         ).toArray(),
       },
       [VRMHumanBoneName.RightLowerArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(-15))
         ).toArray(),
       },
       [VRMHumanBoneName.LeftHand]: {
