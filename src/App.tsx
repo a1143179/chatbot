@@ -133,36 +133,57 @@ function App() {
 
     console.log('Applying natural pose using humanoid.setPose()...');
 
-    // Define a natural pose with arms hanging down
+    // Define a natural pose with arms hanging down naturally
     const naturalPose = {
       [VRMHumanBoneName.LeftUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(-15), 0, THREE.MathUtils.degToRad(-10))
         ).toArray(),
       },
       [VRMHumanBoneName.RightUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(-15), 0, THREE.MathUtils.degToRad(10))
         ).toArray(),
       },
       [VRMHumanBoneName.LeftLowerArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
         ).toArray(),
       },
       [VRMHumanBoneName.RightLowerArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
         ).toArray(),
       },
       [VRMHumanBoneName.LeftHand]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
         ).toArray(),
       },
       [VRMHumanBoneName.RightHand]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      // Add natural spine and head pose
+      [VRMHumanBoneName.Spine]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.Chest]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.Neck]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.Head]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
         ).toArray(),
       },
     };
