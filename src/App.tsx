@@ -459,6 +459,19 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
+  // Handle VRM rotation
+  const rotateLeft = useCallback(() => {
+    if (vrmRef.current) {
+      vrmRef.current.scene.rotation.y += Math.PI / 4; // Rotate 45 degrees left
+    }
+  }, []);
+
+  const rotateRight = useCallback(() => {
+    if (vrmRef.current) {
+      vrmRef.current.scene.rotation.y -= Math.PI / 4; // Rotate 45 degrees right
+    }
+  }, []);
+
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
 
@@ -497,6 +510,22 @@ function App() {
             <option value="star-rail.vrm">Star Rail</option>
             <option value="pee.vrm">Pee</option>
           </select>
+        </div>
+        <div className="control-group">
+          <button 
+            onClick={rotateLeft}
+            className="rotation-button"
+            title="Rotate Left"
+          >
+            ↶
+          </button>
+          <button 
+            onClick={rotateRight}
+            className="rotation-button"
+            title="Rotate Right"
+          >
+            ↷
+          </button>
         </div>
       </div>
 
