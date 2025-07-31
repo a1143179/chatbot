@@ -82,6 +82,10 @@ function App() {
   // Language context
   const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>('chinese');
   
+  // Voice selection state
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  
   // Mouse control states
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [mouseButton, setMouseButton] = useState<number>(0);
@@ -128,6 +132,11 @@ function App() {
     utterance.lang = languageContext === 'chinese' ? 'zh-CN' : 'en-US';
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
+    
+    // Set the selected voice if available
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
 
     let mouthTimer: NodeJS.Timeout | null = null;
     let currentMouthShape: string | null = null;
@@ -334,7 +343,7 @@ function App() {
     };
 
     synthesisRef.current.speak(utterance);
-  }, [languageContext, vrmAnalysis]);
+  }, [languageContext, vrmAnalysis, selectedVoice]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -619,6 +628,29 @@ function App() {
 
     // Initialize speech synthesis
     synthesisRef.current = window.speechSynthesis;
+    
+    // Load available voices
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+      
+      // Set default voice based on language context
+      const defaultVoice = voices.find(voice => 
+        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en') && voice.default
+      ) || voices.find(voice => 
+        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en')
+      ) || voices[0];
+      
+      setSelectedVoice(defaultVoice);
+    };
+    
+    // Load voices immediately if available
+    loadVoices();
+    
+    // Load voices when they become available
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
   }, [processWithAI, languageContext]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startListening = useCallback(() => {
@@ -755,6 +787,26 @@ function App() {
           <option value="english">English</option>
         </select>
         
+        {/* Voice selector */}
+        <select 
+          value={selectedVoice?.name || ''}
+          onChange={(e) => {
+            const voice = availableVoices.find(v => v.name === e.target.value);
+            setSelectedVoice(voice || null);
+          }}
+          className="voice-select"
+        >
+          <option value="">Default Voice</option>
+          {availableVoices
+            .filter(voice => voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en'))
+            .map((voice) => (
+              <option key={voice.name} value={voice.name}>
+                {voice.name} ({voice.lang})
+              </option>
+            ))
+          }
+        </select>
+        
         {/* Expression selector */}
         <select 
           value={selectedExpression}
@@ -822,6 +874,24 @@ function App() {
           Test Enhanced Lip-Sync
         </button>
         
+        {/* Test voice button */}
+        <button 
+          className="test-button"
+          onClick={() => {
+            console.log('=== Testing Selected Voice ===');
+            console.log('Selected voice:', selectedVoice);
+            console.log('Available voices:', availableVoices);
+            
+            const testText = languageContext === 'chinese' 
+              ? '你好，这是一个语音测试。' 
+              : 'Hello, this is a voice test.';
+            
+            speakText(testText);
+          }}
+        >
+          Test Voice
+        </button>
+        
         {isProcessing && (
           <div className="processing-indicator">
             Processing...
@@ -852,6 +922,20 @@ function App() {
             )}
             <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
             <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Voice Info */}
+      {selectedVoice && (
+        <div className="voice-info">
+          <h3>Voice Information</h3>
+          <div className="voice-content">
+            <p><strong>Selected Voice:</strong> {selectedVoice.name}</p>
+            <p><strong>Language:</strong> {selectedVoice.lang}</p>
+            <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
+            <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
+            <p><strong>Available Voices:</strong> {availableVoices.length}</p>
           </div>
         </div>
       )}
