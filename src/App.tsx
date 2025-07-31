@@ -133,23 +133,24 @@ function App() {
 
     console.log('Applying natural pose using humanoid.setPose()...');
 
-    // 定义一个更自然的手臂下垂姿势 (A-pose)
+    // 定义一个更可靠的、手臂自然下垂的姿势 (A-pose)
     const naturalPose = {
       [VRMHumanBoneName.LeftUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
+          // 注意旋转顺序和值，这是为了让手臂从T-pose向身体侧下方旋转
           new THREE.Euler(
-            THREE.MathUtils.degToRad(5),  // 沿X轴轻微向前旋转
-            0,
-            THREE.MathUtils.degToRad(45)  // 沿Z轴向外旋转，使手臂离开身体
+            THREE.MathUtils.degToRad(0),  // X轴 (前后摆动)
+            THREE.MathUtils.degToRad(0),  // Y轴 (水平旋转)
+            THREE.MathUtils.degToRad(75)  // Z轴 (主要控制上下摆动)
           )
         ).toArray(),
       },
       [VRMHumanBoneName.RightUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
           new THREE.Euler(
-            THREE.MathUtils.degToRad(5),  // 沿X轴轻微向前旋转
-            0,
-            THREE.MathUtils.degToRad(-45) // 沿Z轴向外旋转，使手臂离开身体
+            THREE.MathUtils.degToRad(0),  // X轴
+            THREE.MathUtils.degToRad(0),  // Y轴
+            THREE.MathUtils.degToRad(-75) // Z轴
           )
         ).toArray(),
       },
@@ -157,8 +158,8 @@ function App() {
         rotation: new THREE.Quaternion().setFromEuler(
           new THREE.Euler(
             THREE.MathUtils.degToRad(0),
-            0,
-            THREE.MathUtils.degToRad(10) // 轻微弯曲肘部
+            THREE.MathUtils.degToRad(0),
+            THREE.MathUtils.degToRad(15) // 保持肘部轻微弯曲
           )
         ).toArray(),
       },
@@ -166,8 +167,8 @@ function App() {
         rotation: new THREE.Quaternion().setFromEuler(
           new THREE.Euler(
             THREE.MathUtils.degToRad(0),
-            0,
-            THREE.MathUtils.degToRad(-10) // 轻微弯曲肘部
+            THREE.MathUtils.degToRad(0),
+            THREE.MathUtils.degToRad(-15) // 保持肘部轻微弯曲
           )
         ).toArray(),
       },
