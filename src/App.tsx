@@ -166,7 +166,11 @@ function App() {
   const [selectedExpression, setSelectedExpression] = useState<string>('neutral');
   
   // Language context
-  const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>('chinese');
+  const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>(() => {
+    // Load language preference from localStorage, default to 'english'
+    const savedLanguage = getLocalStorage('languageContext');
+    return (savedLanguage as 'chinese' | 'english') || 'english';
+  });
   
      // Voice selection state
    const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -949,7 +953,11 @@ function App() {
           <select 
             id="language-select"
             value={languageContext}
-            onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
+            onChange={(e) => {
+              const newLanguage = e.target.value as 'chinese' | 'english';
+              setLanguageContext(newLanguage);
+              setLocalStorage('languageContext', newLanguage);
+            }}
             className="language-select"
           >
             <option value="chinese">中文</option>
