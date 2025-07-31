@@ -321,7 +321,7 @@ function App() {
         const humanoid = vrmRef.current.humanoid;
         if (humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
-            const boneNode = humanoid.getBoneNode(boneName);
+            const boneNode = humanoid.getNormalizedBoneNode(boneName);
             if (boneNode) {
               boneNode.rotation.set(
                 THREE.MathUtils.degToRad(x),
