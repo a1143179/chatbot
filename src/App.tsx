@@ -76,6 +76,9 @@ function App() {
   const [vrmAnalysis, setVrmAnalysis] = useState<any>(null);
   const [suggestedMouthShape, setSuggestedMouthShape] = useState<string | null>(null);
   
+  // Expression selection state
+  const [selectedExpression, setSelectedExpression] = useState<string>('neutral');
+  
   // Language context
   const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>('chinese');
   
@@ -482,6 +485,27 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
+  // Handle expression change
+  const handleExpressionChange = useCallback((expression: string) => {
+    setSelectedExpression(expression);
+    
+    // Apply the selected expression to the VRM
+    if (vrmRef.current) {
+      // Reset all expressions first
+      if (vrmAnalysis && vrmAnalysis.expressionNames) {
+        vrmAnalysis.expressionNames.forEach((expr: string) => {
+          setVrmMouthShape(expr, 0.0);
+        });
+      }
+      
+      // Apply the selected expression
+      if (expression !== 'neutral') {
+        setVrmMouthShape(expression, 1.0);
+        console.log(`Applied expression: ${expression}`);
+      }
+    }
+  }, [vrmAnalysis]);
+
   // Mouse control functions
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
     setIsMouseDown(true);
@@ -573,6 +597,22 @@ function App() {
         >
           <option value="chinese">中文</option>
           <option value="english">English</option>
+        </select>
+        
+        {/* Expression selector */}
+        <select 
+          value={selectedExpression}
+          onChange={(e) => handleExpressionChange(e.target.value)}
+          className="expression-select"
+        >
+          <option value="neutral">Neutral</option>
+          {vrmAnalysis && vrmAnalysis.expressionNames && 
+            vrmAnalysis.expressionNames
+              .filter((expr: string) => expr !== 'neutral')
+              .map((expr: string) => (
+                <option key={expr} value={expr}>{expr}</option>
+              ))
+          }
         </select>
       </div>
 
