@@ -5,7 +5,7 @@ import { VRMLoaderPlugin, VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 import CorsTest from './components/CorsTest';
-import { analyzeVRM, findMouthShapes, suggestMouthShape, getAllExpressionNames } from './utils/vrmAnalyzer';
+import { analyzeVRM, findMouthShapes, suggestMouthShape } from './utils/vrmAnalyzer';
 
 // Type declarations for Web Speech API
 declare global {
@@ -91,7 +91,7 @@ function App() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
-  function setVrmMouthShape(shape: string, value: number) {
+  function setVrmMouthShape(shape: string, value: number): void {
     const vrm = vrmRef.current;
     if (!vrm) {
       console.log('setVrmMouthShape: No VRM loaded');
@@ -117,7 +117,7 @@ function App() {
     }
   }
 
-  // Simple lip sync with TTS events
+  // Enhanced lip sync with advanced phoneme detection
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
     
@@ -130,42 +130,194 @@ function App() {
     utterance.pitch = 1.0;
 
     let mouthTimer: NodeJS.Timeout | null = null;
+    let currentMouthShape: string | null = null;
     
-    // Get the best mouth shape from analysis
-    const getBestMouthShape = () => {
-      if (suggestedMouthShape) {
-        // Extract the actual shape name from the suggestion
-        const shapeName = suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '');
-        return shapeName;
+    // Get available mouth shapes from VRM analysis
+    const getAvailableMouthShapes = () => {
+      if (vrmAnalysis && vrmAnalysis.expressionNames) {
+        // Filter for mouth-related expressions
+        const mouthShapes = vrmAnalysis.expressionNames.filter((expr: string) => 
+          ['aa', 'ee', 'ih', 'oh', 'ou', 'a', 'e', 'i', 'o', 'u', 'ah', 'eh', 'ih', 'oh', 'uh',
+           'open', 'wide', 'round', 'pucker', 'smile', 'frown', 'relax', 'tight', 'part', 'close',
+           'jaw', 'lip', 'mouth'].includes(expr.toLowerCase())
+        );
+        return mouthShapes.length > 0 ? mouthShapes : ['aa']; // Fallback to 'aa'
       }
-      // Fallback to common mouth shapes
-      return 'aa'; // Use 'aa' as it's the most common open mouth shape
+      return ['aa']; // Default fallback
     };
     
-    const mouthShape = getBestMouthShape();
+    const availableMouthShapes = getAvailableMouthShapes();
+    
+    // Enhanced phoneme to mouth shape mapping
+    const phonemeToMouthShape = (phoneme: string, word: string): string => {
+      const phonemeLower = phoneme.toLowerCase();
+      const wordLower = word.toLowerCase();
+      
+      // Find the best matching mouth shape from available shapes
+      const findBestMatch = (targetPatterns: string[]): string => {
+        for (const pattern of targetPatterns) {
+          const match = availableMouthShapes.find((shape: string) => 
+            shape.toLowerCase().includes(pattern.toLowerCase())
+          );
+          if (match) return match;
+        }
+        return availableMouthShapes[0]; // Fallback
+      };
+      
+      // Vowel mappings with more specific patterns
+      if (['a', 'ɑ', 'æ', 'ʌ', 'ɑː', 'aː'].includes(phonemeLower)) {
+        return findBestMatch(['aa', 'ah', 'a', 'open', 'wide', 'jaw']);
+      }
+      if (['e', 'ɛ', 'eɪ', 'iː', 'eː'].includes(phonemeLower)) {
+        return findBestMatch(['ee', 'eh', 'e', 'wide', 'smile', 'part']);
+      }
+      if (['i', 'ɪ', 'iː', 'iː'].includes(phonemeLower)) {
+        return findBestMatch(['ih', 'i', 'ee', 'wide', 'smile', 'part']);
+      }
+      if (['o', 'ɔ', 'oʊ', 'əʊ', 'oː'].includes(phonemeLower)) {
+        return findBestMatch(['oh', 'o', 'round', 'pucker', 'close']);
+      }
+      if (['u', 'ʊ', 'uː', 'juː', 'uː'].includes(phonemeLower)) {
+        return findBestMatch(['ou', 'uh', 'u', 'round', 'pucker', 'close']);
+      }
+      
+      // Consonant mappings with more specific mouth shapes
+      if (['p', 'b', 'm'].includes(phonemeLower)) {
+        return findBestMatch(['close', 'tight', 'part', 'relax']); // Closed lips
+      }
+      if (['f', 'v'].includes(phonemeLower)) {
+        return findBestMatch(['ih', 'part', 'relax', 'tight']); // Upper teeth on lower lip
+      }
+      if (['s', 'z', 'ʃ', 'ʒ'].includes(phonemeLower)) {
+        return findBestMatch(['ee', 'wide', 'part', 'tight']); // Teeth together
+      }
+      if (['t', 'd', 'n', 'l'].includes(phonemeLower)) {
+        return findBestMatch(['part', 'relax', 'wide', 'ih']); // Tongue to teeth
+      }
+      if (['k', 'g', 'ŋ'].includes(phonemeLower)) {
+        return findBestMatch(['ah', 'open', 'wide', 'aa']); // Back of throat
+      }
+      if (['r'].includes(phonemeLower)) {
+        return findBestMatch(['round', 'oh', 'pucker', 'close']); // Rounded lips
+      }
+      if (['w', 'j'].includes(phonemeLower)) {
+        return findBestMatch(['round', 'wide', 'oh', 'ee']); // Semi-vowels
+      }
+      
+      // Special cases for common word patterns
+      if (wordLower.includes('smile') || wordLower.includes('happy') || wordLower.includes('laugh')) {
+        return findBestMatch(['smile', 'wide', 'ee', 'part']);
+      }
+      if (wordLower.includes('frown') || wordLower.includes('sad') || wordLower.includes('cry')) {
+        return findBestMatch(['frown', 'pucker', 'oh', 'close']);
+      }
+      if (wordLower.includes('kiss') || wordLower.includes('pucker')) {
+        return findBestMatch(['pucker', 'round', 'oh', 'close']);
+      }
+      
+      // Default to first available shape
+      return availableMouthShapes[0];
+    };
+    
+    // Enhanced phoneme detection with word context
+    const detectPhoneme = (text: string, charIndex: number): { phoneme: string, word: string } => {
+      const words = text.toLowerCase().split(/\s+/);
+      let currentCharIndex = 0;
+      let currentWord = '';
+      
+      // Find the word being spoken at the current character index
+      for (const word of words) {
+        if (currentCharIndex + word.length > charIndex) {
+          currentWord = word;
+          break;
+        }
+        currentCharIndex += word.length + 1; // +1 for space
+      }
+      
+      if (!currentWord) {
+        currentWord = words[words.length - 1] || 'a';
+      }
+      
+      // Enhanced phoneme detection based on word structure
+      const detectPhonemeFromWord = (word: string): string => {
+        // Check for common vowel patterns
+        if (word.includes('a') || word.includes('o')) {
+          if (word.includes('ai') || word.includes('ay')) return 'e';
+          if (word.includes('au') || word.includes('aw')) return 'o';
+          return 'a';
+        }
+        if (word.includes('e') || word.includes('i')) {
+          if (word.includes('ie') || word.includes('ei')) return 'e';
+          if (word.includes('igh')) return 'i';
+          return 'e';
+        }
+        if (word.includes('u')) {
+          if (word.includes('ue') || word.includes('ui')) return 'u';
+          return 'u';
+        }
+        if (word.includes('y')) {
+          if (word.startsWith('y')) return 'i';
+          return 'e';
+        }
+        
+        // Check for consonant patterns that affect mouth shape
+        if (word.includes('p') || word.includes('b') || word.includes('m')) return 'p';
+        if (word.includes('f') || word.includes('v')) return 'f';
+        if (word.includes('s') || word.includes('z')) return 's';
+        if (word.includes('r')) return 'r';
+        if (word.includes('w')) return 'w';
+        
+        // Default to 'a' for most consonants
+        return 'a';
+      };
+      
+      const phoneme = detectPhonemeFromWord(currentWord);
+      return { phoneme, word: currentWord };
+    };
 
     // Open mouth when speech starts
     utterance.onstart = () => {
-      console.log('Speech started - opening mouth with shape:', mouthShape);
+      const { phoneme, word } = detectPhoneme(text, 0);
+      const mouthShape = phonemeToMouthShape(phoneme, word);
+      currentMouthShape = mouthShape;
+      console.log('Speech started - opening mouth with shape:', mouthShape, 'for phoneme:', phoneme, 'word:', word);
       setVrmMouthShape(mouthShape, 1.0);
     };
 
     // Handle word boundaries for natural lip sync
     utterance.onboundary = (event) => {
-      console.log('Word boundary detected - adjusting mouth with shape:', mouthShape);
+      // Get the word being spoken
+      const charIndex = event.charIndex;
+      const { phoneme, word } = detectPhoneme(text, charIndex);
+      const mouthShape = phonemeToMouthShape(phoneme, word);
+      
+      console.log('Word boundary detected - adjusting mouth with shape:', mouthShape, 'for word:', word, 'phoneme:', phoneme);
+      
       // Clear any existing timer
       if (mouthTimer) {
         clearTimeout(mouthTimer);
       }
       
-      // Open mouth for current word
-      setVrmMouthShape(mouthShape, 1.0);
+      // Only change mouth shape if it's different from current
+      if (currentMouthShape !== mouthShape) {
+        // Reset previous mouth shape
+        if (currentMouthShape) {
+          setVrmMouthShape(currentMouthShape, 0.0);
+        }
+        
+        // Set new mouth shape
+        currentMouthShape = mouthShape;
+        setVrmMouthShape(mouthShape, 1.0);
+      }
       
       // Close mouth after a short delay if no next word
       mouthTimer = setTimeout(() => {
         console.log('Closing mouth after delay');
-        setVrmMouthShape(mouthShape, 0.0);
-      }, 150);
+        if (currentMouthShape) {
+          setVrmMouthShape(currentMouthShape, 0.0);
+          currentMouthShape = null;
+        }
+      }, 200);
     };
 
     // Close mouth when speech ends
@@ -174,11 +326,15 @@ function App() {
       if (mouthTimer) {
         clearTimeout(mouthTimer);
       }
-      setVrmMouthShape(mouthShape, 0.0);
+      // Reset to neutral
+      if (currentMouthShape) {
+        setVrmMouthShape(currentMouthShape, 0.0);
+        currentMouthShape = null;
+      }
     };
 
     synthesisRef.current.speak(utterance);
-  }, [languageContext, suggestedMouthShape]);
+  }, [languageContext, vrmAnalysis]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -630,11 +786,9 @@ function App() {
         <button 
           className="test-button"
           onClick={() => {
-            console.log('=== Testing VRM Expressions ===');
+            console.log('=== Testing Enhanced VRM Lip-Sync ===');
             if (vrmRef.current) {
               console.log('VRM loaded:', vrmRef.current);
-              console.log('VRM type:', typeof vrmRef.current);
-              console.log('VRM keys:', Object.keys(vrmRef.current));
               
               // Use VRM analyzer
               const analysis = analyzeVRM(vrmRef.current);
@@ -646,110 +800,26 @@ function App() {
               console.log('Mouth shapes found:', mouthShapes);
               console.log('Suggested mouth shape:', suggested);
               
-              if ((vrmRef.current as any).expressionManager) {
-                console.log('ExpressionManager found:', (vrmRef.current as any).expressionManager);
-                console.log('ExpressionManager keys:', Object.keys((vrmRef.current as any).expressionManager));
-                const expressionNames = (vrmRef.current as any).expressionManager.getExpressionNames?.();
-                console.log('Available expressions:', expressionNames);
-                
-                // Use the comprehensive expression name getter
-                const allExpressionNames = getAllExpressionNames(vrmRef.current);
-                console.log('All expression names found:', allExpressionNames);
-                
-                // Try to access expressions directly
-                if ((vrmRef.current as any).expressionManager.expressions) {
-                  console.log('Direct expressions:', (vrmRef.current as any).expressionManager.expressions);
-                }
-                
-                // Try to access _expressions array
-                if ((vrmRef.current as any).expressionManager._expressions) {
-                  console.log('_expressions array:', (vrmRef.current as any).expressionManager._expressions);
-                  console.log('_expressions length:', (vrmRef.current as any).expressionManager._expressions.length);
-                  
-                  // Extract expression names from _expressions
-                  const expressionNames = (vrmRef.current as any).expressionManager._expressions.map((expr: any) => {
-                    if (expr && expr.name) {
-                      return expr.name;
-                    }
-                    return null;
-                  }).filter((name: string | null) => name !== null);
-                  
-                  if (expressionNames.length > 0) {
-                    console.log('Extracted expression names from _expressions:', expressionNames);
-                  }
-                }
-                
-                // Try to access mouthExpressionNames
-                if ((vrmRef.current as any).expressionManager.mouthExpressionNames) {
-                  console.log('mouthExpressionNames:', (vrmRef.current as any).expressionManager.mouthExpressionNames);
-                }
-                
-                // Try to access _expressionMap
-                if ((vrmRef.current as any).expressionManager._expressionMap) {
-                  console.log('_expressionMap keys:', Object.keys((vrmRef.current as any).expressionManager._expressionMap));
-                }
-              }
+              // Test enhanced lip-sync with different words
+              const testWords = [
+                'Hello', 'Apple', 'Smile', 'Happy', 'Sad', 'Kiss', 'Open', 'Close'
+              ];
               
-              if ((vrmRef.current as any).blendShapeProxy) {
-                console.log('BlendShapeProxy:', (vrmRef.current as any).blendShapeProxy);
-                console.log('BlendShapeProxy keys:', Object.keys((vrmRef.current as any).blendShapeProxy));
-                
-                // Try to get blend shape names
-                if ((vrmRef.current as any).blendShapeProxy.getBlendShapeNames) {
-                  console.log('BlendShape names:', (vrmRef.current as any).blendShapeProxy.getBlendShapeNames());
-                }
-              }
+              console.log('Testing enhanced lip-sync with different words:', testWords);
               
-              // Check for any expression-related properties
-              const vrmKeys = Object.keys(vrmRef.current);
-              const expressionKeys = vrmKeys.filter(key => 
-                key.toLowerCase().includes('expression') || 
-                key.toLowerCase().includes('blend') || 
-                key.toLowerCase().includes('shape')
-              );
-              console.log('Expression-related keys:', expressionKeys);
-              
-              // Check VRM version
-              if ((vrmRef.current as any).meta) {
-                console.log('VRM Meta:', (vrmRef.current as any).meta);
-              }
-              
-              // Test with suggested mouth shape if available
-              if (suggested) {
-                console.log(`Testing with suggested mouth shape: ${suggested}`);
-                // Extract the actual shape name from the suggestion
-                const shapeName = suggested.replace(/^(Expression|BlendShape):\s*/, '');
-                console.log(`Using shape name: ${shapeName}`);
-                
-                // Test the mouth shape
-                setVrmMouthShape(shapeName, 1.0);
+              // Test each word with different mouth shapes
+              testWords.forEach((word, index) => {
                 setTimeout(() => {
-                  setVrmMouthShape(shapeName, 0.0);
-                }, 1000);
-              } else {
-                // Test with common mouth shapes found
-                const mouthShapes = ['aa', 'ee', 'ih', 'oh', 'ou'];
-                console.log('Testing with common mouth shapes:', mouthShapes);
-                
-                // Test each mouth shape
-                mouthShapes.forEach((shape, index) => {
-                  setTimeout(() => {
-                    console.log(`Testing mouth shape: ${shape}`);
-                    setVrmMouthShape(shape, 1.0);
-                    setTimeout(() => {
-                      setVrmMouthShape(shape, 0.0);
-                    }, 500);
-                  }, index * 600);
-                });
-              }
+                  console.log(`Testing word: ${word}`);
+                  speakText(word);
+                }, index * 2000); // 2 second intervals
+              });
             } else {
               console.log('No VRM loaded');
             }
-            // Test speech synthesis
-            speakText('Hello, this is a test for VRM mouth shapes.');
           }}
         >
-          Test VRM Expressions
+          Test Enhanced Lip-Sync
         </button>
         
         {isProcessing && (

@@ -125,28 +125,60 @@ export function analyzeVRM(vrm: any): VRMAnalysis {
 export function findMouthShapes(analysis: VRMAnalysis): string[] {
   const mouthShapes: string[] = [];
   
-  // Common mouth shape patterns
+  // Enhanced mouth shape patterns for better lip-sync
   const mouthPatterns = [
+    // Basic vowel shapes
     /^[AIUEO]$/i,           // Single vowels
     /^[AIUEO]h$/i,          // Vowels with 'h'
     /^vrc\.v_[aiueo]$/i,    // VRChat style
+    
+    // Mouth opening patterns
     /^mouth/i,               // Mouth-related
     /^jaw/i,                 // Jaw-related
-    /^lip/i,                 // Lip-related
     /^open/i,                // Open-related
     /^wide/i,                // Wide-related
-    /^smile/i,               // Smile-related
-    /^frown/i,               // Frown-related
+    /^part/i,                // Part-related
+    /^close/i,               // Close-related
+    /^shut/i,                // Shut-related
+    /^seal/i,                // Seal-related
+    
+    // Lip movement patterns
+    /^lip/i,                 // Lip-related
     /^pucker/i,              // Pucker-related
     /^round/i,               // Round-related
     /^flat/i,                // Flat-related
     /^narrow/i,              // Narrow-related
     /^relax/i,               // Relax-related
     /^tight/i,               // Tight-related
-    /^part/i,                // Part-related
-    /^close/i,               // Close-related
-    /^shut/i,                // Shut-related
-    /^seal/i,                // Seal-related
+    
+    // Expression patterns
+    /^smile/i,               // Smile-related
+    /^frown/i,               // Frown-related
+    /^grin/i,                // Grin-related
+    /^sad/i,                 // Sad-related
+    /^happy/i,               // Happy-related
+    /^angry/i,               // Angry-related
+    /^surprised/i,           // Surprised-related
+    /^shocked/i,             // Shocked-related
+    
+    // Specific phoneme patterns
+    /^aa$/i,                 // 'ah' sound
+    /^ee$/i,                 // 'ee' sound
+    /^ih$/i,                 // 'ih' sound
+    /^oh$/i,                 // 'oh' sound
+    /^ou$/i,                 // 'ou' sound
+    /^ah$/i,                 // 'ah' sound
+    /^eh$/i,                 // 'eh' sound
+    /^uh$/i,                 // 'uh' sound
+    
+    // VRChat specific patterns
+    /^vrc\./i,               // VRChat expressions
+    /^v_[aiueo]$/i,         // VRChat vowel shapes
+    
+    // Generic mouth patterns
+    /mouth/i,                // Any mouth reference
+    /jaw/i,                  // Any jaw reference
+    /lip/i,                  // Any lip reference
   ];
 
   // Check expression names
@@ -176,13 +208,22 @@ export function suggestMouthShape(analysis: VRMAnalysis): string | null {
 
   console.log('Found mouth shapes:', mouthShapes);
   
-  // Priority order for mouth shapes
+  // Enhanced priority order for mouth shapes with better categorization
   const priorityShapes = [
-    'A', 'Ah', 'vrc.v_a', 'MouthOpen', 'JawOpen',
-    'I', 'Ih', 'vrc.v_i', 'MouthWide', 'JawWide',
-    'O', 'Oh', 'vrc.v_o', 'MouthRound', 'JawRound',
-    'U', 'Uh', 'vrc.v_u', 'MouthPucker', 'JawPucker',
-    'E', 'Eh', 'vrc.v_e', 'MouthSmile', 'JawSmile'
+    // Primary vowel shapes (most common for lip-sync)
+    'A', 'Ah', 'vrc.v_a', 'MouthOpen', 'JawOpen', 'aa', 'ah',
+    'I', 'Ih', 'vrc.v_i', 'MouthWide', 'JawWide', 'ee', 'ih',
+    'O', 'Oh', 'vrc.v_o', 'MouthRound', 'JawRound', 'oh', 'ou',
+    'U', 'Uh', 'vrc.v_u', 'MouthPucker', 'JawPucker', 'uh',
+    'E', 'Eh', 'vrc.v_e', 'MouthSmile', 'JawSmile', 'eh',
+    
+    // Secondary mouth shapes
+    'open', 'wide', 'part', 'close', 'tight', 'relax',
+    'round', 'pucker', 'flat', 'narrow',
+    'smile', 'frown', 'grin', 'sad', 'happy', 'angry',
+    
+    // Generic mouth references
+    'mouth', 'jaw', 'lip'
   ];
 
   // Find the first priority shape that exists
