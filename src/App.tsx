@@ -93,6 +93,9 @@ function App() {
   const [lastMouseX, setLastMouseX] = useState<number>(0);
   const [lastMouseY, setLastMouseY] = useState<number>(0);
   
+  // Add state for tab management
+  const [activeTab, setActiveTab] = useState<'vrm' | 'voice'>('vrm');
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
@@ -845,23 +848,59 @@ function App() {
         </select>
       </div>
 
-      {/* VRM Analysis Results - positioned below dropdowns */}
-      {vrmAnalysis && (
-        <div className="vrm-analysis">
-          <h3>VRM Analysis Results</h3>
-          <div className="analysis-content">
-            <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
-            <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
-            <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
-            <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
-            {suggestedMouthShape && (
-              <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
-            )}
-            <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
-            <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
-          </div>
+      {/* Multi-tab box for VRM Analysis and Voice Information */}
+      <div className="multi-tab-box">
+        {/* Tab headers */}
+        <div className="tab-headers">
+          <button 
+            className={`tab-header ${activeTab === 'vrm' ? 'active' : ''}`}
+            onClick={() => setActiveTab('vrm')}
+          >
+            VRM Analysis
+          </button>
+          <button 
+            className={`tab-header ${activeTab === 'voice' ? 'active' : ''}`}
+            onClick={() => setActiveTab('voice')}
+          >
+            Voice Info
+          </button>
         </div>
-      )}
+
+        {/* Tab content */}
+        <div className="tab-content">
+          {activeTab === 'vrm' && vrmAnalysis && (
+            <div className="vrm-analysis">
+              <h3>VRM Analysis Results</h3>
+              <div className="analysis-content">
+                <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
+                <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
+                <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
+                <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
+                {suggestedMouthShape && (
+                  <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
+                )}
+                <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
+                <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'voice' && selectedVoice && (
+            <div className="voice-info">
+              <h3>Voice Information</h3>
+              <div className="voice-content">
+                <p><strong>Selected Voice:</strong> {selectedVoice.name}</p>
+                <p><strong>Language:</strong> {selectedVoice.lang}</p>
+                <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
+                <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
+                <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
+                <p><strong>Filtered Voices:</strong> {availableVoices.filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter)).length}</p>
+                <p><strong>Current Filter:</strong> {voiceLanguageFilter === 'all' ? 'All Languages' : voiceLanguageFilter.toUpperCase()}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Voice control overlay */}
       <div className="voice-controls">
@@ -946,22 +985,6 @@ function App() {
           </div>
         ))}
       </div>
-
-      {/* Voice Info */}
-      {selectedVoice && (
-        <div className="voice-info">
-          <h3>Voice Information</h3>
-          <div className="voice-content">
-            <p><strong>Selected Voice:</strong> {selectedVoice.name}</p>
-            <p><strong>Language:</strong> {selectedVoice.lang}</p>
-            <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
-            <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
-            <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
-            <p><strong>Filtered Voices:</strong> {availableVoices.filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter)).length}</p>
-            <p><strong>Current Filter:</strong> {voiceLanguageFilter === 'all' ? 'All Languages' : voiceLanguageFilter.toUpperCase()}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
