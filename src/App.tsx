@@ -379,11 +379,11 @@ function App() {
             }
           };
 
-          // 强制手臂从水平方向向下约75度
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 105);  // 75度从水平向下
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -105); // 75度从水平向下
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15);
+          // 强制手臂自然下垂
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 0);   // 自然下垂
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, 0);  // 自然下垂
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 0);   // 自然下垂
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, 0);  // 自然下垂
           
           // 仅在第一次应用姿势时，重置弹簧骨，将其设定为新的静止状态
           if (!poseInitialized && vrmRef.current.springBoneManager) {
