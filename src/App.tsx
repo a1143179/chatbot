@@ -82,13 +82,22 @@ function App() {
 
   function setVrmMouthShape(shape: string, value: number) {
     const vrm = vrmRef.current;
-    if (!vrm) return;
+    if (!vrm) {
+      console.log('setVrmMouthShape: No VRM loaded');
+      return;
+    }
+    
+    console.log(`setVrmMouthShape: Setting ${shape} to ${value}`);
     
     // VRM 1.x
     if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
       (vrm as any).expressionManager.setValue(shape, value);
+      console.log(`Applied to expressionManager: ${shape} = ${value}`);
     } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
       (vrm as any).blendShapeProxy.setValue(shape, value);
+      console.log(`Applied to blendShapeProxy: ${shape} = ${value}`);
+    } else {
+      console.log('setVrmMouthShape: No compatible expression system found');
     }
   }
 
@@ -105,11 +114,15 @@ function App() {
 
     // Open mouth when speech starts
     utterance.onstart = () => {
+      console.log('Speech started - opening mouth');
       setVrmMouthShape('A', 1.0);
+      setVrmMouthShape('I', 0.5);
+      setVrmMouthShape('U', 0.3);
     };
 
     // Handle word boundaries for natural lip sync
     utterance.onboundary = (event) => {
+      console.log('Word boundary detected - adjusting mouth');
       // Clear any existing timer
       if (mouthTimer) {
         clearTimeout(mouthTimer);
@@ -117,20 +130,62 @@ function App() {
       
       // Open mouth for current word
       setVrmMouthShape('A', 1.0);
+      setVrmMouthShape('I', 0.5);
+      setVrmMouthShape('U', 0.3);
       
       // Close mouth after a short delay if no next word
       mouthTimer = setTimeout(() => {
+        console.log('Closing mouth after delay');
         setVrmMouthShape('A', 0.0);
-      }, 150);
+        setVrmMouthShape('I', 0.0);
+        setVrmMouthShape('U', 0.0);
+      }, 200);
     };
 
     // Close mouth when speech ends
     utterance.onend = () => {
+      console.log('Speech ended - closing mouth');
       if (mouthTimer) {
         clearTimeout(mouthTimer);
       }
       setVrmMouthShape('A', 0.0);
+      setVrmMouthShape('I', 0.0);
+      setVrmMouthShape('U', 0.0);
     };
+
+    // Fallback: if onboundary doesn't work, use a simple timer-based approach
+    const startTime = Date.now();
+    const duration = text.length * 100; // Rough estimate
+    
+    const lipSyncInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < duration) {
+        // Alternate between different mouth shapes for more natural movement
+        const cycle = Math.floor(elapsed / 100) % 3;
+        switch (cycle) {
+          case 0:
+            setVrmMouthShape('A', 1.0);
+            setVrmMouthShape('I', 0.0);
+            setVrmMouthShape('U', 0.0);
+            break;
+          case 1:
+            setVrmMouthShape('A', 0.5);
+            setVrmMouthShape('I', 0.8);
+            setVrmMouthShape('U', 0.0);
+            break;
+          case 2:
+            setVrmMouthShape('A', 0.3);
+            setVrmMouthShape('I', 0.0);
+            setVrmMouthShape('U', 0.6);
+            break;
+        }
+      } else {
+        clearInterval(lipSyncInterval);
+        setVrmMouthShape('A', 0.0);
+        setVrmMouthShape('I', 0.0);
+        setVrmMouthShape('U', 0.0);
+      }
+    }, 100);
 
     synthesisRef.current.speak(utterance);
   }, []);
