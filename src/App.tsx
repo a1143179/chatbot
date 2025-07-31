@@ -1101,32 +1101,35 @@ function App() {
             disabled={isProcessing}
           />
           
-          {/* Submit button for text input */}
-          <button 
-            className="submit-button"
-            onClick={handleTextSubmit}
-            disabled={!textInput.trim() || isProcessing}
-          >
-            Send
-          </button>
-          
-          {/* Voice recording button */}
-          <button 
-            className={`voice-button ${isListening ? 'listening' : ''}`}
-            onClick={isListening ? stopListening : startListening}
-            disabled={isProcessing || isContinuousTalking}
-          >
-            {isListening ? 'Stop Talking' : 'Start Talking'}
-          </button>
-          
-          {/* Continuous talking button */}
-          <button 
-            className={`continuous-button ${isContinuousTalking ? 'active' : ''}`}
-            onClick={toggleContinuousTalking}
-            disabled={isProcessing}
-          >
-            {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
-          </button>
+          {/* Button container for horizontal layout */}
+          <div className="button-container">
+            {/* Submit button for text input */}
+            <button 
+              className="submit-button"
+              onClick={handleTextSubmit}
+              disabled={!textInput.trim() || isProcessing}
+            >
+              Send
+            </button>
+            
+            {/* Voice recording button */}
+            <button 
+              className={`voice-button ${isListening ? 'listening' : ''}`}
+              onClick={isListening ? stopListening : startListening}
+              disabled={isProcessing || isContinuousTalking}
+            >
+              {isListening ? 'Stop Talking' : 'Start Talking'}
+            </button>
+            
+            {/* Continuous talking button */}
+            <button 
+              className={`continuous-button ${isContinuousTalking ? 'active' : ''}`}
+              onClick={toggleContinuousTalking}
+              disabled={isProcessing}
+            >
+              {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
+            </button>
+          </div>
           
           {isProcessing && (
             <div className="processing-indicator">

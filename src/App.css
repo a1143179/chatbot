@@ -206,15 +206,13 @@ body {
 .voice-controls {
   position: absolute;
   bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
+  right: 20px;
   z-index: 1000;
   display: flex;
-  flex-direction: row; /* Horizontal layout */
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 15px;
-  flex-wrap: wrap; /* Allow wrapping if needed */
-  justify-content: center;
 }
 
 /* Text input styles */
@@ -222,12 +220,13 @@ body {
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid rgba(102, 126, 234, 0.3);
   border-radius: 25px;
-  padding: 12px 20px;
-  font-size: 14px;
-  min-width: 200px;
+  padding: 15px 20px;
+  font-size: 16px;
+  width: 100%;
   outline: none;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  box-sizing: border-box;
 }
 
 .text-input:focus {
@@ -240,20 +239,27 @@ body {
   cursor: not-allowed;
 }
 
+/* Button container for horizontal layout */
+.button-container {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
 /* Submit button styles */
 .submit-button {
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
   border: none;
   border-radius: 25px;
-  padding: 12px 20px;
-  font-size: 14px;
+  padding: 15px 20px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  min-width: 80px;
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 50px;
 }
 
 .submit-button:hover:not(:disabled) {
@@ -266,20 +272,55 @@ body {
   cursor: not-allowed;
 }
 
+/* Voice recording button */
+.voice-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 15px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  flex: 1;
+  min-height: 50px;
+}
+
+.voice-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.voice-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.voice-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-button.listening {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  animation: pulse 1.5s infinite;
+}
+
 /* Continuous talking button styles */
 .continuous-button {
   background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
   color: white;
   border: none;
   border-radius: 25px;
-  padding: 12px 20px;
-  font-size: 14px;
+  padding: 15px 20px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  min-width: 140px;
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 50px;
 }
 
 .continuous-button:hover:not(:disabled) {
@@ -295,42 +336,6 @@ body {
 .continuous-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.voice-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  min-width: 120px;
-  flex-shrink: 0; /* Prevent shrinking */
-}
-
-.voice-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.voice-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-}
-
-.voice-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.voice-button.listening {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-  animation: pulse 1.5s infinite;
 }
 
 /* Test button for VRM expressions debugging */
