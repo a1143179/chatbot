@@ -41,6 +41,19 @@ const saveCameraState = (camera: THREE.PerspectiveCamera): void => {
   console.log('Camera state saved to cookie:', cameraState);
 };
 
+const saveVRMRotationState = (vrm: VRM): void => {
+  const vrmState = {
+    rotation: {
+      x: vrm.scene.rotation.x,
+      y: vrm.scene.rotation.y,
+      z: vrm.scene.rotation.z
+    }
+  };
+  
+  setCookie('vrm_rotation_state', JSON.stringify(vrmState));
+  console.log('VRM rotation state saved to cookie:', vrmState);
+};
+
 const loadCameraState = (camera: THREE.PerspectiveCamera): boolean => {
   const cookieValue = getCookie('camera_state');
   if (!cookieValue) {
@@ -74,6 +87,31 @@ const loadCameraState = (camera: THREE.PerspectiveCamera): boolean => {
     return true;
   } catch (error) {
     console.error('Error parsing camera state from cookie:', error);
+    return false;
+  }
+};
+
+const loadVRMRotationState = (vrm: VRM): boolean => {
+  const cookieValue = getCookie('vrm_rotation_state');
+  if (!cookieValue) {
+    console.log('No VRM rotation state found in cookie, using defaults');
+    return false;
+  }
+  
+  try {
+    const vrmState = JSON.parse(cookieValue);
+    
+    // Restore VRM rotation
+    vrm.scene.rotation.set(
+      vrmState.rotation.x,
+      vrmState.rotation.y,
+      vrmState.rotation.z
+    );
+    
+    console.log('VRM rotation state restored from cookie:', vrmState);
+    return true;
+  } catch (error) {
+    console.error('Error parsing VRM rotation state from cookie:', error);
     return false;
   }
 };
@@ -531,6 +569,12 @@ function App() {
         vrm.scene.rotation.y = Math.PI;
         vrm.scene.scale.setScalar(1.2);
         
+        // Try to load VRM rotation state from cookie, otherwise use defaults
+        const vrmRotationLoaded = loadVRMRotationState(vrm);
+        if (!vrmRotationLoaded) {
+          console.log('Using default VRM rotation');
+        }
+        
         vrm.scene.traverse((child: any) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
@@ -806,7 +850,7 @@ function App() {
         camera.position.x -= deltaX * 0.01; // Reversed X direction
         camera.position.y += deltaY * 0.01; // Reversed Y direction
         
-        // Save camera state to cookie after movement
+        // Save camera state to cookie after every movement
         saveCameraState(camera);
       }
     } else if (mouseButton === 1) { // Middle button - rotate avatar (swapped from pan camera)
@@ -814,6 +858,7 @@ function App() {
         const vrm = vrmRef.current;
         vrm.scene.rotation.y += deltaX * 0.01;
         vrm.scene.rotation.x += deltaY * 0.01;
+        saveVRMRotationState(vrm); // Save rotation state
       }
     } else if (mouseButton === 2) { // Right button - zoom camera
       if (cameraRef.current) {
@@ -821,7 +866,7 @@ function App() {
         const zoomFactor = deltaY > 0 ? 0.95 : 1.05;
         camera.position.z *= zoomFactor;
         
-        // Save camera state to cookie after zoom
+        // Save camera state to cookie after every zoom
         saveCameraState(camera);
       }
     }
@@ -837,7 +882,7 @@ function App() {
     const zoomFactor = event.deltaY > 0 ? 1.1 : 0.9; // Reversed zoom direction
     camera.position.z *= zoomFactor;
     
-    // Save camera state to cookie after zoom
+    // Save camera state to cookie after every wheel scroll
     saveCameraState(camera);
   }, []);
 
