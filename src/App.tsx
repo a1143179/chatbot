@@ -393,8 +393,58 @@ function App() {
         });
         console.log('Avatar loaded successfully');
         
+        // Initialize physics simulation properly to prevent hair flying up
+        if (vrm.springBoneManager) {
+          console.log('Initializing spring bone physics...');
+          
+          // Reset all spring bones to their initial positions
+          vrm.springBoneManager.reset();
+          
+          // Set proper physics parameters
+          const springBones = vrm.springBoneManager.springBones;
+          springBones.forEach((springBone: any) => {
+            // Set spring bone parameters to prevent extreme movements
+            if (springBone.stiffnessForce !== undefined) {
+              springBone.stiffnessForce = Math.min(springBone.stiffnessForce, 1.0);
+            }
+            if (springBone.gravityPower !== undefined) {
+              springBone.gravityPower = Math.min(springBone.gravityPower, 0.5);
+            }
+            if (springBone.dragForce !== undefined) {
+              springBone.dragForce = Math.max(springBone.dragForce, 0.1);
+            }
+            
+            if (springBone.colliders) {
+              springBone.colliders.forEach((collider: any) => {
+                // Set collider parameters to prevent extreme movements
+                if (collider.radius !== undefined) {
+                  collider.radius = Math.min(collider.radius, 0.1);
+                }
+              });
+            }
+          });
+          
+          // Run physics simulation for a few frames to stabilize
+          for (let i = 0; i < 60; i++) {
+            vrm.springBoneManager.update(0.016);
+          }
+          
+          console.log('Spring bone physics initialized');
+        }
+        
         // Apply natural pose using humanoid.setPose()
         applyNaturalPose(vrm);
+        
+        // Additional stabilization: run physics for a few more frames after pose is applied
+        setTimeout(() => {
+          if (vrmRef.current && vrmRef.current.springBoneManager) {
+            console.log('Running additional physics stabilization...');
+            for (let i = 0; i < 30; i++) {
+              vrmRef.current.springBoneManager.update(0.016);
+            }
+            console.log('Physics stabilization complete');
+          }
+        }, 100);
         
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
@@ -410,7 +460,15 @@ function App() {
       const delta = 0.016; // 60fps
       
       if (vrmRef.current) {
+        // Update VRM with more stable physics
         vrmRef.current.update(delta);
+        
+        // Additional physics stabilization for spring bones
+        if (vrmRef.current.springBoneManager) {
+          // Limit the physics update frequency to prevent excessive movement
+          const springBoneDelta = Math.min(delta, 0.016);
+          vrmRef.current.springBoneManager.update(springBoneDelta);
+        }
       }
       
       renderer.render(scene, camera);
