@@ -269,8 +269,10 @@ body {
 }
 
 .submit-button:disabled {
-  opacity: 0.5;
+  opacity: 1;
   cursor: not-allowed;
+  filter: grayscale(50%);
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
 }
 
 /* Voice recording button */
@@ -299,7 +301,7 @@ body {
 }
 
 .voice-button:disabled {
-  opacity: 0.5;
+  opacity: 1;
   cursor: not-allowed;
 }
 
@@ -335,7 +337,7 @@ body {
 }
 
 .continuous-button:disabled {
-  opacity: 0.5;
+  opacity: 1;
   cursor: not-allowed;
 }
 
