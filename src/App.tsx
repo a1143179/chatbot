@@ -108,9 +108,11 @@ function App() {
   // VRM selection only
   const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
   
-  // Button press states for continuous rotation
-  const [isRotatingLeft, setIsRotatingLeft] = useState(false);
-  const [isRotatingRight, setIsRotatingRight] = useState(false);
+  // Mouse control states
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [mouseButton, setMouseButton] = useState<number>(0);
+  const [lastMouseX, setLastMouseX] = useState<number>(0);
+  const [lastMouseY, setLastMouseY] = useState<number>(0);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
@@ -356,14 +358,6 @@ function App() {
         // 先更新VRM的动画和物理
         vrmRef.current.update(delta);
 
-        // Handle continuous rotation
-        if (isRotatingLeft) {
-          vrmRef.current.scene.rotation.y += delta * 2; // Rotate left continuously
-        }
-        if (isRotatingRight) {
-          vrmRef.current.scene.rotation.y -= delta * 2; // Rotate right continuously
-        }
-
         // **核心修复：在更新后，立即强制应用我们的姿势**
         // 这一步将覆盖掉任何由 .update() 引起的姿势重置
         const humanoid = vrmRef.current.humanoid;
@@ -414,7 +408,7 @@ function App() {
       }
       renderer.dispose();
     };
-  }, [selectedVRM, isRotatingLeft, isRotatingRight]); // <-- 依赖项数组
+  }, [selectedVRM]); // <-- 依赖项数组
 
   // Initialize speech recognition
   useEffect(() => {
@@ -471,47 +465,40 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
-  // Handle continuous VRM rotation
-  const startRotateLeft = useCallback(() => {
-    setIsRotatingLeft(true);
+  // Mouse control functions
+  const handleMouseDown = useCallback((event: React.MouseEvent) => {
+    setIsMouseDown(true);
+    setMouseButton(event.button);
+    setLastMouseX(event.clientX);
+    setLastMouseY(event.clientY);
   }, []);
 
-  const stopRotateLeft = useCallback(() => {
-    setIsRotatingLeft(false);
+  const handleMouseUp = useCallback(() => {
+    setIsMouseDown(false);
+    setMouseButton(0);
   }, []);
 
-  const startRotateRight = useCallback(() => {
-    setIsRotatingRight(true);
-  }, []);
+  const handleMouseMove = useCallback((event: React.MouseEvent) => {
+    if (!isMouseDown || !vrmRef.current) return;
 
-  const stopRotateRight = useCallback(() => {
-    setIsRotatingRight(false);
-  }, []);
+    const deltaX = event.clientX - lastMouseX;
+    const deltaY = event.clientY - lastMouseY;
 
-  // Handle VRM zoom
-  const zoomIn = useCallback(() => {
-    if (vrmRef.current) {
-      vrmRef.current.scene.scale.multiplyScalar(1.1); // Scale up by 10%
+    if (mouseButton === 0) { // Left button - horizontal rotation
+      vrmRef.current.scene.rotation.y += deltaX * 0.01;
+    } else if (mouseButton === 2) { // Right button - vertical rotation
+      vrmRef.current.scene.rotation.x += deltaY * 0.01;
     }
-  }, []);
 
-  const zoomOut = useCallback(() => {
-    if (vrmRef.current) {
-      vrmRef.current.scene.scale.multiplyScalar(0.9); // Scale down by 10%
-    }
-  }, []);
+    setLastMouseX(event.clientX);
+    setLastMouseY(event.clientY);
+  }, [isMouseDown, mouseButton, lastMouseX, lastMouseY]);
 
-  // Handle VRM movement
-  const moveUp = useCallback(() => {
-    if (vrmRef.current) {
-      vrmRef.current.scene.position.y += 0.1; // Move up by 0.1 units
-    }
-  }, []);
-
-  const moveDown = useCallback(() => {
-    if (vrmRef.current) {
-      vrmRef.current.scene.position.y -= 0.1; // Move down by 0.1 units
-    }
+  const handleWheel = useCallback((event: React.WheelEvent) => {
+    if (!vrmRef.current) return;
+    
+    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+    vrmRef.current.scene.scale.multiplyScalar(zoomFactor);
   }, []);
 
   // Simple routing
@@ -534,81 +521,29 @@ function App() {
 
   return (
     <div className="App">
-      <div ref={mountRef} style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }} />
+      <div 
+        ref={mountRef} 
+        style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onWheel={handleWheel}
+        onContextMenu={(e) => e.preventDefault()} // Prevent right-click context menu
+      />
       
-      {/* Model selection controls */}
-      <div className="model-controls">
-        <div className="control-group">
-          <label htmlFor="vrm-select">VRM Model:</label>
-          <select 
-            id="vrm-select"
-            value={selectedVRM}
-            onChange={(e) => handleVRMChange(e.target.value)}
-            className="model-select"
-          >
-            <option value="cute-girl.vrm">Cute Girl</option>
-            <option value="twitch-girl.vrm">Twitch Girl</option>
-            <option value="Nahida.vrm">Nahida</option>
-            <option value="star-rail.vrm">Star Rail</option>
-            <option value="pee.vrm">Pee</option>
-          </select>
-        </div>
-        <div className="control-group">
-          <button 
-            onMouseDown={startRotateLeft}
-            onMouseUp={stopRotateLeft}
-            onMouseLeave={stopRotateLeft}
-            onTouchStart={startRotateLeft}
-            onTouchEnd={stopRotateLeft}
-            className="rotation-button"
-            title="Hold to rotate left continuously"
-          >
-            ↶
-          </button>
-          <button 
-            onMouseDown={startRotateRight}
-            onMouseUp={stopRotateRight}
-            onMouseLeave={stopRotateRight}
-            onTouchStart={startRotateRight}
-            onTouchEnd={stopRotateRight}
-            className="rotation-button"
-            title="Hold to rotate right continuously"
-          >
-            ↷
-          </button>
-        </div>
-        <div className="control-group">
-          <button 
-            onClick={zoomIn}
-            className="control-button"
-            title="Zoom In"
-          >
-            🔍+
-          </button>
-          <button 
-            onClick={zoomOut}
-            className="control-button"
-            title="Zoom Out"
-          >
-            🔍-
-          </button>
-        </div>
-        <div className="control-group">
-          <button 
-            onClick={moveUp}
-            className="control-button"
-            title="Move Up"
-          >
-            ↑
-          </button>
-          <button 
-            onClick={moveDown}
-            className="control-button"
-            title="Move Down"
-          >
-            ↓
-          </button>
-        </div>
+      {/* Simple model selector */}
+      <div className="model-selector">
+        <select 
+          value={selectedVRM}
+          onChange={(e) => handleVRMChange(e.target.value)}
+          className="model-select"
+        >
+          <option value="cute-girl.vrm">Cute Girl</option>
+          <option value="twitch-girl.vrm">Twitch Girl</option>
+          <option value="Nahida.vrm">Nahida</option>
+          <option value="star-rail.vrm">Star Rail</option>
+          <option value="pee.vrm">Pee</option>
+        </select>
       </div>
 
       {/* Voice control overlay */}

@@ -14,33 +14,17 @@ body {
   overflow: hidden;
 }
 
-/* Model controls */
-.model-controls {
+/* Model selector */
+.model-selector {
   position: absolute;
   top: 20px;
   left: 20px;
   z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
   background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 15px;
+  padding: 10px;
+  border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
-}
-
-.control-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.control-group label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 2px;
 }
 
 .model-select {
@@ -63,84 +47,6 @@ body {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-/* Rotation buttons */
-.rotation-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 2px;
-}
-
-.rotation-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-}
-
-.rotation-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  transition: all 0.2s ease;
-}
-
-/* Control buttons (zoom and movement) */
-.control-button {
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 2px;
-}
-
-.control-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-}
-
-.control-button:active {
-  transform: translateY(0) rotate(180deg);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-  transition: all 0.2s ease;
-}
-
-.test-animation-btn {
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.test-animation-btn:hover {
-  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 /* Voice controls */
