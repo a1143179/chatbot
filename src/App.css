@@ -293,7 +293,7 @@ body {
   min-width: 300px; /* Ensure minimum width for chat */
 }
 
-/* Voice controls - horizontal layout */
+/* Voice controls */
 .voice-controls {
   position: absolute;
   bottom: 20px;
@@ -306,6 +306,86 @@ body {
   gap: 15px;
   flex-wrap: wrap; /* Allow wrapping if needed */
   justify-content: center;
+}
+
+/* Text input styles */
+.text-input {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 25px;
+  padding: 12px 20px;
+  font-size: 14px;
+  min-width: 200px;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.text-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+.text-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Submit button styles */
+.submit-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Continuous talking button styles */
+.continuous-button {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.continuous-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.continuous-button.active {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  animation: pulse 1.5s infinite;
+}
+
+.continuous-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .voice-button {

@@ -203,6 +203,10 @@ function App() {
   const [lastMouseX, setLastMouseX] = useState<number>(0);
   const [lastMouseY, setLastMouseY] = useState<number>(0);
   
+  // Text input and continuous talking states
+  const [textInput, setTextInput] = useState<string>('');
+  const [isContinuousTalking, setIsContinuousTalking] = useState(false);
+  
   // Add state for tab management
   const [activeTab, setActiveTab] = useState<'vrm' | 'voice'>('vrm');
   
@@ -745,6 +749,16 @@ function App() {
         
         // Process with AI
         await processWithAI(transcript);
+        
+        // If in continuous talking mode, restart listening
+        if (isContinuousTalking && recognitionRef.current) {
+          setTimeout(() => {
+            if (isContinuousTalking && !isProcessing) {
+              recognitionRef.current?.start();
+              setIsListening(true);
+            }
+          }, 1000); // Wait 1 second before restarting
+        }
       };
 
       recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -782,7 +796,7 @@ function App() {
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, [processWithAI, languageContext]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [processWithAI, languageContext, isContinuousTalking, isProcessing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening && !isProcessing) {
@@ -797,6 +811,38 @@ function App() {
       setIsListening(false);
     }
   }, [isListening]);
+
+  // Handle text input submission
+  const handleTextSubmit = useCallback(async () => {
+    if (textInput.trim() && !isProcessing) {
+      // Add user message to chat
+      const userMessage: ChatMessage = { role: 'user', content: textInput.trim() };
+      setChatHistory(prev => [...prev, userMessage]);
+      
+      // Process with AI
+      await processWithAI(textInput.trim());
+      
+      // Clear text input
+      setTextInput('');
+    }
+  }, [textInput, isProcessing, processWithAI]);
+
+  // Handle continuous talking mode
+  const toggleContinuousTalking = useCallback(() => {
+    if (isContinuousTalking) {
+      // Stop continuous mode
+      setIsContinuousTalking(false);
+      if (isListening) {
+        stopListening();
+      }
+    } else {
+      // Start continuous mode
+      setIsContinuousTalking(true);
+      if (!isListening && !isProcessing) {
+        startListening();
+      }
+    }
+  }, [isContinuousTalking, isListening, isProcessing, startListening, stopListening]);
 
   // Handle VRM model change
   const handleVRMChange = useCallback(async (vrmFile: string) => {
@@ -1058,12 +1104,46 @@ function App() {
 
         {/* Voice control overlay - horizontal buttons */}
         <div className="voice-controls">
+          {/* Text input for typing messages */}
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleTextSubmit();
+              }
+            }}
+            placeholder="Type your message here..."
+            className="text-input"
+            disabled={isProcessing}
+          />
+          
+          {/* Submit button for text input */}
+          <button 
+            className="submit-button"
+            onClick={handleTextSubmit}
+            disabled={!textInput.trim() || isProcessing}
+          >
+            Send
+          </button>
+          
+          {/* Voice recording button */}
           <button 
             className={`voice-button ${isListening ? 'listening' : ''}`}
             onClick={isListening ? stopListening : startListening}
+            disabled={isProcessing || isContinuousTalking}
+          >
+            {isListening ? 'Stop Talking' : 'Start Talking'}
+          </button>
+          
+          {/* Continuous talking button */}
+          <button 
+            className={`continuous-button ${isContinuousTalking ? 'active' : ''}`}
+            onClick={toggleContinuousTalking}
             disabled={isProcessing}
           >
-            {isListening ? 'Stop Recording' : 'Start Recording'}
+            {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
           </button>
           
           {isProcessing && (
