@@ -1066,64 +1066,6 @@ function App() {
             {isListening ? 'Stop Recording' : 'Start Recording'}
           </button>
           
-          {/* Test button for debugging VRM expressions */}
-          <button 
-            className="test-button"
-            onClick={() => {
-              console.log('=== Testing Enhanced VRM Lip-Sync ===');
-              if (vrmRef.current) {
-                console.log('VRM loaded:', vrmRef.current);
-                
-                // Use VRM analyzer
-                const analysis = analyzeVRM(vrmRef.current);
-                const mouthShapes = findMouthShapes(analysis);
-                const suggested = suggestMouthShape(analysis);
-                
-                console.log('=== Current VRM Analysis ===');
-                console.log('Analysis:', analysis);
-                console.log('Mouth shapes found:', mouthShapes);
-                console.log('Suggested mouth shape:', suggested);
-                
-                // Test enhanced lip-sync with different words
-                const testWords = [
-                  'Hello', 'Apple', 'Smile', 'Happy', 'Sad', 'Kiss', 'Open', 'Close'
-                ];
-                
-                console.log('Testing enhanced lip-sync with different words:', testWords);
-                
-                // Test each word with different mouth shapes
-                testWords.forEach((word, index) => {
-                  setTimeout(() => {
-                    console.log(`Testing word: ${word}`);
-                    speakText(word);
-                  }, index * 2000); // 2 second intervals
-                });
-              } else {
-                console.log('No VRM loaded');
-              }
-            }}
-          >
-            Test Enhanced Lip-Sync
-          </button>
-          
-          {/* Test voice button */}
-          <button 
-            className="test-button"
-            onClick={() => {
-              console.log('=== Testing Selected Voice ===');
-              console.log('Selected voice:', selectedVoice);
-              console.log('Available voices:', availableVoices);
-              
-              const testText = languageContext === 'chinese' 
-                ? '你好，这是一个语音测试。' 
-                : 'Hello, this is a voice test.';
-              
-              speakText(testText);
-            }}
-          >
-            Test Voice
-          </button>
-          
           {isProcessing && (
             <div className="processing-indicator">
               Processing...
