@@ -809,7 +809,7 @@ function App() {
     } else if (mouseButton === 1) { // Middle button - pan camera (reversed direction)
       if (cameraRef.current) {
         const camera = cameraRef.current;
-        camera.position.x += deltaX * 0.01;
+        camera.position.x -= deltaX * 0.01; // Reversed X direction (added negative sign)
         camera.position.y += deltaY * 0.01; // Reversed Y direction (removed negative sign)
         
         // Save camera state to cookie after movement
