@@ -71,6 +71,9 @@ function App() {
   // VRM selection only
   const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
   
+  // Language context
+  const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>('chinese');
+  
   // Mouse control states
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [mouseButton, setMouseButton] = useState<number>(0);
@@ -111,7 +114,7 @@ function App() {
     if (!synthesisRef.current) return;
     
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-CN';
+    utterance.lang = languageContext === 'chinese' ? 'zh-CN' : 'en-US';
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
 
@@ -235,7 +238,7 @@ function App() {
     }, 100);
 
     synthesisRef.current.speak(utterance);
-  }, []);
+  }, [languageContext]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -422,7 +425,7 @@ function App() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'zh-CN';
+      recognitionRef.current.lang = languageContext === 'chinese' ? 'zh-CN' : 'en-US';
 
       recognitionRef.current.onresult = async (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
@@ -448,7 +451,7 @@ function App() {
 
     // Initialize speech synthesis
     synthesisRef.current = window.speechSynthesis;
-  }, [processWithAI]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [processWithAI, languageContext]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening && !isProcessing) {
@@ -562,6 +565,15 @@ function App() {
           disabled={isProcessing}
         >
           {isListening ? 'Stop Recording' : 'Start Recording'}
+        </button>
+        
+        {/* Language toggle button */}
+        <button 
+          className="language-toggle"
+          onClick={() => setLanguageContext(prev => prev === 'chinese' ? 'english' : 'chinese')}
+          disabled={isProcessing}
+        >
+          {languageContext === 'chinese' ? '中文' : 'English'}
         </button>
         
         {isProcessing && (
