@@ -400,7 +400,7 @@ body {
 /* Chat history */
 .chat-history {
   width: 100%;
-  max-height: 400px;
+  height: 100%; /* Changed from max-height: 400px to height: 100% */
   background: rgba(255, 255, 255, 0.95);
   border-radius: 15px;
   padding: 15px;
