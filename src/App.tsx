@@ -876,30 +876,21 @@ function App() {
     const deltaX = event.clientX - lastMouseX;
     const deltaY = event.clientY - lastMouseY;
 
-    if (mouseButton === 0) { // Left button - pan camera (swapped from rotate avatar)
+    if (mouseButton === 0) { // Left button - pan camera
       if (cameraRef.current) {
         const camera = cameraRef.current;
-        camera.position.x -= deltaX * 0.01; // Reversed X direction
-        camera.position.y += deltaY * 0.01; // Reversed Y direction
+        camera.position.x -= deltaX * 0.01;
+        camera.position.y += deltaY * 0.01;
         
         // Save camera state to cookie after every movement
         saveCameraState(camera);
       }
-    } else if (mouseButton === 1) { // Middle button - rotate avatar (swapped from pan camera)
+    } else if (mouseButton === 1) { // Middle button - rotate avatar
       if (vrmRef.current) {
         const vrm = vrmRef.current;
         vrm.scene.rotation.y += deltaX * 0.01;
         vrm.scene.rotation.x += deltaY * 0.01;
         saveVRMRotationState(vrm); // Save rotation state
-      }
-    } else if (mouseButton === 2) { // Right button - zoom camera
-      if (cameraRef.current) {
-        const camera = cameraRef.current;
-        const zoomFactor = deltaY > 0 ? 0.95 : 1.05;
-        camera.position.z *= zoomFactor;
-        
-        // Save camera state to cookie after every zoom
-        saveCameraState(camera);
       }
     }
 
@@ -1168,12 +1159,6 @@ function App() {
                 <div className="control-icon">🖱️</div>
                 <div className="control-text">
                   <strong>Middle Mouse Button:</strong> Rotate avatar
-                </div>
-              </div>
-              <div className="control-item">
-                <div className="control-icon">🖱️</div>
-                <div className="control-text">
-                  <strong>Right Mouse Button:</strong> Zoom camera
                 </div>
               </div>
               <div className="control-item">
