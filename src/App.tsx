@@ -268,17 +268,58 @@ function App() {
         
         // DEBUG: Print all available expression names
         console.log('=== VRM Expression Debug ===');
+        console.log('VRM object:', vrm);
+        console.log('VRM type:', typeof vrm);
+        console.log('VRM keys:', Object.keys(vrm));
+        
         if ((vrm as any).expressionManager) {
+          console.log('ExpressionManager found:', (vrm as any).expressionManager);
+          console.log('ExpressionManager type:', typeof (vrm as any).expressionManager);
+          console.log('ExpressionManager keys:', Object.keys((vrm as any).expressionManager));
+          
           const expressionNames = (vrm as any).expressionManager.getExpressionNames?.();
           console.log('Available expressions:', expressionNames);
+          
+          // Try to get expressions directly
+          if ((vrm as any).expressionManager.expressions) {
+            console.log('Direct expressions:', (vrm as any).expressionManager.expressions);
+          }
           
           // Also check blendShapeProxy for older VRM versions
           if ((vrm as any).blendShapeProxy) {
             console.log('BlendShapeProxy available:', (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy type:', typeof (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy keys:', Object.keys((vrm as any).blendShapeProxy));
           }
         } else {
           console.log('No expressionManager found');
+          
+          // Check for alternative expression systems
+          if ((vrm as any).blendShapeProxy) {
+            console.log('BlendShapeProxy available:', (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy type:', typeof (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy keys:', Object.keys((vrm as any).blendShapeProxy));
+          }
+          
+          // Check for any expression-related properties
+          const vrmKeys = Object.keys(vrm);
+          const expressionKeys = vrmKeys.filter(key => 
+            key.toLowerCase().includes('expression') || 
+            key.toLowerCase().includes('blend') || 
+            key.toLowerCase().includes('shape')
+          );
+          console.log('Expression-related keys:', expressionKeys);
         }
+        
+        // Check VRM version and structure
+        if ((vrm as any).meta) {
+          console.log('VRM Meta:', (vrm as any).meta);
+        }
+        
+        if ((vrm as any).humanoid) {
+          console.log('VRM Humanoid available');
+        }
+        
         console.log('=== End VRM Expression Debug ===');
         
         console.log('Avatar loaded. Pose will be enforced in the animation loop.');
@@ -520,12 +561,43 @@ function App() {
             console.log('=== Testing VRM Expressions ===');
             if (vrmRef.current) {
               console.log('VRM loaded:', vrmRef.current);
+              console.log('VRM type:', typeof vrmRef.current);
+              console.log('VRM keys:', Object.keys(vrmRef.current));
+              
               if ((vrmRef.current as any).expressionManager) {
+                console.log('ExpressionManager found:', (vrmRef.current as any).expressionManager);
+                console.log('ExpressionManager keys:', Object.keys((vrmRef.current as any).expressionManager));
                 const expressionNames = (vrmRef.current as any).expressionManager.getExpressionNames?.();
                 console.log('Available expressions:', expressionNames);
+                
+                // Try to access expressions directly
+                if ((vrmRef.current as any).expressionManager.expressions) {
+                  console.log('Direct expressions:', (vrmRef.current as any).expressionManager.expressions);
+                }
               }
+              
               if ((vrmRef.current as any).blendShapeProxy) {
                 console.log('BlendShapeProxy:', (vrmRef.current as any).blendShapeProxy);
+                console.log('BlendShapeProxy keys:', Object.keys((vrmRef.current as any).blendShapeProxy));
+                
+                // Try to get blend shape names
+                if ((vrmRef.current as any).blendShapeProxy.getBlendShapeNames) {
+                  console.log('BlendShape names:', (vrmRef.current as any).blendShapeProxy.getBlendShapeNames());
+                }
+              }
+              
+              // Check for any expression-related properties
+              const vrmKeys = Object.keys(vrmRef.current);
+              const expressionKeys = vrmKeys.filter(key => 
+                key.toLowerCase().includes('expression') || 
+                key.toLowerCase().includes('blend') || 
+                key.toLowerCase().includes('shape')
+              );
+              console.log('Expression-related keys:', expressionKeys);
+              
+              // Check VRM version
+              if ((vrmRef.current as any).meta) {
+                console.log('VRM Meta:', (vrmRef.current as any).meta);
               }
             } else {
               console.log('No VRM loaded');
