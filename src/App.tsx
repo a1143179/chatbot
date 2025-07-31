@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
+import { VRMLoaderPlugin, VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 import CorsTest from './components/CorsTest';
@@ -124,24 +124,52 @@ function App() {
     }
   }
 
-  // Set VRM to natural idle pose with arms hanging down
-  const setVRMIdlePose = useCallback(() => {
-    const vrm = vrmRef.current;
-    if (!vrm) return;
-    
-    console.log('Setting VRM to natural idle pose...');
-    
-    // Reset all bones to identity for natural pose
-    vrm.scene.traverse((child: any) => {
-      if (child.isBone) {
-        child.rotation.set(0, 0, 0);
-        child.quaternion.set(0, 0, 0, 1);
-      }
-    });
-    
-    // Force VRM update
-    vrm.update(0);
-    console.log('Natural idle pose applied');
+  // Apply natural pose using VRM humanoid.setPose() method
+  const applyNaturalPose = useCallback((vrm: VRM) => {
+    if (!vrm.humanoid) {
+      console.warn("VRM model doesn't have humanoid bone binding.");
+      return;
+    }
+
+    console.log('Applying natural pose using humanoid.setPose()...');
+
+    // Define a natural pose with arms hanging down
+    const naturalPose = {
+      [VRMHumanBoneName.LeftUpperArm]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.RightUpperArm]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.LeftLowerArm]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.RightLowerArm]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.LeftHand]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+      [VRMHumanBoneName.RightHand]: {
+        rotation: new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(0, 0, THREE.MathUtils.degToRad(0))
+        ).toArray(),
+      },
+    };
+
+    // Apply the defined pose
+    vrm.humanoid.setPose(naturalPose);
+    console.log('Natural pose applied using humanoid.setPose()');
   }, []);
 
   // Improved lip sync based on text analysis
@@ -365,8 +393,8 @@ function App() {
         });
         console.log('Avatar loaded successfully');
         
-        // Set natural idle pose with arms hanging down
-        setVRMIdlePose();
+        // Apply natural pose using humanoid.setPose()
+        applyNaturalPose(vrm);
         
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
@@ -411,7 +439,7 @@ function App() {
       }
       renderer.dispose();
     };
-  }, [selectedVRM, setVRMIdlePose]);
+  }, [selectedVRM, applyNaturalPose]);
 
   // Initialize speech recognition
   useEffect(() => {
