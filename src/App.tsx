@@ -382,8 +382,8 @@ function App() {
           };
 
           // Force arms to hang naturally
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 80);   // A-pose: arms down at 80 degrees
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -80); // A-pose: arms down at -80 degrees
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees (moved up)
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees (moved up)
           setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
           setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
           
