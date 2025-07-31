@@ -82,7 +82,7 @@ body {
 }
 
 .voice-button:active:not(:disabled) {
-  transform: translateY(0) rotate(360deg);
+  transform: translateY(0);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
