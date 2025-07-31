@@ -7,20 +7,25 @@ import config from './config';
 import CorsTest from './components/CorsTest';
 import { analyzeVRM, findMouthShapes, suggestMouthShape } from './utils/vrmAnalyzer';
 
-// Cookie management functions
-const getCookie = (name: string): string | null => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
+// Utility functions for localStorage
+const getLocalStorage = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('Failed to get from localStorage:', error);
+    return null;
+  }
 };
 
-const setCookie = (name: string, value: string, days: number = 30): void => {
-  const expires = new Date();
-  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+const setLocalStorage = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn('Failed to set localStorage:', error);
+  }
 };
 
+// Save camera state to localStorage
 const saveCameraState = (camera: THREE.PerspectiveCamera): void => {
   const cameraState = {
     position: {
@@ -36,11 +41,30 @@ const saveCameraState = (camera: THREE.PerspectiveCamera): void => {
     fov: camera.fov,
     aspect: camera.aspect
   };
-  
-  setCookie('camera_state', JSON.stringify(cameraState));
-  console.log('Camera state saved to cookie:', cameraState);
+  setLocalStorage('cameraState', JSON.stringify(cameraState));
 };
 
+// Load camera state from localStorage
+const loadCameraState = (camera: THREE.PerspectiveCamera): boolean => {
+  const savedState = getLocalStorage('cameraState');
+  if (savedState) {
+    try {
+      const cameraState = JSON.parse(savedState);
+      camera.position.set(cameraState.position.x, cameraState.position.y, cameraState.position.z);
+      camera.rotation.set(cameraState.rotation.x, cameraState.rotation.y, cameraState.rotation.z);
+      camera.fov = cameraState.fov;
+      camera.aspect = cameraState.aspect;
+      camera.updateProjectionMatrix();
+      return true;
+    } catch (error) {
+      console.warn('Failed to parse camera state:', error);
+      return false;
+    }
+  }
+  return false;
+};
+
+// Save VRM rotation state to localStorage
 const saveVRMRotationState = (vrm: VRM): void => {
   const vrmState = {
     rotation: {
@@ -49,71 +73,23 @@ const saveVRMRotationState = (vrm: VRM): void => {
       z: vrm.scene.rotation.z
     }
   };
-  
-  setCookie('vrm_rotation_state', JSON.stringify(vrmState));
-  console.log('VRM rotation state saved to cookie:', vrmState);
+  setLocalStorage('vrmRotationState', JSON.stringify(vrmState));
 };
 
-const loadCameraState = (camera: THREE.PerspectiveCamera): boolean => {
-  const cookieValue = getCookie('camera_state');
-  if (!cookieValue) {
-    console.log('No camera state found in cookie, using defaults');
-    return false;
-  }
-  
-  try {
-    const cameraState = JSON.parse(cookieValue);
-    
-    // Restore camera position
-    camera.position.set(
-      cameraState.position.x,
-      cameraState.position.y,
-      cameraState.position.z
-    );
-    
-    // Restore camera rotation
-    camera.rotation.set(
-      cameraState.rotation.x,
-      cameraState.rotation.y,
-      cameraState.rotation.z
-    );
-    
-    // Restore camera properties
-    camera.fov = cameraState.fov;
-    camera.aspect = cameraState.aspect;
-    camera.updateProjectionMatrix();
-    
-    console.log('Camera state restored from cookie:', cameraState);
-    return true;
-  } catch (error) {
-    console.error('Error parsing camera state from cookie:', error);
-    return false;
-  }
-};
-
+// Load VRM rotation state from localStorage
 const loadVRMRotationState = (vrm: VRM): boolean => {
-  const cookieValue = getCookie('vrm_rotation_state');
-  if (!cookieValue) {
-    console.log('No VRM rotation state found in cookie, using defaults');
-    return false;
+  const savedState = getLocalStorage('vrmRotationState');
+  if (savedState) {
+    try {
+      const vrmState = JSON.parse(savedState);
+      vrm.scene.rotation.set(vrmState.rotation.x, vrmState.rotation.y, vrmState.rotation.z);
+      return true;
+    } catch (error) {
+      console.warn('Failed to parse VRM rotation state:', error);
+      return false;
+    }
   }
-  
-  try {
-    const vrmState = JSON.parse(cookieValue);
-    
-    // Restore VRM rotation
-    vrm.scene.rotation.set(
-      vrmState.rotation.x,
-      vrmState.rotation.y,
-      vrmState.rotation.z
-    );
-    
-    console.log('VRM rotation state restored from cookie:', vrmState);
-    return true;
-  } catch (error) {
-    console.error('Error parsing VRM rotation state from cookie:', error);
-    return false;
-  }
+  return false;
 };
 
 // Type declarations for Web Speech API
