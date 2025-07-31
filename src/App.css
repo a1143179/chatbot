@@ -260,6 +260,7 @@ body {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   flex: 1;
   min-height: 50px;
+  opacity: 1;
 }
 
 .submit-button:hover:not(:disabled) {
