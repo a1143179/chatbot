@@ -288,7 +288,7 @@ function App() {
     const mountElement = mountRef.current;
     if (!mountElement) return;
 
-    // --- 场景、相机、渲染器、光照的初始化 (保持不变) ---
+    // --- Scene, camera, renderer, lighting initialization (keep unchanged) ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
     const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -298,7 +298,7 @@ function App() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    // 在 unmount 时确保能访问到 renderer.domElement
+    // Ensure renderer.domElement is accessible during unmount
     mountElement.appendChild(renderer.domElement);
     
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -311,7 +311,7 @@ function App() {
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
     
-    // --- 模型加载逻辑 ---
+    // --- Model loading logic ---
     const loadVRMModel = async (vrmFile: string) => {
       console.log(`Loading VRM file: ${vrmFile}`);
       
@@ -346,20 +346,20 @@ function App() {
     
     loadVRMModel(selectedVRM);
     
-    // --- 动画循环与窗口大小调整 (核心修改在这里) ---
+    // --- Animation loop and window resize (core modification here) ---
     const clock = new THREE.Clock();
-    let poseInitialized = false; // 用于确保 reset 只执行一次的标志
+    let poseInitialized = false; // Flag to ensure reset only executes once
 
     const animate = () => {
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
       
       if (vrmRef.current) {
-        // 先更新VRM的动画和物理
+        // Update VRM's animation and physics first
         vrmRef.current.update(delta);
 
-        // **核心修复：在更新后，立即强制应用我们的姿势**
-        // 这一步将覆盖掉任何由 .update() 引起的姿势重置
+        // **Core fix: Immediately force our pose after update**
+        // This step will override any pose reset caused by .update()
         const humanoid = vrmRef.current.humanoid;
         if (humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
@@ -373,13 +373,13 @@ function App() {
             }
           };
 
-          // 强制手臂自然下垂
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 0);   // 自然下垂
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, 0);  // 自然下垂
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 0);   // 自然下垂
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, 0);  // 自然下垂
+          // Force arms to hang naturally
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 0);   // Hang naturally
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, 0);  // Hang naturally
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 0);   // Hang naturally
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, 0);  // Hang naturally
           
-          // 仅在第一次应用姿势时，重置弹簧骨，将其设定为新的静止状态
+          // Only apply pose once, reset spring bones to their new resting state
           if (!poseInitialized && vrmRef.current.springBoneManager) {
             vrmRef.current.springBoneManager.reset();
             poseInitialized = true;
@@ -408,7 +408,7 @@ function App() {
       }
       renderer.dispose();
     };
-  }, [selectedVRM]); // <-- 依赖项数组
+  }, [selectedVRM]); // <-- Dependencies array
 
   // Initialize speech recognition
   useEffect(() => {
