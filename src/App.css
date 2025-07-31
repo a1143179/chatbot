@@ -91,7 +91,7 @@ body {
 }
 
 .rotation-button:active {
-  transform: translateY(0) rotate(180deg);
+  transform: translateY(0);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
   transition: all 0.2s ease;
 }

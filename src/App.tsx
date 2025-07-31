@@ -108,6 +108,10 @@ function App() {
   // VRM selection only
   const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
   
+  // Button press states for continuous rotation
+  const [isRotatingLeft, setIsRotatingLeft] = useState(false);
+  const [isRotatingRight, setIsRotatingRight] = useState(false);
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -352,6 +356,14 @@ function App() {
         // 先更新VRM的动画和物理
         vrmRef.current.update(delta);
 
+        // Handle continuous rotation
+        if (isRotatingLeft) {
+          vrmRef.current.scene.rotation.y += delta * 2; // Rotate left continuously
+        }
+        if (isRotatingRight) {
+          vrmRef.current.scene.rotation.y -= delta * 2; // Rotate right continuously
+        }
+
         // **核心修复：在更新后，立即强制应用我们的姿势**
         // 这一步将覆盖掉任何由 .update() 引起的姿势重置
         const humanoid = vrmRef.current.humanoid;
@@ -402,7 +414,7 @@ function App() {
       }
       renderer.dispose();
     };
-  }, [selectedVRM]); // <-- 依赖项数组
+  }, [selectedVRM, isRotatingLeft, isRotatingRight]); // <-- 依赖项数组
 
   // Initialize speech recognition
   useEffect(() => {
@@ -459,17 +471,21 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
-  // Handle VRM rotation
-  const rotateLeft = useCallback(() => {
-    if (vrmRef.current) {
-      vrmRef.current.scene.rotation.y += Math.PI / 4; // Rotate 45 degrees left
-    }
+  // Handle continuous VRM rotation
+  const startRotateLeft = useCallback(() => {
+    setIsRotatingLeft(true);
   }, []);
 
-  const rotateRight = useCallback(() => {
-    if (vrmRef.current) {
-      vrmRef.current.scene.rotation.y -= Math.PI / 4; // Rotate 45 degrees right
-    }
+  const stopRotateLeft = useCallback(() => {
+    setIsRotatingLeft(false);
+  }, []);
+
+  const startRotateRight = useCallback(() => {
+    setIsRotatingRight(true);
+  }, []);
+
+  const stopRotateRight = useCallback(() => {
+    setIsRotatingRight(false);
   }, []);
 
   // Handle VRM zoom
@@ -539,16 +555,24 @@ function App() {
         </div>
         <div className="control-group">
           <button 
-            onClick={rotateLeft}
+            onMouseDown={startRotateLeft}
+            onMouseUp={stopRotateLeft}
+            onMouseLeave={stopRotateLeft}
+            onTouchStart={startRotateLeft}
+            onTouchEnd={stopRotateLeft}
             className="rotation-button"
-            title="Rotate Left"
+            title="Hold to rotate left continuously"
           >
             ↶
           </button>
           <button 
-            onClick={rotateRight}
+            onMouseDown={startRotateRight}
+            onMouseUp={stopRotateRight}
+            onMouseLeave={stopRotateRight}
+            onTouchStart={startRotateRight}
+            onTouchEnd={stopRotateRight}
             className="rotation-button"
-            title="Rotate Right"
+            title="Hold to rotate right continuously"
           >
             ↷
           </button>
