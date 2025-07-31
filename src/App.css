@@ -25,6 +25,8 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
+  width: 200px;
+  max-width: 200px;
 }
 
 .model-select {
@@ -155,8 +157,8 @@ body {
 .chat-history {
   position: absolute;
   top: 20px;
-  right: 20px;
-  width: 300px;
+  right: 320px;
+  width: 280px;
   max-height: 400px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 15px;
@@ -285,8 +287,8 @@ body {
 .vrm-analysis {
   position: absolute;
   top: 20px;
-  left: 20px;
-  width: 350px;
+  left: 240px;
+  width: 300px;
   max-height: 300px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 15px;
@@ -295,7 +297,6 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   z-index: 1000;
-  margin-top: 180px;
 }
 
 .vrm-analysis h3 {
@@ -328,7 +329,7 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
-  max-width: 300px;
+  max-width: 280px;
   max-height: 400px;
   overflow-y: auto;
 }
