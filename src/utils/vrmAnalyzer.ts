@@ -36,11 +36,14 @@ export function analyzeVRM(vrm: any): VRMAnalysis {
     console.log('ExpressionManager found:', expressionManager);
     console.log('ExpressionManager keys:', Object.keys(expressionManager));
     
+    // Use the comprehensive expression name getter
+    const allExpressionNames = getAllExpressionNames(vrm);
+    analysis.expressionNames = allExpressionNames;
+    
     // Try to get expression names
     if (expressionManager.getExpressionNames) {
       const names = expressionManager.getExpressionNames();
-      analysis.expressionNames = names || [];
-      console.log('Expression names:', names);
+      console.log('Expression names from getExpressionNames:', names);
     }
     
     // Try direct access to expressions
@@ -62,7 +65,6 @@ export function analyzeVRM(vrm: any): VRMAnalysis {
       }).filter((name: string | null) => name !== null);
       
       if (expressionNames.length > 0) {
-        analysis.expressionNames = expressionNames;
         console.log('Extracted expression names from _expressions:', expressionNames);
       }
     }
@@ -70,17 +72,11 @@ export function analyzeVRM(vrm: any): VRMAnalysis {
     // Try to access mouthExpressionNames
     if (expressionManager.mouthExpressionNames) {
       console.log('mouthExpressionNames:', expressionManager.mouthExpressionNames);
-      analysis.expressionNames = [...analysis.expressionNames, ...expressionManager.mouthExpressionNames];
     }
     
     // Try to access _expressionMap
     if (expressionManager._expressionMap) {
       console.log('_expressionMap keys:', Object.keys(expressionManager._expressionMap));
-      const mapKeys = Object.keys(expressionManager._expressionMap);
-      if (mapKeys.length > 0) {
-        analysis.expressionNames = [...analysis.expressionNames, ...mapKeys];
-        console.log('Added _expressionMap keys to expression names');
-      }
     }
   }
 
@@ -203,4 +199,78 @@ export function suggestMouthShape(analysis: VRMAnalysis): string | null {
   // If no priority shape found, return the first one
   console.log(`Using first available mouth shape: ${mouthShapes[0]}`);
   return mouthShapes[0];
+} 
+
+export function getAllExpressionNames(vrm: any): string[] {
+  const allNames: string[] = [];
+  
+  if (!(vrm as any).expressionManager) {
+    return allNames;
+  }
+  
+  const expressionManager = (vrm as any).expressionManager;
+  
+  // Method 1: Try getExpressionNames method
+  if (expressionManager.getExpressionNames && typeof expressionManager.getExpressionNames === 'function') {
+    try {
+      const names = expressionManager.getExpressionNames();
+      if (names && Array.isArray(names)) {
+        allNames.push(...names);
+        console.log('Found expressions via getExpressionNames:', names);
+      }
+    } catch (error) {
+      console.log('getExpressionNames method failed:', error);
+    }
+  }
+  
+  // Method 2: Extract from _expressions array
+  if (expressionManager._expressions && Array.isArray(expressionManager._expressions)) {
+    const expressionNames = expressionManager._expressions.map((expr: any) => {
+      if (expr && expr.name) {
+        return expr.name;
+      }
+      return null;
+    }).filter((name: string | null) => name !== null);
+    
+    if (expressionNames.length > 0) {
+      allNames.push(...expressionNames);
+      console.log('Found expressions via _expressions:', expressionNames);
+    }
+  }
+  
+  // Method 3: Get mouthExpressionNames
+  if (expressionManager.mouthExpressionNames && Array.isArray(expressionManager.mouthExpressionNames)) {
+    allNames.push(...expressionManager.mouthExpressionNames);
+    console.log('Found expressions via mouthExpressionNames:', expressionManager.mouthExpressionNames);
+  }
+  
+  // Method 4: Get keys from _expressionMap
+  if (expressionManager._expressionMap && typeof expressionManager._expressionMap === 'object') {
+    const mapKeys = Object.keys(expressionManager._expressionMap);
+    if (mapKeys.length > 0) {
+      allNames.push(...mapKeys);
+      console.log('Found expressions via _expressionMap keys:', mapKeys);
+    }
+  }
+  
+  // Method 5: Try to access expressions property
+  if (expressionManager.expressions && Array.isArray(expressionManager.expressions)) {
+    const expressionNames = expressionManager.expressions.map((expr: any) => {
+      if (expr && expr.name) {
+        return expr.name;
+      }
+      return null;
+    }).filter((name: string | null) => name !== null);
+    
+    if (expressionNames.length > 0) {
+      allNames.push(...expressionNames);
+      console.log('Found expressions via expressions property:', expressionNames);
+    }
+  }
+  
+  // Remove duplicates and return
+  const uniqueNames = Array.from(new Set(allNames));
+  console.log('All unique expression names found:', uniqueNames);
+  
+  return uniqueNames;
 } 

@@ -5,7 +5,7 @@ import { VRMLoaderPlugin, VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 import CorsTest from './components/CorsTest';
-import { analyzeVRM, findMouthShapes, suggestMouthShape } from './utils/vrmAnalyzer';
+import { analyzeVRM, findMouthShapes, suggestMouthShape, getAllExpressionNames } from './utils/vrmAnalyzer';
 
 // Type declarations for Web Speech API
 declare global {
@@ -599,6 +599,10 @@ function App() {
                 console.log('ExpressionManager keys:', Object.keys((vrmRef.current as any).expressionManager));
                 const expressionNames = (vrmRef.current as any).expressionManager.getExpressionNames?.();
                 console.log('Available expressions:', expressionNames);
+                
+                // Use the comprehensive expression name getter
+                const allExpressionNames = getAllExpressionNames(vrmRef.current);
+                console.log('All expression names found:', allExpressionNames);
                 
                 // Try to access expressions directly
                 if ((vrmRef.current as any).expressionManager.expressions) {
