@@ -127,29 +127,41 @@ function App() {
     utterance.pitch = 1.0;
 
     let mouthTimer: NodeJS.Timeout | null = null;
+    
+    // Get the best mouth shape from analysis
+    const getBestMouthShape = () => {
+      if (suggestedMouthShape) {
+        // Extract the actual shape name from the suggestion
+        const shapeName = suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '');
+        return shapeName;
+      }
+      // Fallback to common mouth shapes
+      return 'aa'; // Use 'aa' as it's the most common open mouth shape
+    };
+    
+    const mouthShape = getBestMouthShape();
 
     // Open mouth when speech starts
     utterance.onstart = () => {
-      console.log('Speech started - opening mouth');
-      // Try the most common mouth shape first
-      setVrmMouthShape('A', 1.0);
+      console.log('Speech started - opening mouth with shape:', mouthShape);
+      setVrmMouthShape(mouthShape, 1.0);
     };
 
     // Handle word boundaries for natural lip sync
     utterance.onboundary = (event) => {
-      console.log('Word boundary detected - adjusting mouth');
+      console.log('Word boundary detected - adjusting mouth with shape:', mouthShape);
       // Clear any existing timer
       if (mouthTimer) {
         clearTimeout(mouthTimer);
       }
       
       // Open mouth for current word
-      setVrmMouthShape('A', 1.0);
+      setVrmMouthShape(mouthShape, 1.0);
       
       // Close mouth after a short delay if no next word
       mouthTimer = setTimeout(() => {
         console.log('Closing mouth after delay');
-        setVrmMouthShape('A', 0.0);
+        setVrmMouthShape(mouthShape, 0.0);
       }, 150);
     };
 
@@ -159,11 +171,11 @@ function App() {
       if (mouthTimer) {
         clearTimeout(mouthTimer);
       }
-      setVrmMouthShape('A', 0.0);
+      setVrmMouthShape(mouthShape, 0.0);
     };
 
     synthesisRef.current.speak(utterance);
-  }, [languageContext]);
+  }, [languageContext, suggestedMouthShape]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -674,6 +686,21 @@ function App() {
                 setTimeout(() => {
                   setVrmMouthShape(shapeName, 0.0);
                 }, 1000);
+              } else {
+                // Test with common mouth shapes found
+                const mouthShapes = ['aa', 'ee', 'ih', 'oh', 'ou'];
+                console.log('Testing with common mouth shapes:', mouthShapes);
+                
+                // Test each mouth shape
+                mouthShapes.forEach((shape, index) => {
+                  setTimeout(() => {
+                    console.log(`Testing mouth shape: ${shape}`);
+                    setVrmMouthShape(shape, 1.0);
+                    setTimeout(() => {
+                      setVrmMouthShape(shape, 0.0);
+                    }, 500);
+                  }, index * 600);
+                });
               }
             } else {
               console.log('No VRM loaded');
@@ -713,6 +740,8 @@ function App() {
             {suggestedMouthShape && (
               <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
             )}
+            <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
+            <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
           </div>
         </div>
       )}
