@@ -367,9 +367,9 @@ function App() {
             }
           };
 
-          // 强制手臂自然下垂 (A-Pose)
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 75);
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -75);
+          // 强制手臂从水平方向向下约75度
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 105);  // 75度从水平向下
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -105); // 75度从水平向下
           setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);
           setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15);
           
