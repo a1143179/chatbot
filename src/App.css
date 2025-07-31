@@ -346,15 +346,15 @@ body {
 /* Voice info */
 .voice-info {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 600px; /* Position below the VRM analysis */
+  left: 20px;
   z-index: 1000;
   background: rgba(255, 255, 255, 0.95);
   padding: 15px;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
-  max-width: 280px;
+  width: 200px;
   max-height: 400px;
   overflow-y: auto;
 }
