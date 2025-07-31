@@ -5,6 +5,7 @@ import { VRMLoaderPlugin, VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 import CorsTest from './components/CorsTest';
+import { analyzeVRM, findMouthShapes, suggestMouthShape } from './utils/vrmAnalyzer';
 
 // Type declarations for Web Speech API
 declare global {
@@ -70,6 +71,10 @@ function App() {
   
   // VRM selection only
   const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
+  
+  // VRM analysis state
+  const [vrmAnalysis, setVrmAnalysis] = useState<any>(null);
+  const [suggestedMouthShape, setSuggestedMouthShape] = useState<string | null>(null);
   
   // Language context
   const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>('chinese');
@@ -271,6 +276,21 @@ function App() {
         console.log('VRM object:', vrm);
         console.log('VRM type:', typeof vrm);
         console.log('VRM keys:', Object.keys(vrm));
+        
+        // Use VRM analyzer
+        const analysis = analyzeVRM(vrm);
+        setVrmAnalysis(analysis);
+        
+        // Find and suggest mouth shapes
+        const mouthShapes = findMouthShapes(analysis);
+        const suggested = suggestMouthShape(analysis);
+        setSuggestedMouthShape(suggested);
+        
+        console.log('=== VRM Analysis Results ===');
+        console.log('Analysis:', analysis);
+        console.log('Mouth shapes found:', mouthShapes);
+        console.log('Suggested mouth shape:', suggested);
+        console.log('=== End VRM Analysis ===');
         
         if ((vrm as any).expressionManager) {
           console.log('ExpressionManager found:', (vrm as any).expressionManager);
@@ -564,6 +584,16 @@ function App() {
               console.log('VRM type:', typeof vrmRef.current);
               console.log('VRM keys:', Object.keys(vrmRef.current));
               
+              // Use VRM analyzer
+              const analysis = analyzeVRM(vrmRef.current);
+              const mouthShapes = findMouthShapes(analysis);
+              const suggested = suggestMouthShape(analysis);
+              
+              console.log('=== Current VRM Analysis ===');
+              console.log('Analysis:', analysis);
+              console.log('Mouth shapes found:', mouthShapes);
+              console.log('Suggested mouth shape:', suggested);
+              
               if ((vrmRef.current as any).expressionManager) {
                 console.log('ExpressionManager found:', (vrmRef.current as any).expressionManager);
                 console.log('ExpressionManager keys:', Object.keys((vrmRef.current as any).expressionManager));
@@ -599,6 +629,20 @@ function App() {
               if ((vrmRef.current as any).meta) {
                 console.log('VRM Meta:', (vrmRef.current as any).meta);
               }
+              
+              // Test with suggested mouth shape if available
+              if (suggested) {
+                console.log(`Testing with suggested mouth shape: ${suggested}`);
+                // Extract the actual shape name from the suggestion
+                const shapeName = suggested.replace(/^(Expression|BlendShape):\s*/, '');
+                console.log(`Using shape name: ${shapeName}`);
+                
+                // Test the mouth shape
+                setVrmMouthShape(shapeName, 1.0);
+                setTimeout(() => {
+                  setVrmMouthShape(shapeName, 0.0);
+                }, 1000);
+              }
             } else {
               console.log('No VRM loaded');
             }
@@ -624,6 +668,22 @@ function App() {
           </div>
         ))}
       </div>
+
+      {/* VRM Analysis Results */}
+      {vrmAnalysis && (
+        <div className="vrm-analysis">
+          <h3>VRM Analysis Results</h3>
+          <div className="analysis-content">
+            <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
+            <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
+            <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
+            <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
+            {suggestedMouthShape && (
+              <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
