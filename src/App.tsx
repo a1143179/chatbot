@@ -7,6 +7,77 @@ import config from './config';
 import CorsTest from './components/CorsTest';
 import { analyzeVRM, findMouthShapes, suggestMouthShape } from './utils/vrmAnalyzer';
 
+// Cookie management functions
+const getCookie = (name: string): string | null => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+};
+
+const setCookie = (name: string, value: string, days: number = 30): void => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+};
+
+const saveCameraState = (camera: THREE.PerspectiveCamera): void => {
+  const cameraState = {
+    position: {
+      x: camera.position.x,
+      y: camera.position.y,
+      z: camera.position.z
+    },
+    rotation: {
+      x: camera.rotation.x,
+      y: camera.rotation.y,
+      z: camera.rotation.z
+    },
+    fov: camera.fov,
+    aspect: camera.aspect
+  };
+  
+  setCookie('camera_state', JSON.stringify(cameraState));
+  console.log('Camera state saved to cookie:', cameraState);
+};
+
+const loadCameraState = (camera: THREE.PerspectiveCamera): boolean => {
+  const cookieValue = getCookie('camera_state');
+  if (!cookieValue) {
+    console.log('No camera state found in cookie, using defaults');
+    return false;
+  }
+  
+  try {
+    const cameraState = JSON.parse(cookieValue);
+    
+    // Restore camera position
+    camera.position.set(
+      cameraState.position.x,
+      cameraState.position.y,
+      cameraState.position.z
+    );
+    
+    // Restore camera rotation
+    camera.rotation.set(
+      cameraState.rotation.x,
+      cameraState.rotation.y,
+      cameraState.rotation.z
+    );
+    
+    // Restore camera properties
+    camera.fov = cameraState.fov;
+    camera.aspect = cameraState.aspect;
+    camera.updateProjectionMatrix();
+    
+    console.log('Camera state restored from cookie:', cameraState);
+    return true;
+  } catch (error) {
+    console.error('Error parsing camera state from cookie:', error);
+    return false;
+  }
+};
+
 // Type declarations for Web Speech API
 declare global {
   interface Window {
@@ -63,6 +134,7 @@ interface ChatMessage {
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
   const vrmRef = useRef<VRM | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
@@ -409,7 +481,18 @@ function App() {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
     const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.6, 4);
+    
+    // Store camera reference for later use
+    cameraRef.current = camera;
+    
+    // Try to load camera state from cookie, otherwise use defaults
+    const cameraStateLoaded = loadCameraState(camera);
+    if (!cameraStateLoaded) {
+      // Set default camera position if no cookie found
+      camera.position.set(0, 1.6, 4);
+      console.log('Using default camera position');
+    }
+    
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -712,29 +795,38 @@ function App() {
   }, []);
 
   const handleMouseMove = useCallback((event: React.MouseEvent) => {
-    if (!isMouseDown || !vrmRef.current) return;
+    if (!isMouseDown || !cameraRef.current) return;
 
     const deltaX = event.clientX - lastMouseX;
     const deltaY = event.clientY - lastMouseY;
 
+    const camera = cameraRef.current;
+
     if (mouseButton === 0) { // Left button - horizontal rotation
-      vrmRef.current.scene.rotation.y += deltaX * 0.01;
+      camera.rotation.y += deltaX * 0.01;
     } else if (mouseButton === 2) { // Right button - vertical rotation
-      vrmRef.current.scene.rotation.x += deltaY * 0.01;
+      camera.rotation.x += deltaY * 0.01;
     } else if (mouseButton === 1) { // Middle button - panning
-      vrmRef.current.scene.position.x += deltaX * 0.01;
-      vrmRef.current.scene.position.y -= deltaY * 0.01; // Inverted Y for natural panning
+      camera.position.x += deltaX * 0.01;
+      camera.position.y -= deltaY * 0.01; // Inverted Y for natural panning
     }
+
+    // Save camera state to cookie after movement
+    saveCameraState(camera);
 
     setLastMouseX(event.clientX);
     setLastMouseY(event.clientY);
   }, [isMouseDown, mouseButton, lastMouseX, lastMouseY]);
 
   const handleWheel = useCallback((event: React.WheelEvent) => {
-    if (!vrmRef.current) return;
+    if (!cameraRef.current) return;
     
+    const camera = cameraRef.current;
     const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
-    vrmRef.current.scene.scale.multiplyScalar(zoomFactor);
+    camera.position.z *= zoomFactor;
+    
+    // Save camera state to cookie after zoom
+    saveCameraState(camera);
   }, []);
 
   // Simple routing
