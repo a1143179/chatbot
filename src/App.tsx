@@ -292,6 +292,7 @@ function App() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // 在 unmount 时确保能访问到 renderer.domElement
     mountElement.appendChild(renderer.domElement);
     
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -304,7 +305,7 @@ function App() {
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
     
-    // --- 模型加载与姿势设定的核心逻辑 ---
+    // --- 模型加载逻辑 ---
     const loadVRMModel = async (vrmFile: string) => {
       console.log(`Loading VRM file: ${vrmFile}`);
       
@@ -316,8 +317,6 @@ function App() {
       
       try {
         const gltf = await loader.loadAsync(url);
-        
-        console.log('VRM loaded successfully:', vrmFile);
         const vrm = gltf.userData.vrm as VRM;
         vrmRef.current = vrm;
         scene.add(vrm.scene);
@@ -332,49 +331,7 @@ function App() {
             child.receiveShadow = true;
           }
         });
-        console.log('Avatar setup complete.');
-
-        // **关键修复部分：延迟并直接操作骨骼**
-        // 使用 setTimeout 确保此代码在模型完全渲染到场景后执行，
-        // 避免被初始化的物理状态覆盖。
-        setTimeout(() => {
-          if (!vrm.humanoid) {
-            console.error("Humanoid bones not found after delay.");
-            return;
-          }
-
-          console.log('Applying natural pose via direct bone manipulation...');
-
-          const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
-            const boneNode = vrm.humanoid.getBoneNode(boneName);
-            if (boneNode) {
-              boneNode.rotation.set(
-                THREE.MathUtils.degToRad(x),
-                THREE.MathUtils.degToRad(y),
-                THREE.MathUtils.degToRad(z)
-              );
-            } else {
-              console.warn(`Bone not found: ${boneName}`);
-            }
-          };
-
-          // 设置手臂自然下垂 (A-Pose)
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 75);
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -75);
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15);
-          
-          console.log('Natural pose applied directly to bones.');
-
-          // **非常重要的一步**
-          // 在我们手动设置完骨骼姿势后，重置弹簧骨骼系统。
-          // 这会告诉物理引擎，将当前我们设置的姿势作为新的"静止"或"默认"状态。
-          if (vrm.springBoneManager) {
-            console.log('Resetting spring bones after applying new pose...');
-            vrm.springBoneManager.reset();
-          }
-
-        }, 100); // 100毫秒的延迟通常足以完成初始渲染。
+        console.log('Avatar loaded. Pose will be enforced in the animation loop.');
 
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
@@ -383,40 +340,69 @@ function App() {
     
     loadVRMModel(selectedVRM);
     
-    // --- 动画循环与窗口大小调整 (保持不变) ---
+    // --- 动画循环与窗口大小调整 (核心修改在这里) ---
     const clock = new THREE.Clock();
+    let poseInitialized = false; // 用于确保 reset 只执行一次的标志
+
     const animate = () => {
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
       
       if (vrmRef.current) {
+        // 先更新VRM的动画和物理
         vrmRef.current.update(delta);
+
+        // **核心修复：在更新后，立即强制应用我们的姿势**
+        // 这一步将覆盖掉任何由 .update() 引起的姿势重置
+        const humanoid = vrmRef.current.humanoid;
+        if (humanoid) {
+          const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
+            const boneNode = humanoid.getBoneNode(boneName);
+            if (boneNode) {
+              boneNode.rotation.set(
+                THREE.MathUtils.degToRad(x),
+                THREE.MathUtils.degToRad(y),
+                THREE.MathUtils.degToRad(z)
+              );
+            }
+          };
+
+          // 强制手臂自然下垂 (A-Pose)
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 75);
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -75);
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15);
+          
+          // 仅在第一次应用姿势时，重置弹簧骨，将其设定为新的静止状态
+          if (!poseInitialized && vrmRef.current.springBoneManager) {
+            vrmRef.current.springBoneManager.reset();
+            poseInitialized = true;
+            console.log("Pose enforced and spring bones have been reset to this pose.");
+          }
+        }
       }
       
       renderer.render(scene, camera);
     };
+
     animate();
     
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      if (vrmRef.current) {
-        vrmRef.current.scene.position.set(0, 0.75, 0);
-      }
     };
     window.addEventListener('resize', handleResize);
     
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (mountElement && renderer.domElement) {
-        mountElement.removeChild(renderer.domElement);
+      if (mountElement && renderer.domElement.parentElement) {
+         mountElement.removeChild(renderer.domElement);
       }
       renderer.dispose();
-      // clock is not a disposable object
     };
-  }, [selectedVRM]); // <-- 注意依赖项数组中已删除 applyNaturalPose
+  }, [selectedVRM]); // <-- 依赖项数组
 
   // Initialize speech recognition
   useEffect(() => {
