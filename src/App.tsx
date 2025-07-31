@@ -133,62 +133,70 @@ function App() {
 
     console.log('Applying natural pose using humanoid.setPose()...');
 
-    // Define a natural pose with arms hanging down naturally
+    // 定义一个更自然的手臂下垂姿势 (A-pose)
     const naturalPose = {
       [VRMHumanBoneName.LeftUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(70))
+          new THREE.Euler(
+            THREE.MathUtils.degToRad(5),  // 沿X轴轻微向前旋转
+            0,
+            THREE.MathUtils.degToRad(45)  // 沿Z轴向外旋转，使手臂离开身体
+          )
         ).toArray(),
       },
       [VRMHumanBoneName.RightUpperArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(-70))
+          new THREE.Euler(
+            THREE.MathUtils.degToRad(5),  // 沿X轴轻微向前旋转
+            0,
+            THREE.MathUtils.degToRad(-45) // 沿Z轴向外旋转，使手臂离开身体
+          )
         ).toArray(),
       },
       [VRMHumanBoneName.LeftLowerArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(15))
+          new THREE.Euler(
+            THREE.MathUtils.degToRad(0),
+            0,
+            THREE.MathUtils.degToRad(10) // 轻微弯曲肘部
+          )
         ).toArray(),
       },
       [VRMHumanBoneName.RightLowerArm]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(-15))
+          new THREE.Euler(
+            THREE.MathUtils.degToRad(0),
+            0,
+            THREE.MathUtils.degToRad(-10) // 轻微弯曲肘部
+          )
         ).toArray(),
       },
       [VRMHumanBoneName.LeftHand]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(0, 0, 0)
         ).toArray(),
       },
       [VRMHumanBoneName.RightHand]: {
         rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
+          new THREE.Euler(0, 0, 0)
         ).toArray(),
       },
-      // Add natural spine and head pose
+      // 保持其他骨骼的默认姿态
       [VRMHumanBoneName.Spine]: {
-        rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
-        ).toArray(),
+        rotation: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)).toArray(),
       },
       [VRMHumanBoneName.Chest]: {
-        rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
-        ).toArray(),
+        rotation: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)).toArray(),
       },
       [VRMHumanBoneName.Neck]: {
-        rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
-        ).toArray(),
+        rotation: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)).toArray(),
       },
       [VRMHumanBoneName.Head]: {
-        rotation: new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(THREE.MathUtils.degToRad(0), 0, THREE.MathUtils.degToRad(0))
-        ).toArray(),
+        rotation: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)).toArray(),
       },
     };
 
-    // Apply the defined pose
+    // 应用定义的姿势
     vrm.humanoid.setPose(naturalPose);
     console.log('Natural pose applied using humanoid.setPose()');
   }, []);
