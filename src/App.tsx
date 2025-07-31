@@ -555,6 +555,16 @@ function App() {
           <option value="star-rail.vrm">Star Rail</option>
           <option value="pee.vrm">Pee</option>
         </select>
+        
+        {/* Language selector */}
+        <select 
+          value={languageContext}
+          onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
+          className="language-select"
+        >
+          <option value="chinese">中文</option>
+          <option value="english">English</option>
+        </select>
       </div>
 
       {/* Voice control overlay */}
@@ -565,15 +575,6 @@ function App() {
           disabled={isProcessing}
         >
           {isListening ? 'Stop Recording' : 'Start Recording'}
-        </button>
-        
-        {/* Language toggle button */}
-        <button 
-          className="language-toggle"
-          onClick={() => setLanguageContext(prev => prev === 'chinese' ? 'english' : 'chinese')}
-          disabled={isProcessing}
-        >
-          {languageContext === 'chinese' ? '中文' : 'English'}
         </button>
         
         {isProcessing && (
