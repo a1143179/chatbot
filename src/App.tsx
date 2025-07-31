@@ -955,7 +955,9 @@ function App() {
       <div className="left-column">
         {/* Model selector */}
         <div className="model-selector">
+          <label htmlFor="model-select">Model:</label>
           <select 
+            id="model-select"
             value={selectedVRM}
             onChange={(e) => handleVRMChange(e.target.value)}
             className="model-select"
@@ -967,38 +969,41 @@ function App() {
             <option value="pee.vrm">Pee</option>
           </select>
           
-                     {/* Language selector */}
-           <select 
-             value={languageContext}
-             onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
-             className="language-select"
-           >
-             <option value="chinese">中文</option>
-             <option value="english">English</option>
-           </select>
-          
-                     {/* Voice selector */}
-           <select 
-             value={selectedVoice?.name || ''}
-             onChange={(e) => {
-               const voice = availableVoices.find(v => v.name === e.target.value);
-               setSelectedVoice(voice || null);
-             }}
-             className="voice-select"
-           >
-             <option value="">Default Voice</option>
-             {availableVoices
-               .sort((a, b) => a.name.localeCompare(b.name))
-               .map((voice) => (
-                 <option key={voice.name} value={voice.name}>
-                   {voice.name} ({voice.lang})
-                 </option>
-               ))
-             }
-           </select>
-          
-          {/* Expression selector */}
+          <label htmlFor="language-select">Language:</label>
           <select 
+            id="language-select"
+            value={languageContext}
+            onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
+            className="language-select"
+          >
+            <option value="chinese">中文</option>
+            <option value="english">English</option>
+          </select>
+          
+          <label htmlFor="voice-select">Voice:</label>
+          <select 
+            id="voice-select"
+            value={selectedVoice?.name || ''}
+            onChange={(e) => {
+              const voice = availableVoices.find(v => v.name === e.target.value);
+              setSelectedVoice(voice || null);
+            }}
+            className="voice-select"
+          >
+            <option value="">Default Voice</option>
+            {availableVoices
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((voice) => (
+                <option key={voice.name} value={voice.name}>
+                  {voice.name} ({voice.lang})
+                </option>
+              ))
+            }
+          </select>
+          
+          <label htmlFor="expression-select">Expression:</label>
+          <select 
+            id="expression-select"
             value={selectedExpression}
             onChange={(e) => handleExpressionChange(e.target.value)}
             className="expression-select"

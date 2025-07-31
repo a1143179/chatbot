@@ -32,135 +32,44 @@ body {
 
 /* Model selector */
 .model-selector {
-  background: rgba(255, 255, 255, 0.8);
-  padding: 15px;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
 }
 
-.model-select {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
+.model-selector label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.model-selector select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid rgba(102, 126, 234, 0.3);
   border-radius: 8px;
   background: white;
-  color: #333;
   font-size: 14px;
-  cursor: pointer;
+  margin-bottom: 15px;
   transition: all 0.3s ease;
-  margin-bottom: 8px;
-  width: 100%;
 }
 
-.model-select:hover {
-  border-color: #667eea;
-  background: #f8f9fa;
-}
-
-.model-select:focus {
+.model-selector select:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
 }
 
-/* Language selector */
-.language-select {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 100%;
-  margin-bottom: 8px;
+.model-selector select:last-child {
+  margin-bottom: 0;
 }
 
-.language-select:hover {
-  border-color: #667eea;
-  background: #f8f9fa;
-}
 
-.language-select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-/* Voice language filter */
-.voice-language-filter {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 8px;
-  width: 100%;
-}
-
-.voice-language-filter:hover {
-  border-color: #667eea;
-  background: #f8f9fa;
-}
-
-.voice-language-filter:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-/* Voice selector */
-.voice-select {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 8px;
-  width: 100%;
-}
-
-.voice-select:hover {
-  border-color: #667eea;
-  background: #f8f9fa;
-}
-
-.voice-select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-/* Expression selector */
-.expression-select {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 100%;
-}
-
-.expression-select:hover {
-  border-color: #667eea;
-  background: #f8f9fa;
-}
-
-.expression-select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
 
 /* Multi-tab box */
 .multi-tab-box {
