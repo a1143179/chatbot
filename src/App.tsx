@@ -113,6 +113,9 @@ function App() {
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
     
+    // Cancel any ongoing speech to avoid event conflicts
+    synthesisRef.current.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = languageContext === 'chinese' ? 'zh-CN' : 'en-US';
     utterance.rate = 0.9;
@@ -123,16 +126,8 @@ function App() {
     // Open mouth when speech starts
     utterance.onstart = () => {
       console.log('Speech started - opening mouth');
-      // Try multiple common mouth shapes
+      // Try the most common mouth shape first
       setVrmMouthShape('A', 1.0);
-      setVrmMouthShape('I', 0.5);
-      setVrmMouthShape('U', 0.3);
-      setVrmMouthShape('O', 0.4);
-      setVrmMouthShape('E', 0.6);
-      // Try alternative names
-      setVrmMouthShape('Ah', 1.0);
-      setVrmMouthShape('Oh', 0.4);
-      setVrmMouthShape('MouthOpen', 1.0);
     };
 
     // Handle word boundaries for natural lip sync
@@ -143,28 +138,14 @@ function App() {
         clearTimeout(mouthTimer);
       }
       
-      // Open mouth for current word with multiple shapes
+      // Open mouth for current word
       setVrmMouthShape('A', 1.0);
-      setVrmMouthShape('I', 0.5);
-      setVrmMouthShape('U', 0.3);
-      setVrmMouthShape('O', 0.4);
-      setVrmMouthShape('E', 0.6);
-      setVrmMouthShape('Ah', 1.0);
-      setVrmMouthShape('Oh', 0.4);
-      setVrmMouthShape('MouthOpen', 1.0);
       
       // Close mouth after a short delay if no next word
       mouthTimer = setTimeout(() => {
         console.log('Closing mouth after delay');
         setVrmMouthShape('A', 0.0);
-        setVrmMouthShape('I', 0.0);
-        setVrmMouthShape('U', 0.0);
-        setVrmMouthShape('O', 0.0);
-        setVrmMouthShape('E', 0.0);
-        setVrmMouthShape('Ah', 0.0);
-        setVrmMouthShape('Oh', 0.0);
-        setVrmMouthShape('MouthOpen', 0.0);
-      }, 200);
+      }, 150);
     };
 
     // Close mouth when speech ends
@@ -174,68 +155,7 @@ function App() {
         clearTimeout(mouthTimer);
       }
       setVrmMouthShape('A', 0.0);
-      setVrmMouthShape('I', 0.0);
-      setVrmMouthShape('U', 0.0);
-      setVrmMouthShape('O', 0.0);
-      setVrmMouthShape('E', 0.0);
-      setVrmMouthShape('Ah', 0.0);
-      setVrmMouthShape('Oh', 0.0);
-      setVrmMouthShape('MouthOpen', 0.0);
     };
-
-    // Fallback: if onboundary doesn't work, use a simple timer-based approach
-    const startTime = Date.now();
-    const duration = text.length * 100; // Rough estimate
-    
-    const lipSyncInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < duration) {
-        // Alternate between different mouth shapes for more natural movement
-        const cycle = Math.floor(elapsed / 100) % 3;
-        switch (cycle) {
-          case 0:
-            setVrmMouthShape('A', 1.0);
-            setVrmMouthShape('I', 0.0);
-            setVrmMouthShape('U', 0.0);
-            setVrmMouthShape('O', 0.0);
-            setVrmMouthShape('E', 0.0);
-            setVrmMouthShape('Ah', 1.0);
-            setVrmMouthShape('Oh', 0.0);
-            setVrmMouthShape('MouthOpen', 1.0);
-            break;
-          case 1:
-            setVrmMouthShape('A', 0.5);
-            setVrmMouthShape('I', 0.8);
-            setVrmMouthShape('U', 0.0);
-            setVrmMouthShape('O', 0.0);
-            setVrmMouthShape('E', 0.6);
-            setVrmMouthShape('Ah', 0.5);
-            setVrmMouthShape('Oh', 0.0);
-            setVrmMouthShape('MouthOpen', 0.8);
-            break;
-          case 2:
-            setVrmMouthShape('A', 0.3);
-            setVrmMouthShape('I', 0.0);
-            setVrmMouthShape('U', 0.6);
-            setVrmMouthShape('O', 0.4);
-            setVrmMouthShape('E', 0.0);
-            setVrmMouthShape('Ah', 0.3);
-            setVrmMouthShape('Oh', 0.4);
-            setVrmMouthShape('MouthOpen', 0.6);
-            break;
-        }
-      } else {
-        clearInterval(lipSyncInterval);
-        setVrmMouthShape('A', 0.0);
-        setVrmMouthShape('I', 0.0);
-        setVrmMouthShape('U', 0.0);
-        setVrmMouthShape('O', 0.0);
-        setVrmMouthShape('E', 0.0);
-        setVrmMouthShape('Ah', 0.0);
-        setVrmMouthShape('Oh', 0.0);
-        setVrmMouthShape('MouthOpen', 0.0);
-      }
-    }, 100);
 
     synthesisRef.current.speak(utterance);
   }, [languageContext]);
@@ -345,6 +265,22 @@ function App() {
             child.receiveShadow = true;
           }
         });
+        
+        // DEBUG: Print all available expression names
+        console.log('=== VRM Expression Debug ===');
+        if ((vrm as any).expressionManager) {
+          const expressionNames = (vrm as any).expressionManager.getExpressionNames?.();
+          console.log('Available expressions:', expressionNames);
+          
+          // Also check blendShapeProxy for older VRM versions
+          if ((vrm as any).blendShapeProxy) {
+            console.log('BlendShapeProxy available:', (vrm as any).blendShapeProxy);
+          }
+        } else {
+          console.log('No expressionManager found');
+        }
+        console.log('=== End VRM Expression Debug ===');
+        
         console.log('Avatar loaded. Pose will be enforced in the animation loop.');
 
       } catch (error) {
@@ -575,6 +511,30 @@ function App() {
           disabled={isProcessing}
         >
           {isListening ? 'Stop Recording' : 'Start Recording'}
+        </button>
+        
+        {/* Test button for debugging VRM expressions */}
+        <button 
+          className="test-button"
+          onClick={() => {
+            console.log('=== Testing VRM Expressions ===');
+            if (vrmRef.current) {
+              console.log('VRM loaded:', vrmRef.current);
+              if ((vrmRef.current as any).expressionManager) {
+                const expressionNames = (vrmRef.current as any).expressionManager.getExpressionNames?.();
+                console.log('Available expressions:', expressionNames);
+              }
+              if ((vrmRef.current as any).blendShapeProxy) {
+                console.log('BlendShapeProxy:', (vrmRef.current as any).blendShapeProxy);
+              }
+            } else {
+              console.log('No VRM loaded');
+            }
+            // Test speech synthesis
+            speakText('Hello, this is a test for VRM mouth shapes.');
+          }}
+        >
+          Test VRM Expressions
         </button>
         
         {isProcessing && (

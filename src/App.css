@@ -97,6 +97,32 @@ body {
   animation: pulse 1.5s infinite;
 }
 
+/* Test button for VRM expressions debugging */
+.test-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  min-width: 150px;
+}
+
+.test-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.test-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
 @keyframes pulse {
   0% {
     box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
