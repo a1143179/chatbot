@@ -834,7 +834,7 @@ function App() {
     if (!cameraRef.current) return;
     
     const camera = cameraRef.current;
-    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+    const zoomFactor = event.deltaY > 0 ? 1.1 : 0.9; // Reversed zoom direction
     camera.position.z *= zoomFactor;
     
     // Save camera state to cookie after zoom
