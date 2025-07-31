@@ -800,20 +800,20 @@ function App() {
     const deltaX = event.clientX - lastMouseX;
     const deltaY = event.clientY - lastMouseY;
 
-    if (mouseButton === 0) { // Left button - rotate avatar
+    if (mouseButton === 0) { // Left button - pan camera (swapped from rotate avatar)
+      if (cameraRef.current) {
+        const camera = cameraRef.current;
+        camera.position.x -= deltaX * 0.01; // Reversed X direction
+        camera.position.y += deltaY * 0.01; // Reversed Y direction
+        
+        // Save camera state to cookie after movement
+        saveCameraState(camera);
+      }
+    } else if (mouseButton === 1) { // Middle button - rotate avatar (swapped from pan camera)
       if (vrmRef.current) {
         const vrm = vrmRef.current;
         vrm.scene.rotation.y += deltaX * 0.01;
         vrm.scene.rotation.x += deltaY * 0.01;
-      }
-    } else if (mouseButton === 1) { // Middle button - pan camera (reversed direction)
-      if (cameraRef.current) {
-        const camera = cameraRef.current;
-        camera.position.x -= deltaX * 0.01; // Reversed X direction (added negative sign)
-        camera.position.y += deltaY * 0.01; // Reversed Y direction (removed negative sign)
-        
-        // Save camera state to cookie after movement
-        saveCameraState(camera);
       }
     } else if (mouseButton === 2) { // Right button - zoom camera
       if (cameraRef.current) {
