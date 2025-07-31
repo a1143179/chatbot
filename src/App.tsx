@@ -757,233 +757,241 @@ function App() {
 
   return (
     <div className="App">
-      <div 
-        ref={mountRef} 
-        style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        onWheel={handleWheel}
-        onContextMenu={(e) => e.preventDefault()} // Prevent right-click context menu
-      />
-      
-      {/* Simple model selector */}
-      <div className="model-selector">
-        <select 
-          value={selectedVRM}
-          onChange={(e) => handleVRMChange(e.target.value)}
-          className="model-select"
-        >
-          <option value="cute-girl.vrm">Cute Girl</option>
-          <option value="twitch-girl.vrm">Twitch Girl</option>
-          <option value="Nahida.vrm">Nahida</option>
-          <option value="star-rail.vrm">Star Rail</option>
-          <option value="pee.vrm">Pee</option>
-        </select>
-        
-        {/* Language selector */}
-        <select 
-          value={languageContext}
-          onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
-          className="language-select"
-        >
-          <option value="chinese">中文</option>
-          <option value="english">English</option>
-        </select>
-        
-        {/* Voice language filter */}
-        <select 
-          value={voiceLanguageFilter}
-          onChange={(e) => setVoiceLanguageFilter(e.target.value)}
-          className="voice-language-filter"
-        >
-          <option value="all">All Languages</option>
-          <option value="en">English</option>
-          <option value="zh">Chinese</option>
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
-          <option value="de">German</option>
-          <option value="it">Italian</option>
-          <option value="pt">Portuguese</option>
-          <option value="ru">Russian</option>
-        </select>
-        
-        {/* Voice selector */}
-        <select 
-          value={selectedVoice?.name || ''}
-          onChange={(e) => {
-            const voice = availableVoices.find(v => v.name === e.target.value);
-            setSelectedVoice(voice || null);
-          }}
-          className="voice-select"
-        >
-          <option value="">Default Voice</option>
-          {availableVoices
-            .filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter))
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((voice) => (
-              <option key={voice.name} value={voice.name}>
-                {voice.name} ({voice.lang})
-              </option>
-            ))
-          }
-        </select>
-        
-        {/* Expression selector */}
-        <select 
-          value={selectedExpression}
-          onChange={(e) => handleExpressionChange(e.target.value)}
-          className="expression-select"
-        >
-          <option value="neutral">Neutral</option>
-          {vrmAnalysis && vrmAnalysis.expressionNames && 
-            vrmAnalysis.expressionNames
-              .filter((expr: string) => expr !== 'neutral')
-              .map((expr: string) => (
-                <option key={expr} value={expr}>{expr}</option>
+      {/* Left Column - Controls and Statistics */}
+      <div className="left-column">
+        {/* Model selector */}
+        <div className="model-selector">
+          <select 
+            value={selectedVRM}
+            onChange={(e) => handleVRMChange(e.target.value)}
+            className="model-select"
+          >
+            <option value="cute-girl.vrm">Cute Girl</option>
+            <option value="twitch-girl.vrm">Twitch Girl</option>
+            <option value="Nahida.vrm">Nahida</option>
+            <option value="star-rail.vrm">Star Rail</option>
+            <option value="pee.vrm">Pee</option>
+          </select>
+          
+          {/* Language selector */}
+          <select 
+            value={languageContext}
+            onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
+            className="language-select"
+          >
+            <option value="chinese">中文</option>
+            <option value="english">English</option>
+          </select>
+          
+          {/* Voice language filter */}
+          <select 
+            value={voiceLanguageFilter}
+            onChange={(e) => setVoiceLanguageFilter(e.target.value)}
+            className="voice-language-filter"
+          >
+            <option value="all">All Languages</option>
+            <option value="en">English</option>
+            <option value="zh">Chinese</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+            <option value="ru">Russian</option>
+          </select>
+          
+          {/* Voice selector */}
+          <select 
+            value={selectedVoice?.name || ''}
+            onChange={(e) => {
+              const voice = availableVoices.find(v => v.name === e.target.value);
+              setSelectedVoice(voice || null);
+            }}
+            className="voice-select"
+          >
+            <option value="">Default Voice</option>
+            {availableVoices
+              .filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter))
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((voice) => (
+                <option key={voice.name} value={voice.name}>
+                  {voice.name} ({voice.lang})
+                </option>
               ))
-          }
-        </select>
-      </div>
-
-      {/* Multi-tab box for VRM Analysis and Voice Information */}
-      <div className="multi-tab-box">
-        {/* Tab headers */}
-        <div className="tab-headers">
-          <button 
-            className={`tab-header ${activeTab === 'vrm' ? 'active' : ''}`}
-            onClick={() => setActiveTab('vrm')}
-          >
-            VRM Analysis
-          </button>
-          <button 
-            className={`tab-header ${activeTab === 'voice' ? 'active' : ''}`}
-            onClick={() => setActiveTab('voice')}
-          >
-            Voice Info
-          </button>
-        </div>
-
-        {/* Tab content */}
-        <div className="tab-content">
-          {activeTab === 'vrm' && vrmAnalysis && (
-            <div className="vrm-analysis">
-              <h3>VRM Analysis Results</h3>
-              <div className="analysis-content">
-                <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
-                <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
-                <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
-                <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
-                {suggestedMouthShape && (
-                  <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
-                )}
-                <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
-                <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'voice' && selectedVoice && (
-            <div className="voice-info">
-              <h3>Voice Information</h3>
-              <div className="voice-content">
-                <p><strong>Selected Voice:</strong> {selectedVoice.name}</p>
-                <p><strong>Language:</strong> {selectedVoice.lang}</p>
-                <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
-                <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
-                <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
-                <p><strong>Filtered Voices:</strong> {availableVoices.filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter)).length}</p>
-                <p><strong>Current Filter:</strong> {voiceLanguageFilter === 'all' ? 'All Languages' : voiceLanguageFilter.toUpperCase()}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Voice control overlay */}
-      <div className="voice-controls">
-        <button 
-          className={`voice-button ${isListening ? 'listening' : ''}`}
-          onClick={isListening ? stopListening : startListening}
-          disabled={isProcessing}
-        >
-          {isListening ? 'Stop Recording' : 'Start Recording'}
-        </button>
-        
-        {/* Test button for debugging VRM expressions */}
-        <button 
-          className="test-button"
-          onClick={() => {
-            console.log('=== Testing Enhanced VRM Lip-Sync ===');
-            if (vrmRef.current) {
-              console.log('VRM loaded:', vrmRef.current);
-              
-              // Use VRM analyzer
-              const analysis = analyzeVRM(vrmRef.current);
-              const mouthShapes = findMouthShapes(analysis);
-              const suggested = suggestMouthShape(analysis);
-              
-              console.log('=== Current VRM Analysis ===');
-              console.log('Analysis:', analysis);
-              console.log('Mouth shapes found:', mouthShapes);
-              console.log('Suggested mouth shape:', suggested);
-              
-              // Test enhanced lip-sync with different words
-              const testWords = [
-                'Hello', 'Apple', 'Smile', 'Happy', 'Sad', 'Kiss', 'Open', 'Close'
-              ];
-              
-              console.log('Testing enhanced lip-sync with different words:', testWords);
-              
-              // Test each word with different mouth shapes
-              testWords.forEach((word, index) => {
-                setTimeout(() => {
-                  console.log(`Testing word: ${word}`);
-                  speakText(word);
-                }, index * 2000); // 2 second intervals
-              });
-            } else {
-              console.log('No VRM loaded');
             }
-          }}
-        >
-          Test Enhanced Lip-Sync
-        </button>
-        
-        {/* Test voice button */}
-        <button 
-          className="test-button"
-          onClick={() => {
-            console.log('=== Testing Selected Voice ===');
-            console.log('Selected voice:', selectedVoice);
-            console.log('Available voices:', availableVoices);
-            
-            const testText = languageContext === 'chinese' 
-              ? '你好，这是一个语音测试。' 
-              : 'Hello, this is a voice test.';
-            
-            speakText(testText);
-          }}
-        >
-          Test Voice
-        </button>
-        
-        {isProcessing && (
-          <div className="processing-indicator">
-            Processing...
+          </select>
+          
+          {/* Expression selector */}
+          <select 
+            value={selectedExpression}
+            onChange={(e) => handleExpressionChange(e.target.value)}
+            className="expression-select"
+          >
+            <option value="neutral">Neutral</option>
+            {vrmAnalysis && vrmAnalysis.expressionNames && 
+              vrmAnalysis.expressionNames
+                .filter((expr: string) => expr !== 'neutral')
+                .map((expr: string) => (
+                  <option key={expr} value={expr}>{expr}</option>
+                ))
+            }
+          </select>
+        </div>
+
+        {/* Multi-tab box for VRM Analysis and Voice Information */}
+        <div className="multi-tab-box">
+          {/* Tab headers */}
+          <div className="tab-headers">
+            <button 
+              className={`tab-header ${activeTab === 'vrm' ? 'active' : ''}`}
+              onClick={() => setActiveTab('vrm')}
+            >
+              VRM Analysis
+            </button>
+            <button 
+              className={`tab-header ${activeTab === 'voice' ? 'active' : ''}`}
+              onClick={() => setActiveTab('voice')}
+            >
+              Voice Info
+            </button>
           </div>
-        )}
+
+          {/* Tab content */}
+          <div className="tab-content">
+            {activeTab === 'vrm' && vrmAnalysis && (
+              <div className="vrm-analysis">
+                <h3>VRM Analysis Results</h3>
+                <div className="analysis-content">
+                  <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
+                  <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
+                  <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
+                  <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
+                  {suggestedMouthShape && (
+                    <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
+                  )}
+                  <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
+                  <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'voice' && selectedVoice && (
+              <div className="voice-info">
+                <h3>Voice Information</h3>
+                <div className="voice-content">
+                  <p><strong>Selected Voice:</strong> {selectedVoice.name}</p>
+                  <p><strong>Language:</strong> {selectedVoice.lang}</p>
+                  <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
+                  <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
+                  <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
+                  <p><strong>Filtered Voices:</strong> {availableVoices.filter(voice => voiceLanguageFilter === 'all' || voice.lang.startsWith(voiceLanguageFilter)).length}</p>
+                  <p><strong>Current Filter:</strong> {voiceLanguageFilter === 'all' ? 'All Languages' : voiceLanguageFilter.toUpperCase()}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Chat history overlay */}
-      <div className="chat-history">
-        {chatHistory.map((message, index) => (
-          <div key={index} className={`message ${message.role}`}>
-            <strong>{message.role === 'user' ? 'You' : 'Assistant'}:</strong> {message.content}
-          </div>
-        ))}
+      {/* Center Column - 3D Scene */}
+      <div className="center-column">
+        <div 
+          ref={mountRef} 
+          style={{ width: '100%', height: '100%' }}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          onWheel={handleWheel}
+          onContextMenu={(e) => e.preventDefault()} // Prevent right-click context menu
+        />
+
+        {/* Voice control overlay - horizontal buttons */}
+        <div className="voice-controls">
+          <button 
+            className={`voice-button ${isListening ? 'listening' : ''}`}
+            onClick={isListening ? stopListening : startListening}
+            disabled={isProcessing}
+          >
+            {isListening ? 'Stop Recording' : 'Start Recording'}
+          </button>
+          
+          {/* Test button for debugging VRM expressions */}
+          <button 
+            className="test-button"
+            onClick={() => {
+              console.log('=== Testing Enhanced VRM Lip-Sync ===');
+              if (vrmRef.current) {
+                console.log('VRM loaded:', vrmRef.current);
+                
+                // Use VRM analyzer
+                const analysis = analyzeVRM(vrmRef.current);
+                const mouthShapes = findMouthShapes(analysis);
+                const suggested = suggestMouthShape(analysis);
+                
+                console.log('=== Current VRM Analysis ===');
+                console.log('Analysis:', analysis);
+                console.log('Mouth shapes found:', mouthShapes);
+                console.log('Suggested mouth shape:', suggested);
+                
+                // Test enhanced lip-sync with different words
+                const testWords = [
+                  'Hello', 'Apple', 'Smile', 'Happy', 'Sad', 'Kiss', 'Open', 'Close'
+                ];
+                
+                console.log('Testing enhanced lip-sync with different words:', testWords);
+                
+                // Test each word with different mouth shapes
+                testWords.forEach((word, index) => {
+                  setTimeout(() => {
+                    console.log(`Testing word: ${word}`);
+                    speakText(word);
+                  }, index * 2000); // 2 second intervals
+                });
+              } else {
+                console.log('No VRM loaded');
+              }
+            }}
+          >
+            Test Enhanced Lip-Sync
+          </button>
+          
+          {/* Test voice button */}
+          <button 
+            className="test-button"
+            onClick={() => {
+              console.log('=== Testing Selected Voice ===');
+              console.log('Selected voice:', selectedVoice);
+              console.log('Available voices:', availableVoices);
+              
+              const testText = languageContext === 'chinese' 
+                ? '你好，这是一个语音测试。' 
+                : 'Hello, this is a voice test.';
+              
+              speakText(testText);
+            }}
+          >
+            Test Voice
+          </button>
+          
+          {isProcessing && (
+            <div className="processing-indicator">
+              Processing...
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Column - Chat History */}
+      <div className="right-column">
+        <div className="chat-history">
+          {chatHistory.map((message, index) => (
+            <div key={index} className={`message ${message.role}`}>
+              <strong>{message.role === 'user' ? 'You' : 'Assistant'}:</strong> {message.content}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
