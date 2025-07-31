@@ -59,43 +59,6 @@ interface ChatMessage {
   content: string;
 }
 
-// Phoneme to mouth shape mapping for Chinese
-const phonemeToMouthShape: { [key: string]: string[] } = {
-  // Vowels
-  'a': ['A'],
-  'e': ['E'],
-  'i': ['I'],
-  'o': ['O'],
-  'u': ['U'],
-  // Consonants that affect mouth shape
-  'b': ['A'],
-  'p': ['A'],
-  'm': ['A'],
-  'f': ['A'],
-  'v': ['A'],
-  'w': ['O'],
-  'y': ['I'],
-  // Chinese specific sounds
-  'zh': ['A'],
-  'ch': ['A'],
-  'sh': ['A'],
-  'r': ['A'],
-  'z': ['A'],
-  'c': ['A'],
-  's': ['A'],
-  'h': ['A'],
-  'l': ['A'],
-  'n': ['A'],
-  'ng': ['A'],
-  'j': ['I'],
-  'q': ['I'],
-  'x': ['I'],
-  'g': ['A'],
-  'k': ['A'],
-  'd': ['A'],
-  't': ['A']
-};
-
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
   const vrmRef = useRef<VRM | null>(null);
@@ -116,7 +79,6 @@ function App() {
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
-  const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   function setVrmMouthShape(shape: string, value: number) {
     const vrm = vrmRef.current;
@@ -130,87 +92,7 @@ function App() {
     }
   }
 
-
-
-  // Improved lip sync based on text analysis
-  const analyzeTextForLipSync = useCallback((text: string): string[] => {
-    const phonemes: string[] = [];
-    const words = text.toLowerCase().split(/\s+/);
-    
-    words.forEach(word => {
-      // Simple Chinese character to pinyin approximation
-      // This is a basic implementation - for better results, you'd want a proper Chinese-to-pinyin library
-      const chars = word.split('');
-      chars.forEach(char => {
-        // Map Chinese characters to approximate phonemes
-        if (/[aeiou]/.test(char)) {
-          phonemes.push(char);
-        } else if (/[bpmfw]/.test(char)) {
-          phonemes.push('b');
-        } else if (/[dtnl]/.test(char)) {
-          phonemes.push('d');
-        } else if (/[gkh]/.test(char)) {
-          phonemes.push('g');
-        } else if (/[jqx]/.test(char)) {
-          phonemes.push('j');
-        } else if (/[zhchsh]/.test(char)) {
-          phonemes.push('zh');
-        } else if (/[zcs]/.test(char)) {
-          phonemes.push('z');
-        } else {
-          // Default to 'a' for unknown characters
-          phonemes.push('a');
-        }
-      });
-    });
-    
-    return phonemes;
-  }, []);
-
-  const startLipSync = useCallback((text: string) => {
-    const phonemes = analyzeTextForLipSync(text);
-    let currentIndex = 0;
-    
-    // Clear any existing lip sync
-    if (lipSyncIntervalRef.current) {
-      clearInterval(lipSyncIntervalRef.current);
-    }
-    
-    // Reset all mouth shapes
-    ['A', 'I', 'U', 'E', 'O'].forEach(shape => setVrmMouthShape(shape, 0));
-    
-    lipSyncIntervalRef.current = setInterval(() => {
-      if (currentIndex >= phonemes.length) {
-        // End of text, close mouth
-        ['A', 'I', 'U', 'E', 'O'].forEach(shape => setVrmMouthShape(shape, 0));
-        if (lipSyncIntervalRef.current) {
-          clearInterval(lipSyncIntervalRef.current);
-        }
-        return;
-      }
-      
-      const phoneme = phonemes[currentIndex];
-      const shapes = phonemeToMouthShape[phoneme] || ['A'];
-      
-      // Set mouth shapes
-      ['A', 'I', 'U', 'E', 'O'].forEach(shape => {
-        const value = shapes.includes(shape) ? 1.0 : 0.0;
-        setVrmMouthShape(shape, value);
-      });
-      
-      currentIndex++;
-    }, 150); // Adjust timing based on speech rate
-  }, [analyzeTextForLipSync]);
-
-  const stopLipSync = useCallback(() => {
-    if (lipSyncIntervalRef.current) {
-      clearInterval(lipSyncIntervalRef.current);
-      lipSyncIntervalRef.current = null;
-    }
-    // Reset mouth shapes
-    ['A', 'I', 'U', 'E', 'O'].forEach(shape => setVrmMouthShape(shape, 0));
-  }, []);
-
+  // Simple lip sync with TTS events
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
     
@@ -219,18 +101,39 @@ function App() {
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
 
-    // Start lip sync when speech starts
+    let mouthTimer: NodeJS.Timeout | null = null;
+
+    // Open mouth when speech starts
     utterance.onstart = () => {
-      startLipSync(text);
+      setVrmMouthShape('A', 1.0);
     };
-    
-    // Stop lip sync when speech ends
+
+    // Handle word boundaries for natural lip sync
+    utterance.onboundary = (event) => {
+      // Clear any existing timer
+      if (mouthTimer) {
+        clearTimeout(mouthTimer);
+      }
+      
+      // Open mouth for current word
+      setVrmMouthShape('A', 1.0);
+      
+      // Close mouth after a short delay if no next word
+      mouthTimer = setTimeout(() => {
+        setVrmMouthShape('A', 0.0);
+      }, 150);
+    };
+
+    // Close mouth when speech ends
     utterance.onend = () => {
-      stopLipSync();
+      if (mouthTimer) {
+        clearTimeout(mouthTimer);
+      }
+      setVrmMouthShape('A', 0.0);
     };
 
     synthesisRef.current.speak(utterance);
-  }, [startLipSync, stopLipSync]);
+  }, []);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -374,10 +277,10 @@ function App() {
           };
 
           // Force arms to hang naturally
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 0);   // Hang naturally
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, 0);  // Hang naturally
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 0);   // Hang naturally
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, 0);  // Hang naturally
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 80);   // A-pose: arms down at 80 degrees
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -80); // A-pose: arms down at -80 degrees
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
           
           // Only apply pose once, reset spring bones to their new resting state
           if (!poseInitialized && vrmRef.current.springBoneManager) {
