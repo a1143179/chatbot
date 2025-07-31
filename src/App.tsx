@@ -93,6 +93,11 @@ function App() {
     if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
       (vrm as any).expressionManager.setValue(shape, value);
       console.log(`Applied to expressionManager: ${shape} = ${value}`);
+      
+      // Debug: List available expressions
+      if (value > 0) {
+        console.log('Available expressions:', (vrm as any).expressionManager.getExpressionNames?.() || 'No getExpressionNames method');
+      }
     } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
       (vrm as any).blendShapeProxy.setValue(shape, value);
       console.log(`Applied to blendShapeProxy: ${shape} = ${value}`);
@@ -115,9 +120,16 @@ function App() {
     // Open mouth when speech starts
     utterance.onstart = () => {
       console.log('Speech started - opening mouth');
+      // Try multiple common mouth shapes
       setVrmMouthShape('A', 1.0);
       setVrmMouthShape('I', 0.5);
       setVrmMouthShape('U', 0.3);
+      setVrmMouthShape('O', 0.4);
+      setVrmMouthShape('E', 0.6);
+      // Try alternative names
+      setVrmMouthShape('Ah', 1.0);
+      setVrmMouthShape('Oh', 0.4);
+      setVrmMouthShape('MouthOpen', 1.0);
     };
 
     // Handle word boundaries for natural lip sync
@@ -128,10 +140,15 @@ function App() {
         clearTimeout(mouthTimer);
       }
       
-      // Open mouth for current word
+      // Open mouth for current word with multiple shapes
       setVrmMouthShape('A', 1.0);
       setVrmMouthShape('I', 0.5);
       setVrmMouthShape('U', 0.3);
+      setVrmMouthShape('O', 0.4);
+      setVrmMouthShape('E', 0.6);
+      setVrmMouthShape('Ah', 1.0);
+      setVrmMouthShape('Oh', 0.4);
+      setVrmMouthShape('MouthOpen', 1.0);
       
       // Close mouth after a short delay if no next word
       mouthTimer = setTimeout(() => {
@@ -139,6 +156,11 @@ function App() {
         setVrmMouthShape('A', 0.0);
         setVrmMouthShape('I', 0.0);
         setVrmMouthShape('U', 0.0);
+        setVrmMouthShape('O', 0.0);
+        setVrmMouthShape('E', 0.0);
+        setVrmMouthShape('Ah', 0.0);
+        setVrmMouthShape('Oh', 0.0);
+        setVrmMouthShape('MouthOpen', 0.0);
       }, 200);
     };
 
@@ -151,6 +173,11 @@ function App() {
       setVrmMouthShape('A', 0.0);
       setVrmMouthShape('I', 0.0);
       setVrmMouthShape('U', 0.0);
+      setVrmMouthShape('O', 0.0);
+      setVrmMouthShape('E', 0.0);
+      setVrmMouthShape('Ah', 0.0);
+      setVrmMouthShape('Oh', 0.0);
+      setVrmMouthShape('MouthOpen', 0.0);
     };
 
     // Fallback: if onboundary doesn't work, use a simple timer-based approach
@@ -167,16 +194,31 @@ function App() {
             setVrmMouthShape('A', 1.0);
             setVrmMouthShape('I', 0.0);
             setVrmMouthShape('U', 0.0);
+            setVrmMouthShape('O', 0.0);
+            setVrmMouthShape('E', 0.0);
+            setVrmMouthShape('Ah', 1.0);
+            setVrmMouthShape('Oh', 0.0);
+            setVrmMouthShape('MouthOpen', 1.0);
             break;
           case 1:
             setVrmMouthShape('A', 0.5);
             setVrmMouthShape('I', 0.8);
             setVrmMouthShape('U', 0.0);
+            setVrmMouthShape('O', 0.0);
+            setVrmMouthShape('E', 0.6);
+            setVrmMouthShape('Ah', 0.5);
+            setVrmMouthShape('Oh', 0.0);
+            setVrmMouthShape('MouthOpen', 0.8);
             break;
           case 2:
             setVrmMouthShape('A', 0.3);
             setVrmMouthShape('I', 0.0);
             setVrmMouthShape('U', 0.6);
+            setVrmMouthShape('O', 0.4);
+            setVrmMouthShape('E', 0.0);
+            setVrmMouthShape('Ah', 0.3);
+            setVrmMouthShape('Oh', 0.4);
+            setVrmMouthShape('MouthOpen', 0.6);
             break;
         }
       } else {
@@ -184,6 +226,11 @@ function App() {
         setVrmMouthShape('A', 0.0);
         setVrmMouthShape('I', 0.0);
         setVrmMouthShape('U', 0.0);
+        setVrmMouthShape('O', 0.0);
+        setVrmMouthShape('E', 0.0);
+        setVrmMouthShape('Ah', 0.0);
+        setVrmMouthShape('Oh', 0.0);
+        setVrmMouthShape('MouthOpen', 0.0);
       }
     }, 100);
 
