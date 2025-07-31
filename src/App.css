@@ -6,6 +6,9 @@
   margin: 0;
   padding: 0;
   position: relative;
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr; /* 1:2:1 ratio */
+  grid-template-rows: 1fr;
 }
 
 body {
@@ -14,31 +17,275 @@ body {
   overflow: hidden;
 }
 
+/* Left column - Controls and Statistics */
+.left-column {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 300px; /* Ensure minimum width for controls */
+}
+
+/* Model selector */
+.model-selector {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.model-selector label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.model-selector select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.model-selector select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+.model-selector select:last-child {
+  margin-bottom: 0;
+}
+
+
+
+/* Multi-tab box */
+.multi-tab-box {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+/* Tab headers */
+.tab-headers {
+  display: flex;
+  background: rgba(102, 126, 234, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tab-header {
+  flex: 1;
+  padding: 10px 15px;
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 0;
+}
+
+.tab-header:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.tab-header.active {
+  background: rgba(102, 126, 234, 0.2);
+  color: #667eea;
+  border-bottom: 2px solid #667eea;
+}
+
+/* Tab content */
+.tab-content {
+  padding: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* VRM Analysis Results - updated for tab content */
+.vrm-analysis {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  overflow-y: visible;
+  box-shadow: none;
+  backdrop-filter: none;
+  max-height: none;
+  width: auto;
+}
+
+.vrm-analysis h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.analysis-content p {
+  margin: 5px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #555;
+}
+
+.analysis-content strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Voice info - updated for tab content */
+.voice-info {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  max-height: none;
+  width: auto;
+  overflow-y: visible;
+}
+
+.voice-info h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 5px;
+}
+
+.voice-content p {
+  margin: 5px 0;
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.voice-content strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Center column - 3D Scene */
+.center-column {
+  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-width: 400px; /* Ensure minimum width for 3D scene */
+  display: flex;
+  justify-content: center; /* Center the 3D scene horizontally */
+  align-items: center; /* Center the 3D scene vertically */
+}
+
+/* Right column - Chat History */
+.right-column {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  overflow-y: auto;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+  min-width: 300px; /* Ensure minimum width for chat */
+}
+
 /* Voice controls */
 .voice-controls {
   position: absolute;
   bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
+  right: 20px;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 15px;
 }
 
-.voice-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Text input styles */
+.text-input {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 25px;
+  padding: 15px 20px;
+  font-size: 16px;
+  width: 100%;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-sizing: border-box;
+}
+
+.text-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+.text-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Button container for horizontal layout */
+.button-container {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
+/* Submit button styles */
+.submit-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
   border: none;
-  border-radius: 50px;
-  padding: 15px 30px;
+  border-radius: 25px;
+  padding: 15px 20px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  min-width: 120px;
+  flex: 1;
+  min-height: 50px;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Voice recording button */
+.voice-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 15px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  flex: 1;
+  min-height: 50px;
 }
 
 .voice-button:hover:not(:disabled) {
@@ -46,14 +293,76 @@ body {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
+.voice-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .voice-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .voice-button.listening {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
   animation: pulse 1.5s infinite;
+}
+
+/* Continuous talking button styles */
+.continuous-button {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 15px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  flex: 1;
+  min-height: 50px;
+}
+
+.continuous-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.continuous-button.active {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  animation: pulse 1.5s infinite;
+}
+
+.continuous-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Test button for VRM expressions debugging */
+.test-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  min-width: 120px;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.test-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.test-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
 }
 
 @keyframes pulse {
@@ -84,18 +393,14 @@ body {
 
 /* Chat history */
 .chat-history {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 300px;
-  max-height: 400px;
+  width: 100%;
+  height: 100%; /* Changed from max-height: 400px to height: 100% */
   background: rgba(255, 255, 255, 0.95);
   border-radius: 15px;
   padding: 15px;
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
-  z-index: 1000;
 }
 
 .chat-history::-webkit-scrollbar {
@@ -137,3 +442,5 @@ body {
   font-weight: 600;
   margin-right: 5px;
 }
+
+

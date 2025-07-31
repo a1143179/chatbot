@@ -1,10 +1,96 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
+import { VRMLoaderPlugin, VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 import CorsTest from './components/CorsTest';
+import { analyzeVRM, findMouthShapes, suggestMouthShape } from './utils/vrmAnalyzer';
+
+// Utility functions for localStorage
+const getLocalStorage = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('Failed to get from localStorage:', error);
+    return null;
+  }
+};
+
+const setLocalStorage = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn('Failed to set localStorage:', error);
+  }
+};
+
+// Save camera state to localStorage
+const saveCameraState = (camera: THREE.PerspectiveCamera): void => {
+  const cameraState = {
+    position: {
+      x: camera.position.x,
+      y: camera.position.y,
+      z: camera.position.z
+    },
+    rotation: {
+      x: camera.rotation.x,
+      y: camera.rotation.y,
+      z: camera.rotation.z
+    },
+    fov: camera.fov,
+    aspect: camera.aspect
+  };
+  setLocalStorage('cameraState', JSON.stringify(cameraState));
+};
+
+// Load camera state from localStorage
+const loadCameraState = (camera: THREE.PerspectiveCamera): boolean => {
+  const savedState = getLocalStorage('cameraState');
+  if (savedState) {
+    try {
+      const cameraState = JSON.parse(savedState);
+      camera.position.set(cameraState.position.x, cameraState.position.y, cameraState.position.z);
+      camera.rotation.set(cameraState.rotation.x, cameraState.rotation.y, cameraState.rotation.z);
+      camera.fov = cameraState.fov;
+      camera.aspect = cameraState.aspect;
+      camera.updateProjectionMatrix();
+      return true;
+    } catch (error) {
+      console.warn('Failed to parse camera state:', error);
+      return false;
+    }
+  }
+  return false;
+};
+
+// Save VRM rotation state to localStorage
+const saveVRMRotationState = (vrm: VRM): void => {
+  const vrmState = {
+    rotation: {
+      x: vrm.scene.rotation.x,
+      y: vrm.scene.rotation.y,
+      z: vrm.scene.rotation.z
+    }
+  };
+  setLocalStorage('vrmRotationState', JSON.stringify(vrmState));
+};
+
+// Load VRM rotation state from localStorage
+const loadVRMRotationState = (vrm: VRM): boolean => {
+  const savedState = getLocalStorage('vrmRotationState');
+  if (savedState) {
+    try {
+      const vrmState = JSON.parse(savedState);
+      vrm.scene.rotation.set(vrmState.rotation.x, vrmState.rotation.y, vrmState.rotation.z);
+      return true;
+    } catch (error) {
+      console.warn('Failed to parse VRM rotation state:', error);
+      return false;
+    }
+  }
+  return false;
+};
 
 // Type declarations for Web Speech API
 declare global {
@@ -62,51 +148,295 @@ interface ChatMessage {
 function App() {
   const mountRef = useRef<HTMLDivElement>(null);
   const vrmRef = useRef<VRM | null>(null);
-  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   
   // Speech recognition and synthesis
   const [isListening, setIsListening] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // VRM selection only
+  const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
+  
+  // VRM analysis state
+  const [vrmAnalysis, setVrmAnalysis] = useState<any>(null);
+  const [suggestedMouthShape, setSuggestedMouthShape] = useState<string | null>(null);
+  
+  // Expression selection state
+  const [selectedExpression, setSelectedExpression] = useState<string>('neutral');
+  
+  // Language context
+  const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>('chinese');
+  
+     // Voice selection state
+   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  
+  // Mouse control states
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [mouseButton, setMouseButton] = useState<number>(0);
+  const [lastMouseX, setLastMouseX] = useState<number>(0);
+  const [lastMouseY, setLastMouseY] = useState<number>(0);
+  
+  // Text input and continuous talking states
+  const [textInput, setTextInput] = useState<string>('');
+  const [isContinuousTalking, setIsContinuousTalking] = useState(false);
+  
+  // Add state for tab management
+  const [activeTab, setActiveTab] = useState<'vrm' | 'voice'>('vrm');
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
-  const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  function setVrmMouthShape(shape: string, value: number) {
+  function setVrmMouthShape(shape: string, value: number): void {
     const vrm = vrmRef.current;
-    if (!vrm) return;
+    if (!vrm) {
+      console.log('setVrmMouthShape: No VRM loaded');
+      return;
+    }
+    
+    console.log(`setVrmMouthShape: Setting ${shape} to ${value}`);
+    
     // VRM 1.x
     if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
       (vrm as any).expressionManager.setValue(shape, value);
+      console.log(`Applied to expressionManager: ${shape} = ${value}`);
+      
+      // Debug: List available expressions
+      if (value > 0) {
+        console.log('Available expressions:', (vrm as any).expressionManager.getExpressionNames?.() || 'No getExpressionNames method');
+      }
     } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
       (vrm as any).blendShapeProxy.setValue(shape, value);
+      console.log(`Applied to blendShapeProxy: ${shape} = ${value}`);
+    } else {
+      console.log('setVrmMouthShape: No compatible expression system found');
     }
   }
 
+  // Enhanced lip sync with advanced phoneme detection
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
+    
+    // Cancel any ongoing speech to avoid event conflicts
+    synthesisRef.current.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-CN';
+    utterance.lang = languageContext === 'chinese' ? 'zh-CN' : 'en-US';
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
+    
+    // Set the selected voice if available
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
 
-    // 启动嘴型同步
-    utterance.onstart = () => {
-      const mouthShapes = ['A', 'I', 'U', 'E', 'O'];
-      lipSyncIntervalRef.current = setInterval(() => {
-        const shape = mouthShapes[Math.floor(Math.random() * mouthShapes.length)];
-        mouthShapes.forEach(s => setVrmMouthShape(s, s === shape ? 1 : 0));
-      }, 100);
+    let mouthTimer: NodeJS.Timeout | null = null;
+    let currentMouthShape: string | null = null;
+    
+    // Get available mouth shapes from VRM analysis
+    const getAvailableMouthShapes = () => {
+      if (vrmAnalysis && vrmAnalysis.expressionNames) {
+        // Filter for mouth-related expressions
+        const mouthShapes = vrmAnalysis.expressionNames.filter((expr: string) => 
+          ['aa', 'ee', 'ih', 'oh', 'ou', 'a', 'e', 'i', 'o', 'u', 'ah', 'eh', 'ih', 'oh', 'uh',
+           'open', 'wide', 'round', 'pucker', 'smile', 'frown', 'relax', 'tight', 'part', 'close',
+           'jaw', 'lip', 'mouth'].includes(expr.toLowerCase())
+        );
+        return mouthShapes.length > 0 ? mouthShapes : ['aa']; // Fallback to 'aa'
+      }
+      return ['aa']; // Default fallback
     };
-    // 停止嘴型同步
+    
+    const availableMouthShapes = getAvailableMouthShapes();
+    
+    // Enhanced phoneme to mouth shape mapping
+    const phonemeToMouthShape = (phoneme: string, word: string): string => {
+      const phonemeLower = phoneme.toLowerCase();
+      const wordLower = word.toLowerCase();
+      
+      // Find the best matching mouth shape from available shapes
+      const findBestMatch = (targetPatterns: string[]): string => {
+        for (const pattern of targetPatterns) {
+          const match = availableMouthShapes.find((shape: string) => 
+            shape.toLowerCase().includes(pattern.toLowerCase())
+          );
+          if (match) return match;
+        }
+        return availableMouthShapes[0]; // Fallback
+      };
+      
+      // Vowel mappings with more specific patterns
+      if (['a', 'ɑ', 'æ', 'ʌ', 'ɑː', 'aː'].includes(phonemeLower)) {
+        return findBestMatch(['aa', 'ah', 'a', 'open', 'wide', 'jaw']);
+      }
+      if (['e', 'ɛ', 'eɪ', 'iː', 'eː'].includes(phonemeLower)) {
+        return findBestMatch(['ee', 'eh', 'e', 'wide', 'smile', 'part']);
+      }
+      if (['i', 'ɪ', 'iː', 'iː'].includes(phonemeLower)) {
+        return findBestMatch(['ih', 'i', 'ee', 'wide', 'smile', 'part']);
+      }
+      if (['o', 'ɔ', 'oʊ', 'əʊ', 'oː'].includes(phonemeLower)) {
+        return findBestMatch(['oh', 'o', 'round', 'pucker', 'close']);
+      }
+      if (['u', 'ʊ', 'uː', 'juː', 'uː'].includes(phonemeLower)) {
+        return findBestMatch(['ou', 'uh', 'u', 'round', 'pucker', 'close']);
+      }
+      
+      // Consonant mappings with more specific mouth shapes
+      if (['p', 'b', 'm'].includes(phonemeLower)) {
+        return findBestMatch(['close', 'tight', 'part', 'relax']); // Closed lips
+      }
+      if (['f', 'v'].includes(phonemeLower)) {
+        return findBestMatch(['ih', 'part', 'relax', 'tight']); // Upper teeth on lower lip
+      }
+      if (['s', 'z', 'ʃ', 'ʒ'].includes(phonemeLower)) {
+        return findBestMatch(['ee', 'wide', 'part', 'tight']); // Teeth together
+      }
+      if (['t', 'd', 'n', 'l'].includes(phonemeLower)) {
+        return findBestMatch(['part', 'relax', 'wide', 'ih']); // Tongue to teeth
+      }
+      if (['k', 'g', 'ŋ'].includes(phonemeLower)) {
+        return findBestMatch(['ah', 'open', 'wide', 'aa']); // Back of throat
+      }
+      if (['r'].includes(phonemeLower)) {
+        return findBestMatch(['round', 'oh', 'pucker', 'close']); // Rounded lips
+      }
+      if (['w', 'j'].includes(phonemeLower)) {
+        return findBestMatch(['round', 'wide', 'oh', 'ee']); // Semi-vowels
+      }
+      
+      // Special cases for common word patterns
+      if (wordLower.includes('smile') || wordLower.includes('happy') || wordLower.includes('laugh')) {
+        return findBestMatch(['smile', 'wide', 'ee', 'part']);
+      }
+      if (wordLower.includes('frown') || wordLower.includes('sad') || wordLower.includes('cry')) {
+        return findBestMatch(['frown', 'pucker', 'oh', 'close']);
+      }
+      if (wordLower.includes('kiss') || wordLower.includes('pucker')) {
+        return findBestMatch(['pucker', 'round', 'oh', 'close']);
+      }
+      
+      // Default to first available shape
+      return availableMouthShapes[0];
+    };
+    
+    // Enhanced phoneme detection with word context
+    const detectPhoneme = (text: string, charIndex: number): { phoneme: string, word: string } => {
+      const words = text.toLowerCase().split(/\s+/);
+      let currentCharIndex = 0;
+      let currentWord = '';
+      
+      // Find the word being spoken at the current character index
+      for (const word of words) {
+        if (currentCharIndex + word.length > charIndex) {
+          currentWord = word;
+          break;
+        }
+        currentCharIndex += word.length + 1; // +1 for space
+      }
+      
+      if (!currentWord) {
+        currentWord = words[words.length - 1] || 'a';
+      }
+      
+      // Enhanced phoneme detection based on word structure
+      const detectPhonemeFromWord = (word: string): string => {
+        // Check for common vowel patterns
+        if (word.includes('a') || word.includes('o')) {
+          if (word.includes('ai') || word.includes('ay')) return 'e';
+          if (word.includes('au') || word.includes('aw')) return 'o';
+          return 'a';
+        }
+        if (word.includes('e') || word.includes('i')) {
+          if (word.includes('ie') || word.includes('ei')) return 'e';
+          if (word.includes('igh')) return 'i';
+          return 'e';
+        }
+        if (word.includes('u')) {
+          if (word.includes('ue') || word.includes('ui')) return 'u';
+          return 'u';
+        }
+        if (word.includes('y')) {
+          if (word.startsWith('y')) return 'i';
+          return 'e';
+        }
+        
+        // Check for consonant patterns that affect mouth shape
+        if (word.includes('p') || word.includes('b') || word.includes('m')) return 'p';
+        if (word.includes('f') || word.includes('v')) return 'f';
+        if (word.includes('s') || word.includes('z')) return 's';
+        if (word.includes('r')) return 'r';
+        if (word.includes('w')) return 'w';
+        
+        // Default to 'a' for most consonants
+        return 'a';
+      };
+      
+      const phoneme = detectPhonemeFromWord(currentWord);
+      return { phoneme, word: currentWord };
+    };
+
+    // Open mouth when speech starts
+    utterance.onstart = () => {
+      const { phoneme, word } = detectPhoneme(text, 0);
+      const mouthShape = phonemeToMouthShape(phoneme, word);
+      currentMouthShape = mouthShape;
+      console.log('Speech started - opening mouth with shape:', mouthShape, 'for phoneme:', phoneme, 'word:', word);
+      setVrmMouthShape(mouthShape, 1.0);
+    };
+
+    // Handle word boundaries for natural lip sync
+    utterance.onboundary = (event) => {
+      // Get the word being spoken
+      const charIndex = event.charIndex;
+      const { phoneme, word } = detectPhoneme(text, charIndex);
+      const mouthShape = phonemeToMouthShape(phoneme, word);
+      
+      console.log('Word boundary detected - adjusting mouth with shape:', mouthShape, 'for word:', word, 'phoneme:', phoneme);
+      
+      // Clear any existing timer
+      if (mouthTimer) {
+        clearTimeout(mouthTimer);
+      }
+      
+      // Only change mouth shape if it's different from current
+      if (currentMouthShape !== mouthShape) {
+        // Reset previous mouth shape
+        if (currentMouthShape) {
+          setVrmMouthShape(currentMouthShape, 0.0);
+        }
+        
+        // Set new mouth shape
+        currentMouthShape = mouthShape;
+        setVrmMouthShape(mouthShape, 1.0);
+      }
+      
+      // Close mouth after a short delay if no next word
+      mouthTimer = setTimeout(() => {
+        console.log('Closing mouth after delay');
+        if (currentMouthShape) {
+          setVrmMouthShape(currentMouthShape, 0.0);
+          currentMouthShape = null;
+        }
+      }, 200);
+    };
+
+    // Close mouth when speech ends
     utterance.onend = () => {
-      if (lipSyncIntervalRef.current) clearInterval(lipSyncIntervalRef.current);
-      ['A', 'I', 'U', 'E', 'O'].forEach(s => setVrmMouthShape(s, 0));
+      console.log('Speech ended - closing mouth');
+      if (mouthTimer) {
+        clearTimeout(mouthTimer);
+      }
+      // Reset to neutral
+      if (currentMouthShape) {
+        setVrmMouthShape(currentMouthShape, 0.0);
+        currentMouthShape = null;
+      }
     };
 
     synthesisRef.current.speak(utterance);
-  }, []);
+  }, [languageContext, vrmAnalysis, selectedVoice]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -159,199 +489,221 @@ function App() {
     }
   }, [speakText]);
 
-  // useEffect(() => {
-  //   if (!mountRef.current) return;
-
-  //   // Initialize Three.js scene
-  //   const scene = new THREE.Scene();
-  //   sceneRef.current = scene;
-  //   scene.background = new THREE.Color(0xf0f0f0);
-
-  //   // Setup camera
-  //   const camera = new THREE.PerspectiveCamera(
-  //     75,
-  //     window.innerWidth / window.innerHeight,
-  //     0.1,
-  //     1000
-  //   );
-  //   cameraRef.current = camera;
-  //   camera.position.set(0, 1.5, 3);
-
-  //   // Setup renderer
-  //   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  //   rendererRef.current = renderer;
-  //   renderer.setSize(window.innerWidth, window.innerHeight);
-  //   renderer.setPixelRatio(window.devicePixelRatio);
-  //   renderer.shadowMap.enabled = true;
-  //   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  //   mountRef.current.appendChild(renderer.domElement);
-
-  //   // Add lights
-  //   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-  //   scene.add(ambientLight);
-
-  //   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  //   directionalLight.position.set(1, 1, 1);
-  //   directionalLight.castShadow = true;
-  //   scene.add(directionalLight);
-
-  //   // Load VRM model
-  //   const loader = new GLTFLoader();
-  //   const plugin = new VRMLoaderPlugin();
-  //   loader.register((parser: any) => plugin.createPlugin(parser));
-
-  //   loader.load(
-  //     '/models/cute-girl.vrm',
-  //     (gltf: any) => {
-  //       const vrm = plugin.createVRMInstance(gltf);
-  //       vrmRef.current = vrm;
-  //       scene.add(vrm.scene);
-
-  //       // Position the model
-  //       vrm.scene.position.set(0, 0, 0);
-  //       vrm.scene.scale.setScalar(1);
-
-  //       // Enable shadows
-  //       vrm.scene.traverse((child: any) => {
-  //         if (child instanceof THREE.Mesh) {
-  //           child.castShadow = true;
-  //           child.receiveShadow = true;
-  //         }
-  //       });
-
-  //       // Animation loop
-  //       const animate = () => {
-  //         requestAnimationFrame(animate);
-          
-  //         // Update VRM
-  //         const delta = 0.016; // 60fps
-  //         vrm.update(delta);
-          
-  //         renderer.render(scene, camera);
-  //       };
-  //       animate();
-  //     },
-  //     (progress: any) => {
-  //       console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
-  //     },
-  //     (error: any) => {
-  //       console.error('Error loading VRM:', error);
-  //     }
-  //   );
-
-  //   // Handle window resize
-  //   const handleResize = () => {
-  //     if (camera && renderer) {
-  //       camera.aspect = window.innerWidth / window.innerHeight;
-  //       camera.updateProjectionMatrix();
-  //       renderer.setSize(window.innerWidth, window.innerHeight);
-  //     }
-  //   };
-  //   window.addEventListener('resize', handleResize);
-
-  //   // Cleanup
-  //   return () => {
-  //     window.removeEventListener('resize', handleResize);
-  //     if (mountRef.current && renderer.domElement) {
-  //       mountRef.current.removeChild(renderer.domElement);
-  //     }
-  //     renderer.dispose();
-  //   };
-  // }, []);
-
-  // Initialize speech recognition
+  // Initialize Three.js scene and VRM
   useEffect(() => {
     const mountElement = mountRef.current;
     if (!mountElement) return;
-    
-    // Initialize Three.js scene
+
+    // --- Scene, camera, renderer, lighting initialization (keep unchanged) ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
-    const camera = new THREE.PerspectiveCamera(
-      35,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.set(0, 1.6, 4); // Position camera to center the avatar
+    const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+    
+    // Store camera reference for later use
+    cameraRef.current = camera;
+    
+    // Try to load camera state from cookie, otherwise use defaults
+    const cameraStateLoaded = loadCameraState(camera);
+    if (!cameraStateLoaded) {
+      // Set default camera position if no cookie found
+      camera.position.set(0, 1.6, 4);
+      console.log('Using default camera position');
+    }
+    
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Ensure renderer.domElement is accessible during unmount
     mountElement.appendChild(renderer.domElement);
-    // Add lights
+    
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(1, 1, 1);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
-    // Load VRM model (official latest API)
+    
     const loader = new GLTFLoader();
     loader.register((parser: any) => new VRMLoaderPlugin(parser));
-    loader.load(
-      '/chatbot/models/cute-girl.vrm',
-      (gltf: any) => {
-        const vrm = gltf.userData.vrm;
+    
+    // --- Model loading logic ---
+    const loadVRMModel = async (vrmFile: string) => {
+      console.log(`Loading VRM file: ${vrmFile}`);
+      
+      if (vrmRef.current) {
+        scene.remove(vrmRef.current.scene);
+      }
+      
+      const url = `./models/vrm/${vrmFile}?t=${Date.now()}`;
+      
+      try {
+        const gltf = await loader.loadAsync(url);
+        const vrm = gltf.userData.vrm as VRM;
         vrmRef.current = vrm;
         scene.add(vrm.scene);
-        // Position the model to be centered and moved up 50px from previous position
-        vrm.scene.position.set(0, 0.75, 0); // Center the avatar and move up 50px from 0.5 to 0.75
-        vrm.scene.rotation.y = Math.PI; // Face the camera
-        vrm.scene.scale.setScalar(1.2); // Slightly larger for better visibility
-        // Enable shadows
+        
+        vrm.scene.position.set(0, 0.75, 0);
+        vrm.scene.rotation.y = Math.PI;
+        vrm.scene.scale.setScalar(1.2);
+        
+        // Try to load VRM rotation state from cookie, otherwise use defaults
+        const vrmRotationLoaded = loadVRMRotationState(vrm);
+        if (!vrmRotationLoaded) {
+          console.log('Using default VRM rotation');
+        }
+        
         vrm.scene.traverse((child: any) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
           }
         });
-        // Keep avatar in idle state (no animation)
-        console.log('Avatar loaded in idle state');
-      },
-      (progress: any) => {
-        console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
-      },
-      (error: any) => {
-        console.error('Error loading VRM:', error);
+        
+        // DEBUG: Print all available expression names
+        console.log('=== VRM Expression Debug ===');
+        console.log('VRM object:', vrm);
+        console.log('VRM type:', typeof vrm);
+        console.log('VRM keys:', Object.keys(vrm));
+        
+        // Use VRM analyzer
+        const analysis = analyzeVRM(vrm);
+        setVrmAnalysis(analysis);
+        
+        // Find and suggest mouth shapes
+        const mouthShapes = findMouthShapes(analysis);
+        const suggested = suggestMouthShape(analysis);
+        setSuggestedMouthShape(suggested);
+        
+        console.log('=== VRM Analysis Results ===');
+        console.log('Analysis:', analysis);
+        console.log('Mouth shapes found:', mouthShapes);
+        console.log('Suggested mouth shape:', suggested);
+        console.log('=== End VRM Analysis ===');
+        
+        if ((vrm as any).expressionManager) {
+          console.log('ExpressionManager found:', (vrm as any).expressionManager);
+          console.log('ExpressionManager type:', typeof (vrm as any).expressionManager);
+          console.log('ExpressionManager keys:', Object.keys((vrm as any).expressionManager));
+          
+          const expressionNames = (vrm as any).expressionManager.getExpressionNames?.();
+          console.log('Available expressions:', expressionNames);
+          
+          // Try to get expressions directly
+          if ((vrm as any).expressionManager.expressions) {
+            console.log('Direct expressions:', (vrm as any).expressionManager.expressions);
+          }
+          
+          // Also check blendShapeProxy for older VRM versions
+          if ((vrm as any).blendShapeProxy) {
+            console.log('BlendShapeProxy available:', (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy type:', typeof (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy keys:', Object.keys((vrm as any).blendShapeProxy));
+          }
+        } else {
+          console.log('No expressionManager found');
+          
+          // Check for alternative expression systems
+          if ((vrm as any).blendShapeProxy) {
+            console.log('BlendShapeProxy available:', (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy type:', typeof (vrm as any).blendShapeProxy);
+            console.log('BlendShapeProxy keys:', Object.keys((vrm as any).blendShapeProxy));
+          }
+          
+          // Check for any expression-related properties
+          const vrmKeys = Object.keys(vrm);
+          const expressionKeys = vrmKeys.filter(key => 
+            key.toLowerCase().includes('expression') || 
+            key.toLowerCase().includes('blend') || 
+            key.toLowerCase().includes('shape')
+          );
+          console.log('Expression-related keys:', expressionKeys);
+        }
+        
+        // Check VRM version and structure
+        if ((vrm as any).meta) {
+          console.log('VRM Meta:', (vrm as any).meta);
+        }
+        
+        if ((vrm as any).humanoid) {
+          console.log('VRM Humanoid available');
+        }
+        
+        console.log('=== End VRM Expression Debug ===');
+        
+        console.log('Avatar loaded. Pose will be enforced in the animation loop.');
+
+      } catch (error) {
+        console.error(`Error loading VRM (${vrmFile}):`, error);
       }
-    );
-    // Animation loop
+    };
+    
+    loadVRMModel(selectedVRM);
+    
+    // --- Animation loop and window resize (core modification here) ---
+    const clock = new THREE.Clock();
+    let poseInitialized = false; // Flag to ensure reset only executes once
+
     const animate = () => {
       requestAnimationFrame(animate);
-      const delta = 0.016; // 60fps
+      const delta = clock.getDelta();
+      
       if (vrmRef.current) {
+        // Update VRM's animation and physics first
         vrmRef.current.update(delta);
-      }
-      if (mixerRef.current) {
-        mixerRef.current.update(delta);
-      }
-      renderer.render(scene, camera);
-    };
-    animate();
-    // Handle window resize
-    const handleResize = () => {
-      if (camera && renderer) {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        // Ensure avatar stays centered and at correct height after resize
-        if (vrmRef.current) {
-          vrmRef.current.scene.position.set(0, 0.75, 0);
+
+        // **Core fix: Immediately force our pose after update**
+        // This step will override any pose reset caused by .update()
+        const humanoid = vrmRef.current.humanoid;
+        if (humanoid) {
+          const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
+            const boneNode = humanoid.getNormalizedBoneNode(boneName);
+            if (boneNode) {
+              boneNode.rotation.set(
+                THREE.MathUtils.degToRad(x),
+                THREE.MathUtils.degToRad(y),
+                THREE.MathUtils.degToRad(z)
+              );
+            }
+          };
+
+          // Force arms to hang naturally
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees (moved up)
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees (moved up)
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
+          
+          // Only apply pose once, reset spring bones to their new resting state
+          if (!poseInitialized && vrmRef.current.springBoneManager) {
+            vrmRef.current.springBoneManager.reset();
+            poseInitialized = true;
+            console.log("Pose enforced and spring bones have been reset to this pose.");
+          }
         }
       }
+      
+      renderer.render(scene, camera);
+    };
+
+    animate();
+    
+    const handleResize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', handleResize);
+    
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (mountElement && renderer.domElement) {
-        mountElement.removeChild(renderer.domElement);
+      if (mountElement && renderer.domElement.parentElement) {
+         mountElement.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, []);
+  }, [selectedVRM]); // <-- Dependencies array
 
   // Initialize speech recognition
   useEffect(() => {
@@ -360,7 +712,7 @@ function App() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'zh-CN';
+      recognitionRef.current.lang = languageContext === 'chinese' ? 'zh-CN' : 'en-US';
 
       recognitionRef.current.onresult = async (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
@@ -372,6 +724,16 @@ function App() {
         
         // Process with AI
         await processWithAI(transcript);
+        
+        // If in continuous talking mode, restart listening
+        if (isContinuousTalking && recognitionRef.current) {
+          setTimeout(() => {
+            if (isContinuousTalking && !isProcessing) {
+              recognitionRef.current?.start();
+              setIsListening(true);
+            }
+          }, 1000); // Wait 1 second before restarting
+        }
       };
 
       recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -386,7 +748,30 @@ function App() {
 
     // Initialize speech synthesis
     synthesisRef.current = window.speechSynthesis;
-  }, [processWithAI]);
+    
+    // Load available voices
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+      
+      // Set default voice based on language context
+      const defaultVoice = voices.find(voice => 
+        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en') && voice.default
+      ) || voices.find(voice => 
+        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en')
+      ) || voices[0];
+      
+      setSelectedVoice(defaultVoice);
+    };
+    
+    // Load voices immediately if available
+    loadVoices();
+    
+    // Load voices when they become available
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, [processWithAI, languageContext, isContinuousTalking, isProcessing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening && !isProcessing) {
@@ -401,6 +786,126 @@ function App() {
       setIsListening(false);
     }
   }, [isListening]);
+
+  // Handle text input submission
+  const handleTextSubmit = useCallback(async () => {
+    if (textInput.trim() && !isProcessing) {
+      // Add user message to chat
+      const userMessage: ChatMessage = { role: 'user', content: textInput.trim() };
+      setChatHistory(prev => [...prev, userMessage]);
+      
+      // Process with AI
+      await processWithAI(textInput.trim());
+      
+      // Clear text input
+      setTextInput('');
+    }
+  }, [textInput, isProcessing, processWithAI]);
+
+  // Handle continuous talking mode
+  const toggleContinuousTalking = useCallback(() => {
+    if (isContinuousTalking) {
+      // Stop continuous mode
+      setIsContinuousTalking(false);
+      if (isListening) {
+        stopListening();
+      }
+    } else {
+      // Start continuous mode
+      setIsContinuousTalking(true);
+      if (!isListening && !isProcessing) {
+        startListening();
+      }
+    }
+  }, [isContinuousTalking, isListening, isProcessing, startListening, stopListening]);
+
+  // Handle VRM model change
+  const handleVRMChange = useCallback(async (vrmFile: string) => {
+    setSelectedVRM(vrmFile);
+    // The VRM will be reloaded in the useEffect when selectedVRM changes
+  }, []);
+
+  // Handle expression change
+  const handleExpressionChange = useCallback((expression: string) => {
+    setSelectedExpression(expression);
+    
+    // Apply the selected expression to the VRM
+    if (vrmRef.current) {
+      // Reset all expressions first
+      if (vrmAnalysis && vrmAnalysis.expressionNames) {
+        vrmAnalysis.expressionNames.forEach((expr: string) => {
+          setVrmMouthShape(expr, 0.0);
+        });
+      }
+      
+      // Apply the selected expression
+      if (expression !== 'neutral') {
+        setVrmMouthShape(expression, 1.0);
+        console.log(`Applied expression: ${expression}`);
+      }
+    }
+  }, [vrmAnalysis]);
+
+  // Mouse control functions
+  const handleMouseDown = useCallback((event: React.MouseEvent) => {
+    setIsMouseDown(true);
+    setMouseButton(event.button);
+    setLastMouseX(event.clientX);
+    setLastMouseY(event.clientY);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    setIsMouseDown(false);
+    setMouseButton(0);
+  }, []);
+
+  const handleMouseMove = useCallback((event: React.MouseEvent) => {
+    if (!isMouseDown) return;
+
+    const deltaX = event.clientX - lastMouseX;
+    const deltaY = event.clientY - lastMouseY;
+
+    if (mouseButton === 0) { // Left button - pan camera (swapped from rotate avatar)
+      if (cameraRef.current) {
+        const camera = cameraRef.current;
+        camera.position.x -= deltaX * 0.01; // Reversed X direction
+        camera.position.y += deltaY * 0.01; // Reversed Y direction
+        
+        // Save camera state to cookie after every movement
+        saveCameraState(camera);
+      }
+    } else if (mouseButton === 1) { // Middle button - rotate avatar (swapped from pan camera)
+      if (vrmRef.current) {
+        const vrm = vrmRef.current;
+        vrm.scene.rotation.y += deltaX * 0.01;
+        vrm.scene.rotation.x += deltaY * 0.01;
+        saveVRMRotationState(vrm); // Save rotation state
+      }
+    } else if (mouseButton === 2) { // Right button - zoom camera
+      if (cameraRef.current) {
+        const camera = cameraRef.current;
+        const zoomFactor = deltaY > 0 ? 0.95 : 1.05;
+        camera.position.z *= zoomFactor;
+        
+        // Save camera state to cookie after every zoom
+        saveCameraState(camera);
+      }
+    }
+
+    setLastMouseX(event.clientX);
+    setLastMouseY(event.clientY);
+  }, [isMouseDown, mouseButton, lastMouseX, lastMouseY]);
+
+  const handleWheel = useCallback((event: React.WheelEvent) => {
+    if (!cameraRef.current) return;
+    
+    const camera = cameraRef.current;
+    const zoomFactor = event.deltaY > 0 ? 1.1 : 0.9; // Reversed zoom direction
+    camera.position.z *= zoomFactor;
+    
+    // Save camera state to cookie after every wheel scroll
+    saveCameraState(camera);
+  }, []);
 
   // Simple routing
   const [currentRoute, setCurrentRoute] = useState<string>('main');
@@ -422,32 +927,203 @@ function App() {
 
   return (
     <div className="App">
-      <div ref={mountRef} style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }} />
-      
-      {/* Voice control overlay */}
-      <div className="voice-controls">
-        <button 
-          className={`voice-button ${isListening ? 'listening' : ''}`}
-          onClick={isListening ? stopListening : startListening}
-          disabled={isProcessing}
-        >
-          {isListening ? 'Stop Recording' : 'Start Recording'}
-        </button>
-        
-        {isProcessing && (
-          <div className="processing-indicator">
-            Processing...
+      {/* Left Column - Controls and Statistics */}
+      <div className="left-column">
+        {/* Model selector */}
+        <div className="model-selector">
+          <label htmlFor="model-select">Model:</label>
+          <select 
+            id="model-select"
+            value={selectedVRM}
+            onChange={(e) => handleVRMChange(e.target.value)}
+            className="model-select"
+          >
+            <option value="cute-girl.vrm">Cute Girl</option>
+            <option value="twitch-girl.vrm">Twitch Girl</option>
+            <option value="Nahida.vrm">Nahida</option>
+            <option value="star-rail.vrm">Star Rail</option>
+            <option value="pee.vrm">Pee</option>
+          </select>
+          
+          <label htmlFor="language-select">Language:</label>
+          <select 
+            id="language-select"
+            value={languageContext}
+            onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
+            className="language-select"
+          >
+            <option value="chinese">中文</option>
+            <option value="english">English</option>
+          </select>
+          
+          <label htmlFor="voice-select">Voice:</label>
+          <select 
+            id="voice-select"
+            value={selectedVoice?.name || ''}
+            onChange={(e) => {
+              const voice = availableVoices.find(v => v.name === e.target.value);
+              setSelectedVoice(voice || null);
+            }}
+            className="voice-select"
+          >
+            <option value="">Default Voice</option>
+            {availableVoices
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((voice) => (
+                <option key={voice.name} value={voice.name}>
+                  {voice.name} ({voice.lang})
+                </option>
+              ))
+            }
+          </select>
+          
+          <label htmlFor="expression-select">Expression:</label>
+          <select 
+            id="expression-select"
+            value={selectedExpression}
+            onChange={(e) => handleExpressionChange(e.target.value)}
+            className="expression-select"
+          >
+            <option value="neutral">Neutral</option>
+            {vrmAnalysis && vrmAnalysis.expressionNames && 
+              vrmAnalysis.expressionNames
+                .filter((expr: string) => expr !== 'neutral')
+                .map((expr: string) => (
+                  <option key={expr} value={expr}>{expr}</option>
+                ))
+            }
+          </select>
+        </div>
+
+        {/* Multi-tab box for VRM Analysis and Voice Information */}
+        <div className="multi-tab-box">
+          {/* Tab headers */}
+          <div className="tab-headers">
+            <button 
+              className={`tab-header ${activeTab === 'vrm' ? 'active' : ''}`}
+              onClick={() => setActiveTab('vrm')}
+            >
+              VRM Analysis
+            </button>
+            <button 
+              className={`tab-header ${activeTab === 'voice' ? 'active' : ''}`}
+              onClick={() => setActiveTab('voice')}
+            >
+              Voice Info
+            </button>
           </div>
-        )}
+
+          {/* Tab content */}
+          <div className="tab-content">
+            {activeTab === 'vrm' && vrmAnalysis && (
+              <div className="vrm-analysis">
+                <h3>VRM Analysis Results</h3>
+                <div className="analysis-content">
+                  <p><strong>VRM Version:</strong> {vrmAnalysis.vrmVersion}</p>
+                  <p><strong>Available Systems:</strong> {vrmAnalysis.availableSystems.join(', ')}</p>
+                  <p><strong>Expression Names:</strong> {vrmAnalysis.expressionNames.join(', ') || 'None'}</p>
+                  <p><strong>BlendShape Names:</strong> {vrmAnalysis.blendShapeNames.join(', ') || 'None'}</p>
+                  {suggestedMouthShape && (
+                    <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
+                  )}
+                  <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
+                  <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'voice' && selectedVoice && (
+              <div className="voice-info">
+                <h3>Voice Information</h3>
+                <div className="voice-content">
+                  <p><strong>Selected Voice:</strong> {selectedVoice.name}</p>
+                  <p><strong>Language:</strong> {selectedVoice.lang}</p>
+                  <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
+                  <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
+                                     <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Chat history overlay */}
-      <div className="chat-history">
-        {chatHistory.map((message, index) => (
-          <div key={index} className={`message ${message.role}`}>
-            <strong>{message.role === 'user' ? 'You' : 'Assistant'}:</strong> {message.content}
+      {/* Center Column - 3D Scene */}
+      <div className="center-column">
+        <div 
+          ref={mountRef} 
+          style={{ width: '100%', height: '100%' }}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          onWheel={handleWheel}
+          onContextMenu={(e) => e.preventDefault()} // Prevent right-click context menu
+        />
+
+        {/* Voice control overlay - horizontal buttons */}
+        <div className="voice-controls">
+          {/* Text input for typing messages */}
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleTextSubmit();
+              }
+            }}
+            placeholder="Type your message here..."
+            className="text-input"
+            disabled={isProcessing}
+          />
+          
+          {/* Button container for horizontal layout */}
+          <div className="button-container">
+            {/* Submit button for text input */}
+            <button 
+              className="submit-button"
+              onClick={handleTextSubmit}
+              disabled={!textInput.trim() || isProcessing}
+            >
+              Send
+            </button>
+            
+            {/* Voice recording button */}
+            <button 
+              className={`voice-button ${isListening ? 'listening' : ''}`}
+              onClick={isListening ? stopListening : startListening}
+              disabled={isProcessing || isContinuousTalking}
+            >
+              {isListening ? 'Stop Talking' : 'Start Talking'}
+            </button>
+            
+            {/* Continuous talking button */}
+            <button 
+              className={`continuous-button ${isContinuousTalking ? 'active' : ''}`}
+              onClick={toggleContinuousTalking}
+              disabled={isProcessing}
+            >
+              {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
+            </button>
           </div>
-        ))}
+          
+          {isProcessing && (
+            <div className="processing-indicator">
+              Processing...
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Column - Chat History */}
+      <div className="right-column">
+        <div className="chat-history">
+          {chatHistory.map((message, index) => (
+            <div key={index} className={`message ${message.role}`}>
+              <strong>{message.role === 'user' ? 'You' : 'Assistant'}:</strong> {message.content}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
