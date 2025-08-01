@@ -61,7 +61,26 @@ const loadCameraState = (camera: THREE.PerspectiveCamera): boolean => {
       return false;
     }
   }
-  return false;
+  
+  // Set default camera state for first-time visitors
+  const defaultCameraState = {
+    position: { x: 0.39000000000000024, y: 2.4099999999999997, z: 1.2552423843600007 },
+    rotation: { x: 0, y: 0, z: 0 },
+    fov: 35,
+    aspect: 2.107487922705314
+  };
+  
+  camera.position.set(defaultCameraState.position.x, defaultCameraState.position.y, defaultCameraState.position.z);
+  camera.rotation.set(defaultCameraState.rotation.x, defaultCameraState.rotation.y, defaultCameraState.rotation.z);
+  camera.fov = defaultCameraState.fov;
+  camera.aspect = defaultCameraState.aspect;
+  camera.updateProjectionMatrix();
+  
+  // Save the default state to localStorage
+  setLocalStorage('cameraState', JSON.stringify(defaultCameraState));
+  console.log('Set default camera state for first-time visitor');
+  
+  return true;
 };
 
 // Save VRM rotation state to localStorage
@@ -89,7 +108,19 @@ const loadVRMRotationState = (vrm: VRM): boolean => {
       return false;
     }
   }
-  return false;
+  
+  // Set default VRM rotation state for first-time visitors
+  const defaultVrmRotationState = {
+    rotation: { x: -0.04000000000000018, y: 3.3215926535897933, z: 0 }
+  };
+  
+  vrm.scene.rotation.set(defaultVrmRotationState.rotation.x, defaultVrmRotationState.rotation.y, defaultVrmRotationState.rotation.z);
+  
+  // Save the default state to localStorage
+  setLocalStorage('vrmRotationState', JSON.stringify(defaultVrmRotationState));
+  console.log('Set default VRM rotation state for first-time visitor');
+  
+  return true;
 };
 
 // Type declarations for Web Speech API
@@ -167,9 +198,17 @@ function App() {
   
   // Language context
   const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>(() => {
-    // Load language preference from localStorage, default to 'english'
+    // Load language preference from localStorage
     const savedLanguage = getLocalStorage('languageContext');
-    return (savedLanguage as 'chinese' | 'english') || 'english';
+    if (savedLanguage) {
+      return savedLanguage as 'chinese' | 'english';
+    }
+    
+    // Set default language to English for first-time visitors
+    const defaultLanguage = 'english';
+    setLocalStorage('languageContext', defaultLanguage);
+    console.log('Set default language to English for first-time visitor');
+    return defaultLanguage;
   });
   
   // Voice selection state
@@ -195,6 +234,16 @@ function App() {
     const hasSeenPopup = getLocalStorage('mouseControlPopupSeen');
     return hasSeenPopup !== 'true';
   });
+  
+  // First visit auto-message state
+  const [hasSentFirstMessage, setHasSentFirstMessage] = useState(() => {
+    // Check if first message has been sent
+    const hasSent = getLocalStorage('firstMessageSent');
+    return hasSent === 'true';
+  });
+  
+  // Ref to track if first message is being sent
+  const isSendingFirstMessage = useRef(false);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
@@ -454,7 +503,13 @@ function App() {
     
     try {
       console.log('Making API request to:', config.apiUrl);
-      console.log('Request payload:', { prompt: userInput });
+      
+      // Create language-specific prompt
+      const languagePrompt = languageContext === 'chinese' 
+        ? `你是一个友好的AI助手。请始终用中文回复用户的问题。用户输入：${userInput}`
+        : `You are a friendly AI assistant. Please always respond in English to user questions. User input: ${userInput}`;
+      
+      console.log('Request payload:', { prompt: languagePrompt });
       
       // Use configuration for API URL
       const response = await fetch(config.apiUrl, {
@@ -464,7 +519,7 @@ function App() {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          prompt: userInput
+          prompt: languagePrompt
         }),
       });
 
@@ -498,7 +553,7 @@ function App() {
     } finally {
       setIsProcessing(false);
     }
-  }, [speakText]);
+  }, [speakText, languageContext]);
 
   // Initialize Three.js scene and VRM
   useEffect(() => {
@@ -513,13 +568,8 @@ function App() {
     // Store camera reference for later use
     cameraRef.current = camera;
     
-    // Try to load camera state from cookie, otherwise use defaults
-    const cameraStateLoaded = loadCameraState(camera);
-    if (!cameraStateLoaded) {
-      // Set default camera position if no cookie found
-    camera.position.set(0, 1.6, 4);
-      console.log('Using default camera position');
-    }
+    // Load camera state (will set defaults for first-time visitors)
+    loadCameraState(camera);
     
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -559,11 +609,8 @@ function App() {
         vrm.scene.rotation.y = Math.PI;
         vrm.scene.scale.setScalar(1.2);
         
-        // Try to load VRM rotation state from cookie, otherwise use defaults
-        const vrmRotationLoaded = loadVRMRotationState(vrm);
-        if (!vrmRotationLoaded) {
-          console.log('Using default VRM rotation');
-        }
+        // Load VRM rotation state (will set defaults for first-time visitors)
+        loadVRMRotationState(vrm);
         
         vrm.scene.traverse((child: any) => {
           if (child instanceof THREE.Mesh) {
@@ -643,7 +690,29 @@ function App() {
         
         console.log('=== End VRM Expression Debug ===');
         
-        console.log('Avatar loaded. Pose will be enforced in the animation loop.');
+        // Immediately apply the desired pose after VRM is loaded
+        if (vrm.humanoid) {
+          const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
+            const boneNode = vrm.humanoid.getNormalizedBoneNode(boneName);
+            if (boneNode) {
+              boneNode.rotation.set(
+                THREE.MathUtils.degToRad(x),
+                THREE.MathUtils.degToRad(y),
+                THREE.MathUtils.degToRad(z)
+              );
+            }
+          };
+
+          // Apply the natural pose immediately
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60);
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15);
+          
+          console.log('Initial pose applied immediately after VRM load');
+        }
+        
+        console.log('Avatar loaded. Pose will be continuously enforced in the animation loop.');
 
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
@@ -655,17 +724,22 @@ function App() {
     // --- Animation loop and window resize (core modification here) ---
     const clock = new THREE.Clock();
     let poseInitialized = false; // Flag to ensure reset only executes once
+    let frameCount = 0; // Track frames to ensure pose is applied consistently
+    
+    // Reset pose initialization when VRM changes
+    poseInitialized = false;
 
     const animate = () => {
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
+      frameCount++;
       
       if (vrmRef.current) {
         // Update VRM's animation and physics first
         vrmRef.current.update(delta);
 
-        // **Core fix: Immediately force our pose after update**
-        // This step will override any pose reset caused by .update()
+        // **Core fix: Always force our pose after update to prevent T-pose**
+        // This ensures the pose is maintained even after page refresh
         const humanoid = vrmRef.current.humanoid;
         if (humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
@@ -679,14 +753,14 @@ function App() {
             }
           };
 
-          // Force arms to hang naturally
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees (moved up)
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees (moved up)
+          // Force arms to hang naturally - ALWAYS apply this pose
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
           setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
           setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
           
-          // Only apply pose once, reset spring bones to their new resting state
-          if (!poseInitialized && vrmRef.current.springBoneManager) {
+          // Reset spring bones only once after pose is established
+          if (!poseInitialized && vrmRef.current.springBoneManager && frameCount > 10) {
             vrmRef.current.springBoneManager.reset();
             poseInitialized = true;
             console.log("Pose enforced and spring bones have been reset to this pose.");
@@ -783,6 +857,66 @@ function App() {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
   }, [processWithAI, languageContext, isContinuousTalking, isProcessing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update voice selection when language changes
+  useEffect(() => {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      // Find the best voice for the current language
+      const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
+      
+      // First try to find a default voice for the language
+      let bestVoice = voices.find(voice => 
+        voice.lang.startsWith(languagePrefix) && voice.default
+      );
+      
+      // If no default voice, find any voice for the language
+      if (!bestVoice) {
+        bestVoice = voices.find(voice => 
+          voice.lang.startsWith(languagePrefix)
+        );
+      }
+      
+      // If still no voice found, use the first available voice
+      if (!bestVoice && voices.length > 0) {
+        bestVoice = voices[0];
+      }
+      
+      if (bestVoice) {
+        setSelectedVoice(bestVoice);
+        console.log(`Auto-selected voice for ${languageContext}:`, bestVoice.name, bestVoice.lang);
+      }
+    }
+  }, [languageContext, availableVoices]);
+
+  // Auto-send first message for first-time visitors
+  useEffect(() => {
+    if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
+      // Add a small delay to ensure component is fully initialized
+      const timer = setTimeout(() => {
+        if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
+          isSendingFirstMessage.current = true; // Mark as sending
+          
+          const firstMessage = "Please respond in English from now on.";
+          
+          // Mark as sent immediately to prevent duplicate sends
+          setHasSentFirstMessage(true);
+          setLocalStorage('firstMessageSent', 'true');
+          
+          // Add user message to chat
+          const userMessage: ChatMessage = { role: 'user', content: firstMessage };
+          setChatHistory(prev => [...prev, userMessage]);
+          
+          // Process with AI
+          processWithAI(firstMessage);
+          
+          console.log('Auto-sent first message for first-time visitor');
+        }
+      }, 1000); // 1 second delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasSentFirstMessage, isProcessing, processWithAI]);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening && !isProcessing) {
@@ -961,6 +1095,12 @@ function App() {
               const newLanguage = e.target.value as 'chinese' | 'english';
               setLanguageContext(newLanguage);
               setLocalStorage('languageContext', newLanguage);
+              console.log(`Language changed to: ${newLanguage}, saved to localStorage`);
+              
+              // Update speech recognition language
+              if (recognitionRef.current) {
+                recognitionRef.current.lang = newLanguage === 'chinese' ? 'zh-CN' : 'en-US';
+              }
             }}
             className="language-select"
           >
@@ -980,6 +1120,10 @@ function App() {
           >
             <option value="">Default Voice</option>
             {availableVoices
+              .filter(voice => {
+                const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
+                return voice.lang.startsWith(languagePrefix);
+              })
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((voice) => (
                 <option key={voice.name} value={voice.name}>
@@ -1074,6 +1218,12 @@ function App() {
 
         {/* Voice control overlay - horizontal buttons */}
         <div className="voice-controls">
+          {isProcessing && (
+            <div className="processing-indicator">
+              Processing...
+            </div>
+          )}
+          
           {/* Text input for typing messages */}
           <input
             type="text"
@@ -1118,12 +1268,6 @@ function App() {
               {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
           </button>
           </div>
-          
-          {isProcessing && (
-            <div className="processing-indicator">
-              Processing...
-            </div>
-          )}
         </div>
       </div>
 
