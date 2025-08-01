@@ -324,8 +324,12 @@ function App() {
           const match = availableMouthShapes.find((shape: string) => 
             shape.toLowerCase().includes(pattern.toLowerCase())
           );
-          if (match) return match;
+          if (match) {
+            console.log(`Mouth shape selected: ${match} for phoneme: ${phonemeLower}, word: ${wordLower}`);
+            return match;
+          }
         }
+        console.log(`No match found, using fallback: ${availableMouthShapes[0]} for phoneme: ${phonemeLower}`);
         return availableMouthShapes[0]; // Fallback
       };
       
@@ -334,10 +338,10 @@ function App() {
         return findBestMatch(['aa', 'ah', 'a', 'open', 'wide', 'jaw']);
       }
       if (['e', 'ɛ', 'eɪ', 'iː', 'eː'].includes(phonemeLower)) {
-        return findBestMatch(['ee', 'eh', 'e', 'wide', 'smile', 'part']);
+        return findBestMatch(['ee', 'eh', 'e', 'wide', 'part']);
       }
       if (['i', 'ɪ', 'iː', 'iː'].includes(phonemeLower)) {
-        return findBestMatch(['ih', 'i', 'ee', 'wide', 'smile', 'part']);
+        return findBestMatch(['ih', 'i', 'ee', 'wide', 'part']);
       }
       if (['o', 'ɔ', 'oʊ', 'əʊ', 'oː'].includes(phonemeLower)) {
         return findBestMatch(['oh', 'o', 'round', 'pucker', 'close']);
@@ -442,6 +446,16 @@ function App() {
 
     // Open mouth when speech starts
     utterance.onstart = () => {
+      // Reset all expressions first to clear any lingering smile
+      if (vrmAnalysis && vrmAnalysis.expressionNames) {
+        vrmAnalysis.expressionNames.forEach((expr: string) => {
+          if (expr.toLowerCase().includes('smile')) {
+            setVrmMouthShape(expr, 0.0);
+            console.log(`Reset smile expression: ${expr}`);
+          }
+        });
+      }
+      
       const { phoneme, word } = detectPhoneme(text, 0);
       const mouthShape = phonemeToMouthShape(phoneme, word);
       currentMouthShape = mouthShape;
