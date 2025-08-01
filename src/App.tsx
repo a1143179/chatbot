@@ -245,6 +245,9 @@ function App() {
   // Ref to track if first message is being sent
   const isSendingFirstMessage = useRef(false);
   
+  // Ref for text input field
+  const textInputRef = useRef<HTMLInputElement>(null);
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
@@ -544,6 +547,14 @@ function App() {
       console.log('AI response will be spoken by avatar:', aiResponse);
       speakText(aiResponse);
       
+      // Refocus text input after AI response
+      setTimeout(() => {
+        if (textInputRef.current) {
+          textInputRef.current.focus();
+          console.log('Refocused text input after AI response');
+        }
+      }, 100); // Small delay to ensure speech synthesis starts
+      
     } catch (error) {
       console.error('Error processing with AI:', error);
       const errorMessage: ChatMessage = { 
@@ -551,6 +562,14 @@ function App() {
         content: `Sorry, an error occurred while processing your request: ${error instanceof Error ? error.message : 'Unknown error'}` 
       };
       setChatHistory(prev => [...prev, errorMessage]);
+      
+      // Also refocus on error
+      setTimeout(() => {
+        if (textInputRef.current) {
+          textInputRef.current.focus();
+          console.log('Refocused text input after error');
+        }
+      }, 100);
     } finally {
       setIsProcessing(false);
     }
@@ -1231,6 +1250,7 @@ function App() {
           
           {/* Text input for typing messages */}
           <input
+            ref={textInputRef}
             type="text"
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
