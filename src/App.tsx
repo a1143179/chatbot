@@ -540,7 +540,8 @@ function App() {
       const assistantMessage: ChatMessage = { role: 'assistant', content: aiResponse };
       setChatHistory(prev => [...prev, assistantMessage]);
       
-      // Speak the response
+      // Speak the AI response (this is the only text that should be spoken)
+      console.log('AI response will be spoken by avatar:', aiResponse);
       speakText(aiResponse);
       
     } catch (error) {
@@ -801,13 +802,14 @@ function App() {
 
       recognitionRef.current.onresult = async (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
-        console.log('Recognized:', transcript);
+        console.log('Recognized user input:', transcript);
+        console.log('User input will NOT be spoken by the avatar');
         
         // Add user message to chat
         const userMessage: ChatMessage = { role: 'user', content: transcript };
         setChatHistory(prev => [...prev, userMessage]);
         
-        // Process with AI
+        // Process with AI (only AI response will be spoken)
         await processWithAI(transcript);
         
         // If in continuous talking mode, restart listening
@@ -935,11 +937,14 @@ function App() {
   // Handle text input submission
   const handleTextSubmit = useCallback(async () => {
     if (textInput.trim() && !isProcessing) {
+      console.log('Text input submitted:', textInput.trim());
+      console.log('Text input will NOT be spoken by the avatar');
+      
       // Add user message to chat
       const userMessage: ChatMessage = { role: 'user', content: textInput.trim() };
       setChatHistory(prev => [...prev, userMessage]);
       
-      // Process with AI
+      // Process with AI (only AI response will be spoken)
       await processWithAI(textInput.trim());
       
       // Clear text input
