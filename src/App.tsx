@@ -166,11 +166,15 @@ function App() {
   const [selectedExpression, setSelectedExpression] = useState<string>('neutral');
   
   // Language context
-  const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>('chinese');
+  const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>(() => {
+    // Load language preference from localStorage, default to 'english'
+    const savedLanguage = getLocalStorage('languageContext');
+    return (savedLanguage as 'chinese' | 'english') || 'english';
+  });
   
-     // Voice selection state
-   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  // Voice selection state
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   
   // Mouse control states
   const [isMouseDown, setIsMouseDown] = useState(false);
@@ -184,6 +188,13 @@ function App() {
   
   // Add state for tab management
   const [activeTab, setActiveTab] = useState<'vrm' | 'voice'>('vrm');
+  
+  // Mouse control popup state
+  const [showMouseControlPopup, setShowMouseControlPopup] = useState(() => {
+    // Check if user has seen the popup before
+    const hasSeenPopup = getLocalStorage('mouseControlPopupSeen');
+    return hasSeenPopup !== 'true';
+  });
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
@@ -506,7 +517,7 @@ function App() {
     const cameraStateLoaded = loadCameraState(camera);
     if (!cameraStateLoaded) {
       // Set default camera position if no cookie found
-      camera.position.set(0, 1.6, 4);
+    camera.position.set(0, 1.6, 4);
       console.log('Using default camera position');
     }
     
@@ -865,30 +876,21 @@ function App() {
     const deltaX = event.clientX - lastMouseX;
     const deltaY = event.clientY - lastMouseY;
 
-    if (mouseButton === 0) { // Left button - pan camera (swapped from rotate avatar)
+    if (mouseButton === 0) { // Left button - pan camera
       if (cameraRef.current) {
         const camera = cameraRef.current;
-        camera.position.x -= deltaX * 0.01; // Reversed X direction
-        camera.position.y += deltaY * 0.01; // Reversed Y direction
+        camera.position.x -= deltaX * 0.01;
+        camera.position.y += deltaY * 0.01;
         
         // Save camera state to cookie after every movement
         saveCameraState(camera);
       }
-    } else if (mouseButton === 1) { // Middle button - rotate avatar (swapped from pan camera)
+    } else if (mouseButton === 1) { // Middle button - rotate avatar
       if (vrmRef.current) {
         const vrm = vrmRef.current;
         vrm.scene.rotation.y += deltaX * 0.01;
         vrm.scene.rotation.x += deltaY * 0.01;
         saveVRMRotationState(vrm); // Save rotation state
-      }
-    } else if (mouseButton === 2) { // Right button - zoom camera
-      if (cameraRef.current) {
-        const camera = cameraRef.current;
-        const zoomFactor = deltaY > 0 ? 0.95 : 1.05;
-        camera.position.z *= zoomFactor;
-        
-        // Save camera state to cookie after every zoom
-        saveCameraState(camera);
       }
     }
 
@@ -920,6 +922,12 @@ function App() {
     }
   }, []);
 
+  // Close mouse control popup and save preference
+  const closeMouseControlPopup = useCallback(() => {
+    setShowMouseControlPopup(false);
+    setLocalStorage('mouseControlPopupSeen', 'true');
+  }, []);
+
   // Render CORS test page
   if (currentRoute === 'cors-test') {
     return <CorsTest />;
@@ -949,7 +957,11 @@ function App() {
           <select 
             id="language-select"
             value={languageContext}
-            onChange={(e) => setLanguageContext(e.target.value as 'chinese' | 'english')}
+            onChange={(e) => {
+              const newLanguage = e.target.value as 'chinese' | 'english';
+              setLanguageContext(newLanguage);
+              setLocalStorage('languageContext', newLanguage);
+            }}
             className="language-select"
           >
             <option value="chinese">中文</option>
@@ -1040,7 +1052,7 @@ function App() {
                   <p><strong>Language:</strong> {selectedVoice.lang}</p>
                   <p><strong>Default:</strong> {selectedVoice.default ? 'Yes' : 'No'}</p>
                   <p><strong>Local Service:</strong> {selectedVoice.localService ? 'Yes' : 'No'}</p>
-                                     <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
+                  <p><strong>Total Available Voices:</strong> {availableVoices.length}</p>
                 </div>
               </div>
             )}
@@ -1086,25 +1098,25 @@ function App() {
               disabled={!textInput.trim() || isProcessing}
             >
               Send
-            </button>
-            
+          </button>
+          
             {/* Voice recording button */}
-            <button 
+          <button 
               className={`voice-button ${isListening ? 'listening' : ''}`}
               onClick={isListening ? stopListening : startListening}
               disabled={isProcessing || isContinuousTalking}
             >
               {isListening ? 'Stop Talking' : 'Start Talking'}
-            </button>
-            
+          </button>
+          
             {/* Continuous talking button */}
-            <button 
+          <button 
               className={`continuous-button ${isContinuousTalking ? 'active' : ''}`}
               onClick={toggleContinuousTalking}
               disabled={isProcessing}
             >
               {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
-            </button>
+          </button>
           </div>
           
           {isProcessing && (
@@ -1125,6 +1137,45 @@ function App() {
           ))}
         </div>
       </div>
+
+      {/* Mouse Control Popup Overlay */}
+      {showMouseControlPopup && (
+        <div className="mouse-control-popup-overlay" onClick={closeMouseControlPopup}>
+          <div className="mouse-control-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>Mouse Controls</h3>
+              <button className="popup-close" onClick={closeMouseControlPopup}>
+                ✕
+              </button>
+            </div>
+            <div className="popup-content">
+              <div className="control-item">
+                <div className="control-icon">🖱️</div>
+                <div className="control-text">
+                  <strong>Left Mouse Button:</strong> Pan camera
+                </div>
+              </div>
+              <div className="control-item">
+                <div className="control-icon">🖱️</div>
+                <div className="control-text">
+                  <strong>Middle Mouse Button:</strong> Rotate avatar
+                </div>
+              </div>
+              <div className="control-item">
+                <div className="control-icon">🖱️</div>
+                <div className="control-text">
+                  <strong>Mouse Wheel:</strong> Zoom in/out
+                </div>
+              </div>
+            </div>
+            <div className="popup-footer">
+              <button className="popup-got-it" onClick={closeMouseControlPopup}>
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
