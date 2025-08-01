@@ -724,7 +724,7 @@ function App() {
         
         console.log('=== End VRM Expression Debug ===');
         
-        // Immediately apply the desired pose after VRM is loaded
+        // Immediately apply A-pose after VRM is loaded
         if (vrm.humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
             const boneNode = vrm.humanoid.getNormalizedBoneNode(boneName);
@@ -737,13 +737,23 @@ function App() {
             }
           };
 
-          // Apply the natural pose immediately
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60);
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15);
+          // Apply complete A-pose immediately
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
+          setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
+          setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
+          setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
+          setBoneRotation(VRMHumanBoneName.RightShoulder, 0, 0, 0);   // Relaxed shoulders
           
-          console.log('Initial pose applied immediately after VRM load');
+          // Reset spring bones to the new pose
+          if (vrm.springBoneManager) {
+            vrm.springBoneManager.reset();
+            console.log('Spring bones reset to A-pose after VRM load');
+          }
+          
+          console.log('Complete A-pose applied immediately after VRM load');
         }
         
         console.log('Avatar loaded. Pose will be continuously enforced in the animation loop.');
@@ -757,11 +767,7 @@ function App() {
     
     // --- Animation loop and window resize (core modification here) ---
     const clock = new THREE.Clock();
-    let poseInitialized = false; // Flag to ensure reset only executes once
     let frameCount = 0; // Track frames to ensure pose is applied consistently
-    
-    // Reset pose initialization when VRM changes
-    poseInitialized = false;
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -772,8 +778,8 @@ function App() {
         // Update VRM's animation and physics first
         vrmRef.current.update(delta);
 
-        // **Core fix: Always force our pose after update to prevent T-pose**
-        // This ensures the pose is maintained even after page refresh
+        // **Core fix: Always force A-pose after update to prevent T-pose**
+        // This ensures the pose is maintained even after page refresh or VRM updates
         const humanoid = vrmRef.current.humanoid;
         if (humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
@@ -787,17 +793,27 @@ function App() {
             }
           };
 
-          // Force arms to hang naturally - ALWAYS apply this pose
+          // Force A-pose - ALWAYS apply this pose in every frame
           setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
           setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
           setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
           setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
           
-          // Reset spring bones only once after pose is established
-          if (!poseInitialized && vrmRef.current.springBoneManager && frameCount > 10) {
+          // Also set other body parts to ensure complete A-pose
+          setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
+          setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
+          setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
+          setBoneRotation(VRMHumanBoneName.RightShoulder, 0, 0, 0);   // Relaxed shoulders
+          
+          // Reset spring bones periodically to maintain pose
+          if (frameCount % 60 === 0 && vrmRef.current.springBoneManager) { // Every 60 frames (about 1 second)
             vrmRef.current.springBoneManager.reset();
-            poseInitialized = true;
-            console.log("Pose enforced and spring bones have been reset to this pose.");
+            console.log("Periodic spring bone reset to maintain A-pose");
+          }
+          
+          // Log pose enforcement periodically
+          if (frameCount % 300 === 0) { // Every 300 frames (about 5 seconds)
+            console.log("A-pose enforced at frame:", frameCount);
           }
         }
       }
