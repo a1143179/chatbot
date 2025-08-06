@@ -521,12 +521,10 @@ function App() {
     try {
       console.log('Making API request to:', config.apiUrl);
       
-      // Create language-specific prompt
-      const languagePrompt = languageContext === 'chinese' 
-        ? `你是一个友好的AI助手。请始终用中文回复用户的问题。用户输入：${userInput}`
-        : `You are a friendly AI assistant. Please always respond in English to user questions. User input: ${userInput}`;
+      // Create simple prompt without language instruction (system instruction handles this)
+      const simplePrompt = userInput;
       
-      console.log('Request payload:', { prompt: languagePrompt, chatHistory: chatHistory.length });
+      console.log('Request payload:', { prompt: simplePrompt, chatHistory: chatHistory.length, language: languageContext });
       
       // Use configuration for API URL
       const response = await fetch(config.apiUrl, {
@@ -536,8 +534,9 @@ function App() {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          prompt: languagePrompt,
-          chatHistory: chatHistory
+          prompt: simplePrompt,
+          chatHistory: chatHistory,
+          language: languageContext
         }),
       });
 
@@ -1322,6 +1321,21 @@ function App() {
               disabled={isProcessing}
             >
               {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
+          </button>
+          
+            {/* Weather button */}
+          <button 
+              className="weather-button"
+              onClick={() => {
+                const location = prompt(languageContext === 'chinese' ? '请输入城市名称：' : 'Enter city name:');
+                if (location && location.trim()) {
+                  setTextInput(`What's the weather like in ${location.trim()}?`);
+                  handleTextSubmit();
+                }
+              }}
+              disabled={isProcessing}
+            >
+              🌤️ Weather
           </button>
           </div>
         </div>

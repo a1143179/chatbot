@@ -53,9 +53,10 @@ module.exports = async function (context, req) {
         return;
     }
     
-    const { prompt, chatHistory = [] } = body;
+    const { prompt, chatHistory = [], language = 'english' } = body;
     console.log('Extracted prompt:', prompt);
     console.log('Chat history length:', chatHistory.length);
+    console.log('Language preference:', language);
     
     // Get environment variable for Google AI API key
     const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -121,6 +122,11 @@ module.exports = async function (context, req) {
         
         console.log('Sending conversation with', contents.length, 'messages to Google AI');
         
+        // Create system instruction based on language preference
+        const systemInstruction = language === 'chinese' 
+            ? "你是一个友好的AI助手。请始终用中文回复用户的问题。保持友好、自然和有趣的对话风格。回复要简洁，适合语音播放。"
+            : "You are a friendly AI assistant. Please always respond in English to user questions. Maintain a friendly, natural, and interesting conversation style. Keep responses concise and suitable for voice playback.";
+        
         // Call Google AI Studio API
         const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
             method: 'POST',
@@ -130,12 +136,35 @@ module.exports = async function (context, req) {
             },
             body: JSON.stringify({
                 contents: contents,
+                systemInstruction: {
+                    parts: [{ text: systemInstruction }]
+                },
                 generationConfig: {
                     temperature: 0.7,
                     maxOutputTokens: 150,
                     topP: 0.8,
                     topK: 40
-                }
+                },
+                tools: [
+                    {
+                        functionDeclarations: [
+                            {
+                                name: "get_weather",
+                                description: "Get real-time weather information for a specific location",
+                                parameters: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        location: {
+                                            type: "STRING",
+                                            description: "City name or location (e.g., 'Beijing', 'New York', 'Tokyo')"
+                                        }
+                                    },
+                                    required: ["location"]
+                                }
+                            }
+                        ]
+                    }
+                ]
             })
         });
         
@@ -156,6 +185,55 @@ module.exports = async function (context, req) {
         
         const aiResponse = data.candidates[0].content.parts[0].text;
         console.log('AI response:', aiResponse);
+        
+        // Check if AI wants to call weather function
+        if (data.candidates[0].content.parts[0].functionCall) {
+            const functionCall = data.candidates[0].content.parts[0].functionCall;
+            if (functionCall.name === 'get_weather') {
+                const args = functionCall.args;
+                const location = args.location;
+                
+                console.log('Weather function called for location:', location);
+                
+                // Call weather API (you'll need to add your weather API key)
+                const weatherApiKey = process.env.WEATHER_API_KEY;
+                if (weatherApiKey) {
+                    try {
+                        const weatherResponse = await fetch(
+                            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${weatherApiKey}&units=metric&lang=${language === 'chinese' ? 'zh_cn' : 'en'}`
+                        );
+                        
+                        if (weatherResponse.ok) {
+                            const weatherData = await weatherResponse.json();
+                            const weatherInfo = language === 'chinese' 
+                                ? `${location}的天气：温度${weatherData.main.temp}°C，${weatherData.weather[0].description}，湿度${weatherData.main.humidity}%`
+                                : `Weather in ${location}: ${weatherData.main.temp}°C, ${weatherData.weather[0].description}, humidity ${weatherData.main.humidity}%`;
+                            
+                            console.log('Weather info:', weatherInfo);
+                            
+                            context.res = {
+                                status: 200,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Access-Control-Allow-Origin': '*',
+                                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
+                                },
+                                body: {
+                                    response: weatherInfo,
+                                    timestamp: new Date().toISOString(),
+                                    model: 'gemini-pro',
+                                    weatherData: weatherData
+                                }
+                            };
+                            return;
+                        }
+                    } catch (weatherError) {
+                        console.error('Weather API error:', weatherError);
+                    }
+                }
+            }
+        }
         
         // Return response
         context.res = {
