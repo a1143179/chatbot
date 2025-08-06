@@ -76,13 +76,20 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
 └── README.md
 ```
 
-## Local Development
+## Local Development Environment Setup
 
 ### Prerequisites
 
 - **Node.js 22**: Required for both frontend and backend
 - **npm**: Package manager
 - **Azure Functions Core Tools**: For local backend development
+
+### Project Structure
+
+这是一个**全栈聊天机器人项目**：
+- **前端**：React + TypeScript + Three.js + VRM（3D虚拟角色）
+- **后端**：Azure Functions (Node.js)
+- **AI服务**：Google AI Studio (Gemini Pro)
 
 ### Frontend Development
 
@@ -142,6 +149,112 @@ A VRM virtual assistant with voice interaction and AI conversation capabilities,
    npm run test:coverage
    npm run lint
    ```
+
+### API Configuration Analysis
+
+#### 当前API设置：
+- **生产环境**：`https://chatbotprocessor.azurewebsites.net/api/process`
+- **本地开发**：`http://localhost:7071/api/process`
+- **配置位置**：`src/config.ts`
+
+#### API端点：
+- **主处理端点**：`/api/process` - AI对话处理
+- **健康检查**：`/api/health` - 服务状态检查
+- **测试端点**：`/api/testhealth` - 测试用健康检查
+
+#### CORS配置：
+```json
+{
+  "cors": {
+    "allowedOrigins": ["*"],
+    "allowedMethods": ["GET", "POST", "OPTIONS"],
+    "allowedHeaders": ["Content-Type", "Authorization", "X-Requested-With", "Origin", "Accept"]
+  }
+}
+```
+
+### Environment Variables Configuration
+
+#### 本地开发配置 (`api/local.settings.json`)：
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "GOOGLE_AI_API_KEY": "your-google-ai-api-key-here"
+  }
+}
+```
+
+#### 需要配置的变量：
+- `GOOGLE_AI_API_KEY`：Google AI Studio API密钥
+- `DB_HOST`、`DB_USER`、`DB_PASSWORD`、`DB_NAME`：数据库连接（如果使用Azure SQL）
+
+### Development Tools and Scripts
+
+#### 可用的npm脚本：
+```bash
+# 前端
+npm start          # 启动React开发服务器
+npm test           # 运行测试
+npm run lint       # 代码检查
+npm run type-check # TypeScript类型检查
+
+# 后端
+cd api
+npm start          # 启动Azure Functions
+npm test           # 运行API测试
+npm run lint       # API代码检查
+
+# 全项目
+npm run full-pre-commit    # 完整的前后端检查
+npm run full-build-check   # 构建检查
+```
+
+### Testing and Validation
+
+#### 测试API端点：
+```bash
+# 健康检查
+curl http://localhost:7071/api/health
+
+# 测试处理端点
+curl -X POST http://localhost:7071/api/process \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Hello","language":"english"}'
+```
+
+#### 前端测试：
+- 访问 http://localhost:3000
+- 测试语音识别和AI对话功能
+- 检查VRM模型加载和动画
+
+### Development Environment Requirements
+
+#### 必需工具：
+- **Node.js 22**：项目要求
+- **npm**：包管理器
+- **Azure Functions Core Tools**：本地Azure Functions开发
+
+#### 可选工具：
+- **Azure Storage Emulator**：本地存储模拟
+- **Visual Studio Code**：推荐的IDE
+
+### Current Configuration Status
+
+#### 前端配置：
+- ✅ React开发服务器配置完成
+- ✅ TypeScript配置完成
+- ✅ 测试框架配置完成
+- ✅ 代码质量检查配置完成
+
+#### 后端配置：
+- ✅ Azure Functions本地开发配置完成
+- ✅ CORS配置完成
+- ✅ 测试框架配置完成
+- ⚠️ 需要配置Google AI API密钥
+- ⚠️ 需要配置数据库连接（如果使用Azure SQL）
 
 ### Full Project Testing
 
