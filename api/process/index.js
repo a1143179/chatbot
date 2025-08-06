@@ -1,6 +1,10 @@
 const fetch = require('node-fetch');
+const { logAIInteraction } = require('../database');
 
 module.exports = async function (context, req) {
+    const startTime = Date.now();
+    const requestDateTime = new Date();
+    
     console.log('Process function called with method:', req.method);
     console.log('Request headers:', req.headers);
     console.log('Request body:', req.body);
@@ -53,8 +57,10 @@ module.exports = async function (context, req) {
         return;
     }
     
-    const { prompt } = body;
+    const { prompt, chatHistory = [], language = 'english' } = body;
     console.log('Extracted prompt:', prompt);
+    console.log('Chat history length:', chatHistory.length);
+    console.log('Language preference:', language);
     
     // Get environment variable for Google AI API key
     const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -96,8 +102,50 @@ module.exports = async function (context, req) {
         return;
     }
     
+    // Prepare interaction data for logging
+    const interactionData = {
+        user_id: req.headers['x-user-id'] || 'anonymous',
+        session_id: req.headers['x-session-id'] || null,
+        request_datetime: requestDateTime,
+        user_prompt: prompt,
+        language_preference: language,
+        chat_history_count: chatHistory.length,
+        request_ip: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown',
+        user_agent: req.headers['user-agent'] || 'unknown',
+        request_headers: req.headers
+    };
+    
     try {
         console.log('Calling Google AI API with prompt:', prompt);
+        
+        // Build conversation history for context
+        const contents = [];
+        
+        // Add conversation history if provided
+        if (chatHistory && chatHistory.length > 0) {
+            chatHistory.forEach(message => {
+                contents.push({
+                    role: message.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: message.content }]
+                });
+            });
+        }
+        
+        // Add current user message
+        contents.push({
+            role: 'user',
+            parts: [{ text: prompt }]
+        });
+        
+        console.log('Sending conversation with', contents.length, 'messages to Google AI');
+        
+        // Create system instruction based on language preference
+        const systemInstruction = language === 'chinese' 
+            ? "你是一个友好的AI助手。请始终用中文回复用户的问题。保持友好、自然和有趣的对话风格。回复要简洁，适合语音播放。"
+            : "You are a friendly AI assistant. Please always respond in English to user questions. Maintain a friendly, natural, and interesting conversation style. Keep responses concise and suitable for voice playback.";
+        
+        // Update interaction data with system instruction
+        interactionData.system_instruction = systemInstruction;
         
         // Call Google AI Studio API
         const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
@@ -107,17 +155,36 @@ module.exports = async function (context, req) {
                 'X-goog-api-key': apiKey
             },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `User says: ${prompt}. Please respond in Chinese, maintaining a friendly, natural, and interesting conversation style. Keep the response concise and suitable for voice playback.`
-                    }]
-                }],
+                contents: contents,
+                systemInstruction: {
+                    parts: [{ text: systemInstruction }]
+                },
                 generationConfig: {
                     temperature: 0.7,
                     maxOutputTokens: 150,
                     topP: 0.8,
                     topK: 40
-                }
+                },
+                tools: [
+                    {
+                        functionDeclarations: [
+                            {
+                                name: "get_weather",
+                                description: "Get real-time weather information for a specific location",
+                                parameters: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        location: {
+                                            type: "STRING",
+                                            description: "City name or location (e.g., 'Beijing', 'New York', 'Tokyo')"
+                                        }
+                                    },
+                                    required: ["location"]
+                                }
+                            }
+                        ]
+                    }
+                ]
             })
         });
         
@@ -139,6 +206,79 @@ module.exports = async function (context, req) {
         const aiResponse = data.candidates[0].content.parts[0].text;
         console.log('AI response:', aiResponse);
         
+        // Update interaction data with response
+        interactionData.ai_response = aiResponse;
+        interactionData.response_model = 'gemini-2.0-flash';
+        interactionData.response_tokens = aiResponse.length; // Approximate token count
+        interactionData.response_time_ms = Date.now() - startTime;
+        interactionData.response_datetime = new Date();
+        
+        // Check if AI wants to call weather function
+        if (data.candidates[0].content.parts[0].functionCall) {
+            const functionCall = data.candidates[0].content.parts[0].functionCall;
+            if (functionCall.name === 'get_weather') {
+                const args = functionCall.args;
+                const location = args.location;
+                
+                console.log('Weather function called for location:', location);
+                
+                // Update interaction data with function call
+                interactionData.function_called = 'get_weather';
+                interactionData.function_args = args;
+                
+                // Call weather API (you'll need to add your weather API key)
+                const weatherApiKey = process.env.WEATHER_API_KEY;
+                if (weatherApiKey) {
+                    try {
+                        const weatherResponse = await fetch(
+                            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${weatherApiKey}&units=metric&lang=${language === 'chinese' ? 'zh_cn' : 'en'}`
+                        );
+                        
+                        if (weatherResponse.ok) {
+                            const weatherData = await weatherResponse.json();
+                            const weatherInfo = language === 'chinese' 
+                                ? `${location}的天气：温度${weatherData.main.temp}°C，${weatherData.weather[0].description}，湿度${weatherData.main.humidity}%`
+                                : `Weather in ${location}: ${weatherData.main.temp}°C, ${weatherData.weather[0].description}, humidity ${weatherData.main.humidity}%`;
+                            
+                            console.log('Weather info:', weatherInfo);
+                            
+                            // Update interaction data with function result
+                            interactionData.function_result = weatherInfo;
+                            interactionData.ai_response = weatherInfo;
+                            
+                            // Log interaction to database
+                            await logAIInteraction(interactionData);
+                            
+                            context.res = {
+                                status: 200,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Access-Control-Allow-Origin': '*',
+                                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Origin, Accept'
+                                },
+                                body: {
+                                    response: weatherInfo,
+                                    timestamp: new Date().toISOString(),
+                                    model: 'gemini-pro',
+                                    weatherData: weatherData
+                                }
+                            };
+                            return;
+                        }
+                    } catch (weatherError) {
+                        console.error('Weather API error:', weatherError);
+                        interactionData.error_occurred = true;
+                        interactionData.error_message = weatherError.message;
+                        interactionData.error_type = 'weather_api_error';
+                    }
+                }
+            }
+        }
+        
+        // Log interaction to database
+        await logAIInteraction(interactionData);
+        
         // Return response
         context.res = {
             status: 200,
@@ -157,6 +297,16 @@ module.exports = async function (context, req) {
         
     } catch (error) {
         console.error('Error processing with Google AI:', error);
+        
+        // Update interaction data with error
+        interactionData.error_occurred = true;
+        interactionData.error_message = error.message;
+        interactionData.error_type = 'ai_processing_error';
+        interactionData.response_time_ms = Date.now() - startTime;
+        interactionData.response_datetime = new Date();
+        
+        // Log error interaction to database
+        await logAIInteraction(interactionData);
         
         context.res = {
             status: 500,

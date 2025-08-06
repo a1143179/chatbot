@@ -1,4 +1,4 @@
-name: Test and Deploy Backend
+qname: Test and Deploy Backend
 
 on:
   push:

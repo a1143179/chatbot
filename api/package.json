@@ -2,6 +2,7 @@
   "name": "chatbot-api",
   "version": "1.0.0",
   "description": "Azure Functions for Chatbot API",
+  "type": "module",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -10,13 +11,15 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:db": "node test-database.js",
     "lint": "eslint . --ext .js --max-warnings 0 --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "lint:fix": "eslint . --ext .js --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "pre-commit": "npm run lint && npm run test"
   },
   "dependencies": {
     "@azure/functions": "^4.0.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "mssql": "^10.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

@@ -245,6 +245,9 @@ function App() {
   // Ref to track if first message is being sent
   const isSendingFirstMessage = useRef(false);
   
+  // Ref for text input field
+  const textInputRef = useRef<HTMLInputElement>(null);
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
 
@@ -321,8 +324,12 @@ function App() {
           const match = availableMouthShapes.find((shape: string) => 
             shape.toLowerCase().includes(pattern.toLowerCase())
           );
-          if (match) return match;
+          if (match) {
+            console.log(`Mouth shape selected: ${match} for phoneme: ${phonemeLower}, word: ${wordLower}`);
+            return match;
+          }
         }
+        console.log(`No match found, using fallback: ${availableMouthShapes[0]} for phoneme: ${phonemeLower}`);
         return availableMouthShapes[0]; // Fallback
       };
       
@@ -331,10 +338,10 @@ function App() {
         return findBestMatch(['aa', 'ah', 'a', 'open', 'wide', 'jaw']);
       }
       if (['e', 'ɛ', 'eɪ', 'iː', 'eː'].includes(phonemeLower)) {
-        return findBestMatch(['ee', 'eh', 'e', 'wide', 'smile', 'part']);
+        return findBestMatch(['ee', 'eh', 'e', 'wide', 'part']);
       }
       if (['i', 'ɪ', 'iː', 'iː'].includes(phonemeLower)) {
-        return findBestMatch(['ih', 'i', 'ee', 'wide', 'smile', 'part']);
+        return findBestMatch(['ih', 'i', 'ee', 'wide', 'part']);
       }
       if (['o', 'ɔ', 'oʊ', 'əʊ', 'oː'].includes(phonemeLower)) {
         return findBestMatch(['oh', 'o', 'round', 'pucker', 'close']);
@@ -439,6 +446,16 @@ function App() {
 
     // Open mouth when speech starts
     utterance.onstart = () => {
+      // Reset all expressions first to clear any lingering smile
+      if (vrmAnalysis && vrmAnalysis.expressionNames) {
+        vrmAnalysis.expressionNames.forEach((expr: string) => {
+          if (expr.toLowerCase().includes('smile')) {
+            setVrmMouthShape(expr, 0.0);
+            console.log(`Reset smile expression: ${expr}`);
+          }
+        });
+      }
+      
       const { phoneme, word } = detectPhoneme(text, 0);
       const mouthShape = phonemeToMouthShape(phoneme, word);
       currentMouthShape = mouthShape;
@@ -504,12 +521,10 @@ function App() {
     try {
       console.log('Making API request to:', config.apiUrl);
       
-      // Create language-specific prompt
-      const languagePrompt = languageContext === 'chinese' 
-        ? `你是一个友好的AI助手。请始终用中文回复用户的问题。用户输入：${userInput}`
-        : `You are a friendly AI assistant. Please always respond in English to user questions. User input: ${userInput}`;
+      // Create simple prompt without language instruction (system instruction handles this)
+      const simplePrompt = userInput;
       
-      console.log('Request payload:', { prompt: languagePrompt });
+      console.log('Request payload:', { prompt: simplePrompt, chatHistory: chatHistory.length, language: languageContext });
       
       // Use configuration for API URL
       const response = await fetch(config.apiUrl, {
@@ -519,7 +534,9 @@ function App() {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          prompt: languagePrompt
+          prompt: simplePrompt,
+          chatHistory: chatHistory,
+          language: languageContext
         }),
       });
 
@@ -540,8 +557,17 @@ function App() {
       const assistantMessage: ChatMessage = { role: 'assistant', content: aiResponse };
       setChatHistory(prev => [...prev, assistantMessage]);
       
-      // Speak the response
+      // Speak the AI response (this is the only text that should be spoken)
+      console.log('AI response will be spoken by avatar:', aiResponse);
       speakText(aiResponse);
+      
+      // Refocus text input after AI response
+      setTimeout(() => {
+        if (textInputRef.current) {
+          textInputRef.current.focus();
+          console.log('Refocused text input after AI response');
+        }
+      }, 100); // Small delay to ensure speech synthesis starts
       
     } catch (error) {
       console.error('Error processing with AI:', error);
@@ -550,10 +576,18 @@ function App() {
         content: `Sorry, an error occurred while processing your request: ${error instanceof Error ? error.message : 'Unknown error'}` 
       };
       setChatHistory(prev => [...prev, errorMessage]);
+      
+      // Also refocus on error
+      setTimeout(() => {
+        if (textInputRef.current) {
+          textInputRef.current.focus();
+          console.log('Refocused text input after error');
+        }
+      }, 100);
     } finally {
       setIsProcessing(false);
     }
-  }, [speakText, languageContext]);
+  }, [speakText, languageContext, chatHistory]);
 
   // Initialize Three.js scene and VRM
   useEffect(() => {
@@ -690,7 +724,7 @@ function App() {
         
         console.log('=== End VRM Expression Debug ===');
         
-        // Immediately apply the desired pose after VRM is loaded
+        // Immediately apply A-pose after VRM is loaded
         if (vrm.humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
             const boneNode = vrm.humanoid.getNormalizedBoneNode(boneName);
@@ -703,13 +737,23 @@ function App() {
             }
           };
 
-          // Apply the natural pose immediately
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60);
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15);
+          // Apply complete A-pose immediately
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
+          setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
+          setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
+          setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
+          setBoneRotation(VRMHumanBoneName.RightShoulder, 0, 0, 0);   // Relaxed shoulders
           
-          console.log('Initial pose applied immediately after VRM load');
+          // Reset spring bones to the new pose
+          if (vrm.springBoneManager) {
+            vrm.springBoneManager.reset();
+            console.log('Spring bones reset to A-pose after VRM load');
+          }
+          
+          console.log('Complete A-pose applied immediately after VRM load');
         }
         
         console.log('Avatar loaded. Pose will be continuously enforced in the animation loop.');
@@ -723,11 +767,7 @@ function App() {
     
     // --- Animation loop and window resize (core modification here) ---
     const clock = new THREE.Clock();
-    let poseInitialized = false; // Flag to ensure reset only executes once
     let frameCount = 0; // Track frames to ensure pose is applied consistently
-    
-    // Reset pose initialization when VRM changes
-    poseInitialized = false;
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -738,8 +778,8 @@ function App() {
         // Update VRM's animation and physics first
         vrmRef.current.update(delta);
 
-        // **Core fix: Always force our pose after update to prevent T-pose**
-        // This ensures the pose is maintained even after page refresh
+        // **Core fix: Always force A-pose after update to prevent T-pose**
+        // This ensures the pose is maintained even after page refresh or VRM updates
         const humanoid = vrmRef.current.humanoid;
         if (humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
@@ -753,17 +793,27 @@ function App() {
             }
           };
 
-          // Force arms to hang naturally - ALWAYS apply this pose
+          // Force A-pose - ALWAYS apply this pose in every frame
           setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
           setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
           setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
           setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
           
-          // Reset spring bones only once after pose is established
-          if (!poseInitialized && vrmRef.current.springBoneManager && frameCount > 10) {
+          // Also set other body parts to ensure complete A-pose
+          setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
+          setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
+          setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
+          setBoneRotation(VRMHumanBoneName.RightShoulder, 0, 0, 0);   // Relaxed shoulders
+          
+          // Reset spring bones periodically to maintain pose
+          if (frameCount % 60 === 0 && vrmRef.current.springBoneManager) { // Every 60 frames (about 1 second)
             vrmRef.current.springBoneManager.reset();
-            poseInitialized = true;
-            console.log("Pose enforced and spring bones have been reset to this pose.");
+            console.log("Periodic spring bone reset to maintain A-pose");
+          }
+          
+          // Log pose enforcement periodically
+          if (frameCount % 300 === 0) { // Every 300 frames (about 5 seconds)
+            console.log("A-pose enforced at frame:", frameCount);
           }
         }
       }
@@ -801,13 +851,14 @@ function App() {
 
       recognitionRef.current.onresult = async (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
-        console.log('Recognized:', transcript);
+        console.log('Recognized user input:', transcript);
+        console.log('User input will NOT be spoken by the avatar');
         
         // Add user message to chat
         const userMessage: ChatMessage = { role: 'user', content: transcript };
         setChatHistory(prev => [...prev, userMessage]);
         
-        // Process with AI
+        // Process with AI (only AI response will be spoken)
         await processWithAI(transcript);
         
         // If in continuous talking mode, restart listening
@@ -889,6 +940,15 @@ function App() {
     }
   }, [languageContext, availableVoices]);
 
+  // Force re-render of voice selector when language changes
+  useEffect(() => {
+    console.log('Language changed to:', languageContext);
+    console.log('Available voices for language:', availableVoices.filter(voice => {
+      const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
+      return voice.lang.startsWith(languagePrefix);
+    }).map(v => `${v.name} (${v.lang})`));
+  }, [languageContext, availableVoices]);
+
   // Auto-send first message for first-time visitors
   useEffect(() => {
     if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
@@ -935,11 +995,14 @@ function App() {
   // Handle text input submission
   const handleTextSubmit = useCallback(async () => {
     if (textInput.trim() && !isProcessing) {
+      console.log('Text input submitted:', textInput.trim());
+      console.log('Text input will NOT be spoken by the avatar');
+      
       // Add user message to chat
       const userMessage: ChatMessage = { role: 'user', content: textInput.trim() };
       setChatHistory(prev => [...prev, userMessage]);
       
-      // Process with AI
+      // Process with AI (only AI response will be spoken)
       await processWithAI(textInput.trim());
       
       // Clear text input
@@ -1115,6 +1178,7 @@ function App() {
             onChange={(e) => {
               const voice = availableVoices.find(v => v.name === e.target.value);
               setSelectedVoice(voice || null);
+              console.log('Voice selected:', voice?.name, voice?.lang);
             }}
             className="voice-select"
           >
@@ -1226,6 +1290,7 @@ function App() {
           
           {/* Text input for typing messages */}
           <input
+            ref={textInputRef}
             type="text"
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
@@ -1267,6 +1332,8 @@ function App() {
             >
               {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
           </button>
+          
+
           </div>
         </div>
       </div>
