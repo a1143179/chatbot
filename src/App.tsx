@@ -940,6 +940,15 @@ function App() {
     }
   }, [languageContext, availableVoices]);
 
+  // Force re-render of voice selector when language changes
+  useEffect(() => {
+    console.log('Language changed to:', languageContext);
+    console.log('Available voices for language:', availableVoices.filter(voice => {
+      const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
+      return voice.lang.startsWith(languagePrefix);
+    }).map(v => `${v.name} (${v.lang})`));
+  }, [languageContext, availableVoices]);
+
   // Auto-send first message for first-time visitors
   useEffect(() => {
     if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
@@ -1169,6 +1178,7 @@ function App() {
             onChange={(e) => {
               const voice = availableVoices.find(v => v.name === e.target.value);
               setSelectedVoice(voice || null);
+              console.log('Voice selected:', voice?.name, voice?.lang);
             }}
             className="voice-select"
           >
