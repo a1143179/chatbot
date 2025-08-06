@@ -3,7 +3,7 @@ let sql = null;
 
 try {
     sql = require('mssql');
-} catch (error) {
+} catch {
     console.log('mssql module not available, database logging will be disabled');
 }
 
