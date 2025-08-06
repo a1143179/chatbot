@@ -11,7 +11,7 @@ try {
 const dbConfig = {
     server: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'chatbot_db',
-    user: process.env.DB_USER || 'admin',
+    user: process.env.DB_USERNAME || process.env.DB_USER || 'admin',
     password: process.env.DB_PASSWORD || '',
     port: parseInt(process.env.DB_PORT) || 1433,
     options: {

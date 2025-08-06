@@ -10,6 +10,7 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:db": "node test-database.js",
     "lint": "eslint . --ext .js --max-warnings 0 --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "lint:fix": "eslint . --ext .js --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "pre-commit": "npm run lint && npm run test"
