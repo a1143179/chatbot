@@ -1,8 +1,10 @@
 // Database configuration for Azure SQL Database
+import mssql from 'mssql';
 let sql = null;
 
 try {
-    sql = require('mssql');
+    sql = mssql;
+    console.log('mssql module loaded successfully');
 } catch {
     console.log('mssql module not available, database logging will be disabled');
 }
@@ -188,7 +190,7 @@ async function getFunctionCallStats() {
     }
 }
 
-module.exports = {
+export {
     getConnection,
     logAIInteraction,
     getAnalyticsSummary,

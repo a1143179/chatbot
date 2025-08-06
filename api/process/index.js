@@ -1,7 +1,7 @@
-const fetch = require('node-fetch');
-const { logAIInteraction } = require('../database');
+import fetch from 'node-fetch';
+import { logAIInteraction } from '../database.js';
 
-module.exports = async function (context, req) {
+export default async function (context, req) {
     const startTime = Date.now();
     const requestDateTime = new Date();
     
