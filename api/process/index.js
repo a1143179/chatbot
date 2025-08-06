@@ -53,8 +53,9 @@ module.exports = async function (context, req) {
         return;
     }
     
-    const { prompt } = body;
+    const { prompt, chatHistory = [] } = body;
     console.log('Extracted prompt:', prompt);
+    console.log('Chat history length:', chatHistory.length);
     
     // Get environment variable for Google AI API key
     const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -99,6 +100,27 @@ module.exports = async function (context, req) {
     try {
         console.log('Calling Google AI API with prompt:', prompt);
         
+        // Build conversation history for context
+        const contents = [];
+        
+        // Add conversation history if provided
+        if (chatHistory && chatHistory.length > 0) {
+            chatHistory.forEach(message => {
+                contents.push({
+                    role: message.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: message.content }]
+                });
+            });
+        }
+        
+        // Add current user message
+        contents.push({
+            role: 'user',
+            parts: [{ text: prompt }]
+        });
+        
+        console.log('Sending conversation with', contents.length, 'messages to Google AI');
+        
         // Call Google AI Studio API
         const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
             method: 'POST',
@@ -107,11 +129,7 @@ module.exports = async function (context, req) {
                 'X-goog-api-key': apiKey
             },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `User says: ${prompt}. Please respond in Chinese, maintaining a friendly, natural, and interesting conversation style. Keep the response concise and suitable for voice playback.`
-                    }]
-                }],
+                contents: contents,
                 generationConfig: {
                     temperature: 0.7,
                     maxOutputTokens: 150,

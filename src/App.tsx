@@ -526,7 +526,7 @@ function App() {
         ? `你是一个友好的AI助手。请始终用中文回复用户的问题。用户输入：${userInput}`
         : `You are a friendly AI assistant. Please always respond in English to user questions. User input: ${userInput}`;
       
-      console.log('Request payload:', { prompt: languagePrompt });
+      console.log('Request payload:', { prompt: languagePrompt, chatHistory: chatHistory.length });
       
       // Use configuration for API URL
       const response = await fetch(config.apiUrl, {
@@ -536,7 +536,8 @@ function App() {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          prompt: languagePrompt
+          prompt: languagePrompt,
+          chatHistory: chatHistory
         }),
       });
 
@@ -587,7 +588,7 @@ function App() {
     } finally {
       setIsProcessing(false);
     }
-  }, [speakText, languageContext]);
+  }, [speakText, languageContext, chatHistory]);
 
   // Initialize Three.js scene and VRM
   useEffect(() => {
