@@ -1333,20 +1333,7 @@ function App() {
               {isContinuousTalking ? 'Stop Continuous' : 'Continuous Talking'}
           </button>
           
-            {/* Weather button */}
-          <button 
-              className="weather-button"
-              onClick={() => {
-                const location = prompt(languageContext === 'chinese' ? '请输入城市名称：' : 'Enter city name:');
-                if (location && location.trim()) {
-                  setTextInput(`What's the weather like in ${location.trim()}?`);
-                  handleTextSubmit();
-                }
-              }}
-              disabled={isProcessing}
-            >
-              🌤️ Weather
-          </button>
+
           </div>
         </div>
       </div>
