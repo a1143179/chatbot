@@ -30,21 +30,5 @@
     "jest": "^30.0.5",
     "nock": "^14.0.7",
     "supertest": "^7.1.4"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "testMatch": [
-      "**/*.test.js"
-    ],
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!**/node_modules/**",
-      "!**/coverage/**"
-    ],
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ]
   }
 }
