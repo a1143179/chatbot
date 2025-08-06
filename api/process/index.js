@@ -1,6 +1,10 @@
 const fetch = require('node-fetch');
+const { logAIInteraction } = require('../database');
 
 module.exports = async function (context, req) {
+    const startTime = Date.now();
+    const requestDateTime = new Date();
+    
     console.log('Process function called with method:', req.method);
     console.log('Request headers:', req.headers);
     console.log('Request body:', req.body);
@@ -98,6 +102,19 @@ module.exports = async function (context, req) {
         return;
     }
     
+    // Prepare interaction data for logging
+    const interactionData = {
+        user_id: req.headers['x-user-id'] || 'anonymous',
+        session_id: req.headers['x-session-id'] || null,
+        request_datetime: requestDateTime,
+        user_prompt: prompt,
+        language_preference: language,
+        chat_history_count: chatHistory.length,
+        request_ip: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown',
+        user_agent: req.headers['user-agent'] || 'unknown',
+        request_headers: req.headers
+    };
+    
     try {
         console.log('Calling Google AI API with prompt:', prompt);
         
@@ -126,6 +143,9 @@ module.exports = async function (context, req) {
         const systemInstruction = language === 'chinese' 
             ? "你是一个友好的AI助手。请始终用中文回复用户的问题。保持友好、自然和有趣的对话风格。回复要简洁，适合语音播放。"
             : "You are a friendly AI assistant. Please always respond in English to user questions. Maintain a friendly, natural, and interesting conversation style. Keep responses concise and suitable for voice playback.";
+        
+        // Update interaction data with system instruction
+        interactionData.system_instruction = systemInstruction;
         
         // Call Google AI Studio API
         const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
@@ -186,6 +206,13 @@ module.exports = async function (context, req) {
         const aiResponse = data.candidates[0].content.parts[0].text;
         console.log('AI response:', aiResponse);
         
+        // Update interaction data with response
+        interactionData.ai_response = aiResponse;
+        interactionData.response_model = 'gemini-2.0-flash';
+        interactionData.response_tokens = aiResponse.length; // Approximate token count
+        interactionData.response_time_ms = Date.now() - startTime;
+        interactionData.response_datetime = new Date();
+        
         // Check if AI wants to call weather function
         if (data.candidates[0].content.parts[0].functionCall) {
             const functionCall = data.candidates[0].content.parts[0].functionCall;
@@ -194,6 +221,10 @@ module.exports = async function (context, req) {
                 const location = args.location;
                 
                 console.log('Weather function called for location:', location);
+                
+                // Update interaction data with function call
+                interactionData.function_called = 'get_weather';
+                interactionData.function_args = args;
                 
                 // Call weather API (you'll need to add your weather API key)
                 const weatherApiKey = process.env.WEATHER_API_KEY;
@@ -210,6 +241,13 @@ module.exports = async function (context, req) {
                                 : `Weather in ${location}: ${weatherData.main.temp}°C, ${weatherData.weather[0].description}, humidity ${weatherData.main.humidity}%`;
                             
                             console.log('Weather info:', weatherInfo);
+                            
+                            // Update interaction data with function result
+                            interactionData.function_result = weatherInfo;
+                            interactionData.ai_response = weatherInfo;
+                            
+                            // Log interaction to database
+                            await logAIInteraction(interactionData);
                             
                             context.res = {
                                 status: 200,
@@ -230,10 +268,16 @@ module.exports = async function (context, req) {
                         }
                     } catch (weatherError) {
                         console.error('Weather API error:', weatherError);
+                        interactionData.error_occurred = true;
+                        interactionData.error_message = weatherError.message;
+                        interactionData.error_type = 'weather_api_error';
                     }
                 }
             }
         }
+        
+        // Log interaction to database
+        await logAIInteraction(interactionData);
         
         // Return response
         context.res = {
@@ -253,6 +297,16 @@ module.exports = async function (context, req) {
         
     } catch (error) {
         console.error('Error processing with Google AI:', error);
+        
+        // Update interaction data with error
+        interactionData.error_occurred = true;
+        interactionData.error_message = error.message;
+        interactionData.error_type = 'ai_processing_error';
+        interactionData.response_time_ms = Date.now() - startTime;
+        interactionData.response_datetime = new Date();
+        
+        // Log error interaction to database
+        await logAIInteraction(interactionData);
         
         context.res = {
             status: 500,
