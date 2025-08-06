@@ -1,7 +1,7 @@
 // Database connection test script
 // Run this to verify your Azure SQL Database connection
 
-const { getConnection, logAIInteraction } = require('./database');
+import { getConnection, logAIInteraction } from './database.js';
 
 async function testDatabaseConnection() {
     console.log('Testing database connection...');

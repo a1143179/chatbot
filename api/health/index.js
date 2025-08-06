@@ -1,8 +1,11 @@
-module.exports = async function (context, _req) {
+export default async function (context, _req) {
+    console.log('Health check function called');
+    
     // Let Azure Functions handle CORS globally via host.json configuration
     
     // Check if Google AI API key is configured
     const apiKeyConfigured = !!process.env.GOOGLE_AI_API_KEY;
+    console.log('API key configured:', apiKeyConfigured);
     
     context.res = {
         status: 200,

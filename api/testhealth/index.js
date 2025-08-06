@@ -1,4 +1,5 @@
-module.exports = async function (context, _req) {
+export default async function (context, _req) {
+    console.log('Test health function called');
     context.res = {
         status: 200,
         headers: {

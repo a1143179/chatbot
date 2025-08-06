@@ -12,6 +12,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:db": "node test-database.js",
+    "deploy": "func azure functionapp publish chatbotprocessor",
+    "deploy:logs": "powershell -ExecutionPolicy Bypass -File deploy-with-logs.ps1",
     "lint": "eslint . --ext .js --max-warnings 0 --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "lint:fix": "eslint . --ext .js --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "pre-commit": "npm run lint && npm run test"
@@ -28,21 +30,5 @@
     "jest": "^30.0.5",
     "nock": "^14.0.7",
     "supertest": "^7.1.4"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "testMatch": [
-      "**/*.test.js"
-    ],
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!**/node_modules/**",
-      "!**/coverage/**"
-    ],
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ]
   }
 }
