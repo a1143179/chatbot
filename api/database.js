@@ -1,12 +1,13 @@
 // Database configuration for Azure SQL Database
 import mssql from 'mssql';
+import azureLogger from './utils/azureLogger.js';
 let sql = null;
 
 try {
     sql = mssql;
-    console.log('mssql module loaded successfully');
+    azureLogger.info('mssql module loaded successfully');
 } catch {
-    console.log('mssql module not available, database logging will be disabled');
+    azureLogger.warn('mssql module not available, database logging will be disabled');
 }
 
 // Database configuration for Azure SQL Database
@@ -35,16 +36,16 @@ let pool = null;
 
 async function getConnection() {
     if (!sql) {
-        console.log('Database logging disabled - mssql module not available');
+        azureLogger.warn('Database logging disabled - mssql module not available');
         return null;
     }
     
     if (!pool) {
         try {
             pool = await sql.connect(dbConfig);
-            console.log('Database connection established successfully');
+            azureLogger.info('Database connection established successfully');
         } catch (error) {
-            console.error('Database connection failed:', error);
+            azureLogger.error('Database connection failed', { error: error.message });
             throw error;
         }
     }
@@ -54,14 +55,14 @@ async function getConnection() {
 // Function to log AI interaction
 async function logAIInteraction(interactionData) {
     if (!sql) {
-        console.log('Database logging disabled - mssql module not available');
+        azureLogger.warn('Database logging disabled - mssql module not available');
         return null;
     }
     
     try {
         const pool = await getConnection();
         if (!pool) {
-            console.log('Database connection not available');
+            azureLogger.warn('Database connection not available');
             return null;
         }
         
@@ -106,11 +107,11 @@ async function logAIInteraction(interactionData) {
             SELECT SCOPE_IDENTITY() as id;
         `);
         
-        console.log('AI interaction logged successfully, ID:', result.recordset[0].id);
+        azureLogger.info('AI interaction logged successfully', { id: result.recordset[0].id });
         return result.recordset[0].id;
         
     } catch (error) {
-        console.error('Failed to log AI interaction:', error);
+        azureLogger.error('Failed to log AI interaction', { error: error.message });
         // Don't throw error to avoid breaking the main flow
         return null;
     }
@@ -119,7 +120,7 @@ async function logAIInteraction(interactionData) {
 // Function to get analytics data
 async function getAnalyticsSummary(days = 7) {
     if (!sql) {
-        console.log('Database analytics disabled - mssql module not available');
+        azureLogger.warn('Database analytics disabled - mssql module not available');
         return [];
     }
     
@@ -150,7 +151,7 @@ async function getAnalyticsSummary(days = 7) {
         return result.recordset;
         
     } catch (error) {
-        console.error('Failed to get analytics:', error);
+        azureLogger.error('Failed to get analytics', { error: error.message });
         return [];
     }
 }
@@ -158,7 +159,7 @@ async function getAnalyticsSummary(days = 7) {
 // Function to get function call statistics
 async function getFunctionCallStats() {
     if (!sql) {
-        console.log('Database analytics disabled - mssql module not available');
+        azureLogger.warn('Database analytics disabled - mssql module not available');
         return [];
     }
     
@@ -185,7 +186,7 @@ async function getFunctionCallStats() {
         return result.recordset;
         
     } catch (error) {
-        console.error('Failed to get function call stats:', error);
+        azureLogger.error('Failed to get function call stats', { error: error.message });
         return [];
     }
 }

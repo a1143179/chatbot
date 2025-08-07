@@ -21,3 +21,63 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# logs
+logs/
+*.log
+lerna-debug.log*
+.pnpm-debug.log*
+
+# runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# optional npm cache directory
+.npm
+
+# optional eslint cache
+.eslintcache
+
+# typescript cache
+*.tsbuildinfo
+
+# optional REPL history
+.node_repl_history
+
+# output of 'npm pack'
+*.tgz
+
+# yarn integrity file
+.yarn-integrity
+
+# dotenv environment variable files
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# Azure Functions
+local.settings.json
+__blobstorage__
+__queuestorage__
+__azurite_db*__.json
+
+# Test results
+test-results/
+.jest/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/

@@ -5,9 +5,7 @@ export default async function (context, req) {
     const startTime = Date.now();
     const requestDateTime = new Date();
     
-    console.log('Process function called with method:', req.method);
-    console.log('Request headers:', req.headers);
-    console.log('Request body:', req.body);
+    context.log('Process function called', { method: req.method, headers: req.headers, body: req.body });
     
     // Let Azure Functions handle CORS globally via host.json configuration
     
@@ -16,7 +14,7 @@ export default async function (context, req) {
     
     // Validate request method
     if (req.method !== 'POST') {
-        console.log('Invalid method:', req.method);
+        context.log.warn('Invalid method', { method: req.method });
         context.res = {
             status: 405,
             headers: {
@@ -35,12 +33,11 @@ export default async function (context, req) {
     
     // Get request body
     const body = req.body;
-    console.log('Request body type:', typeof body);
-    console.log('Request body:', body);
+    context.log('Request body details', { type: typeof body, body: body });
     
     // Validate request body
     if (!body || typeof body !== 'object') {
-        console.log('Invalid request body:', body);
+        context.log.warn('Invalid request body', { body: body });
         context.res = {
             status: 400,
             headers: {
@@ -58,16 +55,18 @@ export default async function (context, req) {
     }
     
     const { prompt, chatHistory = [], language = 'english' } = body;
-    console.log('Extracted prompt:', prompt);
-    console.log('Chat history length:', chatHistory.length);
-    console.log('Language preference:', language);
+    context.log('Request parameters extracted', { 
+        prompt: prompt, 
+        chatHistoryLength: chatHistory.length, 
+        language: language 
+    });
     
     // Get environment variable for Google AI API key
     const apiKey = process.env.GOOGLE_AI_API_KEY;
-    console.log('API key configured:', !!apiKey);
+    context.log('API key status', { configured: !!apiKey });
     
     if (!apiKey) {
-        console.log('Google AI API key not configured');
+        context.log.error('Google AI API key not configured');
         context.res = {
             status: 500,
             headers: {
@@ -85,7 +84,7 @@ export default async function (context, req) {
     }
     
     if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
-        console.log('Missing or invalid prompt:', prompt);
+        context.log.warn('Missing or invalid prompt', { prompt: prompt });
         context.res = {
             status: 400,
             headers: {
@@ -116,7 +115,7 @@ export default async function (context, req) {
     };
     
     try {
-        console.log('Calling Google AI API with prompt:', prompt);
+        context.log('Calling Google AI API', { prompt: prompt });
         
         // Build conversation history for context
         const contents = [];
@@ -137,7 +136,7 @@ export default async function (context, req) {
             parts: [{ text: prompt }]
         });
         
-        console.log('Sending conversation with', contents.length, 'messages to Google AI');
+        context.log('Sending conversation to Google AI', { messageCount: contents.length });
         
         // Create system instruction based on language preference
         const systemInstruction = language === 'chinese' 
@@ -188,23 +187,23 @@ export default async function (context, req) {
             })
         });
         
-        console.log('Google AI API response status:', response.status);
+        context.log('Google AI API response received', { status: response.status });
         
         if (!response.ok) {
             const errorData = await response.text();
-            console.log('Google AI API error response:', errorData);
+            context.log.error('Google AI API error response', { errorData: errorData });
             throw new Error(`Google AI API error: ${response.status} - ${errorData}`);
         }
         
         const data = await response.json();
-        console.log('Google AI API response data:', data);
+        context.log('Google AI API response data', { data: data });
         
         if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
             throw new Error('Invalid response format from Google AI API');
         }
         
         const aiResponse = data.candidates[0].content.parts[0].text;
-        console.log('AI response:', aiResponse);
+        context.log('AI response generated', { response: aiResponse });
         
         // Update interaction data with response
         interactionData.ai_response = aiResponse;
@@ -220,7 +219,7 @@ export default async function (context, req) {
                 const args = functionCall.args;
                 const location = args.location;
                 
-                console.log('Weather function called for location:', location);
+                context.log('Weather function called', { location: location });
                 
                 // Update interaction data with function call
                 interactionData.function_called = 'get_weather';
@@ -240,7 +239,7 @@ export default async function (context, req) {
                                 ? `${location}的天气：温度${weatherData.main.temp}°C，${weatherData.weather[0].description}，湿度${weatherData.main.humidity}%`
                                 : `Weather in ${location}: ${weatherData.main.temp}°C, ${weatherData.weather[0].description}, humidity ${weatherData.main.humidity}%`;
                             
-                            console.log('Weather info:', weatherInfo);
+                            context.log('Weather info retrieved', { weatherInfo: weatherInfo });
                             
                             // Update interaction data with function result
                             interactionData.function_result = weatherInfo;
@@ -267,7 +266,7 @@ export default async function (context, req) {
                             return;
                         }
                     } catch (weatherError) {
-                        console.error('Weather API error:', weatherError);
+                        context.log.error('Weather API error', { error: weatherError.message });
                         interactionData.error_occurred = true;
                         interactionData.error_message = weatherError.message;
                         interactionData.error_type = 'weather_api_error';
@@ -296,7 +295,7 @@ export default async function (context, req) {
         };
         
     } catch (error) {
-        console.error('Error processing with Google AI:', error);
+        context.log.error('Error processing with Google AI', { error: error.message });
         
         // Update interaction data with error
         interactionData.error_occurred = true;
