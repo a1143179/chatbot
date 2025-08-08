@@ -14,7 +14,7 @@
     "test:db": "node test-database.js",
     "deploy": "func azure functionapp publish chatbotprocessor",
     "deploy:logs": "powershell -ExecutionPolicy Bypass -File deploy-with-logs.ps1",
-  "lint": "eslint . --max-warnings 0 --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**' --env jest",
+    "lint": "eslint . --max-warnings 0 --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "lint:fix": "eslint . --ext .js --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "pre-commit": "npm run lint && npm run test"
   },

@@ -1,29 +1,30 @@
-import js from '@eslint/js';
-import globals from 'globals';
+import globals from "globals";
+import jestPlugin from "eslint-plugin-jest";
 
 export default [
-  js.configs.recommended,
   {
     languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "commonjs",
       globals: {
         ...globals.node,
-        ...globals.commonjs
       },
-      ecmaVersion: 2022,
-      sourceType: 'module'
     },
     rules: {
-      'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
-      'no-console': 'off',
-      'prefer-const': 'warn',
-      'no-var': 'error'
-    }
+    },
   },
   {
-    ignores: [
-      'node_modules/**',
-      'coverage/**',
-      '*.test.js'
-    ]
-  }
-]; 
+    files: ["__tests__/**/*.js"],
+    plugins: {
+      jest: jestPlugin,
+    },
+    rules: {
+      ...jestPlugin.configs["recommended"].rules,
+    },
+    languageOptions: {
+      globals: {
+        ...globals.jest,
+      },
+    },
+  },
+];
