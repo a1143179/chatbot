@@ -25,22 +25,21 @@ async function logAIInteraction(interactionData) {
     try {
       const result = await client.query(
         `INSERT INTO ai_interactions (
-          user_id, session_id, request_datetime, response_datetime,
+          session_id, request_datetime, response_datetime,
           user_prompt, system_instruction, language_preference, chat_history_count,
           ai_response, response_model, response_tokens, response_time_ms,
           function_called, function_args, function_result,
           error_occurred, error_message, error_type,
-          request_ip, user_agent, request_headers
+          ip, user_agent, request_headers
         ) VALUES (
-          $1, $2, $3, $4,
-          $5, $6, $7, $8,
-          $9, $10, $11, $12,
-          $13, $14, $15,
-          $16, $17, $18,
-          $19, $20, $21
+          $1, $2, $3,
+          $4, $5, $6, $7,
+          $8, $9, $10, $11,
+          $12, $13, $14,
+          $15, $16, $17,
+          $18, $19, $20
         ) RETURNING id;`,
         [
-          interactionData.user_id || 'anonymous',
           interactionData.session_id,
           interactionData.request_datetime,
           interactionData.response_datetime,
@@ -58,7 +57,7 @@ async function logAIInteraction(interactionData) {
           interactionData.error_occurred || false,
           interactionData.error_message,
           interactionData.error_type,
-          interactionData.request_ip,
+          interactionData.ip,
           interactionData.user_agent,
           interactionData.request_headers ? JSON.stringify(interactionData.request_headers) : null,
         ]
