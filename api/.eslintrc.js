@@ -4,20 +4,12 @@ module.exports = {
     commonjs: true,
     es2021: true,
     node: true,
-    jest: true,
+    jest: true, 
   },
   extends: 'eslint:recommended',
   overrides: [
-    {
-      files: ['.eslintrc.{js,cjs}'],
-      parserOptions: {
-        sourceType: 'script',
-      },
-    },
+    { files: ['.eslintrc.{js,cjs}'], parserOptions: { sourceType: 'script' } }
   ],
-  parserOptions: {
-    ecmaVersion: 'latest',
-  },
-  rules: {
-  },
+  parserOptions: { ecmaVersion: 'latest' },
+  rules: {},
 };
