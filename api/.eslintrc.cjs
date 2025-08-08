@@ -1,12 +1,13 @@
 module.exports = {
   env: {
-    node: true,
-    jest: true
+    node: true
   },
-  globals: {
-    describe: 'readonly',
-    it: 'readonly',
-    expect: 'readonly',
-    jest: 'readonly'
-  }
+  overrides: [
+    {
+      files: ["**/__tests__/*.js", "*.test.js"],
+      env: {
+        jest: true
+      }
+    }
+  ]
 };
