@@ -5,7 +5,7 @@ export default [
   {
     languageOptions: {
       ecmaVersion: "latest",
-      sourceType: "commonjs",
+      sourceType: "module", // 默认使用 ESM 模块系统
       globals: {
         ...globals.node,
       },
