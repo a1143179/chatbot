@@ -9,7 +9,10 @@ module.exports = {
         jest: true
       },
       plugins: ['jest'],
-      extends: ['plugin:jest/recommended']
+      extends: ['plugin:jest/recommended'],
+      rules: {
+        'no-undef': 'off'
+      }
     }
   ]
 };
