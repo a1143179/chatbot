@@ -17,6 +17,9 @@ module.exports = {
         afterAll: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly'
+      },
+      rules: {
+        'no-undef': 'off'
       }
     }
   ]
