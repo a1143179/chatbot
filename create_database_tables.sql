@@ -2,7 +2,6 @@
 
 CREATE TABLE ai_interactions (
     id BIGSERIAL PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
     session_id VARCHAR(255),
     request_datetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     response_datetime TIMESTAMP,
@@ -31,12 +30,10 @@ CREATE TABLE ai_interactions (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_user_id ON ai_interactions(user_id);
 CREATE INDEX idx_session_id ON ai_interactions(session_id);
 CREATE INDEX idx_datetime ON ai_interactions(request_datetime);
 CREATE INDEX idx_function_called ON ai_interactions(function_called);
 CREATE INDEX idx_error_occurred ON ai_interactions(error_occurred);
-
 -- Create a view for common analytics queries
 CREATE OR REPLACE VIEW ai_interactions_summary AS
 SELECT 
@@ -65,13 +62,11 @@ ORDER BY call_count DESC;
 
 -- Insert a test record to verify the table works
 INSERT INTO ai_interactions (
-    user_id, 
     user_prompt, 
     language_preference, 
     ai_response, 
     response_model
 ) VALUES (
-    'test-user',
     'Hello, this is a test message',
     'english',
     'Hello! This is a test response from the AI.',

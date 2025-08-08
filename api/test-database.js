@@ -18,7 +18,7 @@ async function testDatabaseConnection() {
             console.log('✅ Database connection successful!');
             // Test inserting a record
             const testData = {
-                user_id: 'test-user',
+                // user_id: 'test-user',
                 session_id: 'test-session-' + Date.now(),
                 request_datetime: new Date(),
                 user_prompt: 'Database connection test',

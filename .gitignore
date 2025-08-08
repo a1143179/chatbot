@@ -81,3 +81,7 @@ test-results/
 *.temp
 .tmp/
 .temp/
+
+.continue/
+```
+

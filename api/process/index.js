@@ -103,7 +103,7 @@ export default async function (context, req) {
     
     // Prepare interaction data for logging
     const interactionData = {
-        user_id: req.headers['x-user-id'] || 'anonymous',
+        // user_id: req.headers['x-user-id'] || 'anonymous',
         session_id: req.headers['x-session-id'] || null,
         request_datetime: requestDateTime,
         user_prompt: prompt,
