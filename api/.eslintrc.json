@@ -1,13 +1,6 @@
 {
   "env": {
-    "node": true
-  },
-  "overrides": [
-    {
-      "files": ["**/__tests__/*.js"],
-      "env": {
-        "jest": true
-      }
-    }
-  ]
+    "node": true,
+    "jest": true
+  }
 }
