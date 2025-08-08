@@ -4,7 +4,6 @@
 
 CREATE TABLE ai_interactions (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-    user_id NVARCHAR(255) NOT NULL,
     session_id NVARCHAR(255),
     request_datetime DATETIME2 NOT NULL DEFAULT GETDATE(),
     response_datetime DATETIME2,
@@ -38,12 +37,10 @@ CREATE TABLE ai_interactions (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_user_id ON ai_interactions(user_id);
 CREATE INDEX idx_session_id ON ai_interactions(session_id);
 CREATE INDEX idx_datetime ON ai_interactions(request_datetime);
 CREATE INDEX idx_function_called ON ai_interactions(function_called);
 CREATE INDEX idx_error_occurred ON ai_interactions(error_occurred);
-
 -- Create a view for common analytics queries
 CREATE VIEW ai_interactions_summary AS
 SELECT 

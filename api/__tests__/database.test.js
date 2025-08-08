@@ -9,7 +9,7 @@ const { logAIInteraction } = require('../database');
 describe('AI Interaction Logging', () => {
   it('should log user_prompt and ai_response to ai_interactions table', async () => {
     const mockData = {
-      user_id: 'jest-user',
+      // user_id: 'jest-user',
       session_id: 'jest-session',
       request_datetime: new Date(),
       user_prompt: 'Jest test prompt',
