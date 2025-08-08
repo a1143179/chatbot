@@ -14,18 +14,21 @@
     "test:db": "node test-database.js",
     "deploy": "func azure functionapp publish chatbotprocessor",
     "deploy:logs": "powershell -ExecutionPolicy Bypass -File deploy-with-logs.ps1",
-    "lint": "eslint . --ext .js --max-warnings 0 --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
+    "lint": "eslint . --max-warnings 0 --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "lint:fix": "eslint . --ext .js --fix --ignore-pattern 'node_modules/**' --ignore-pattern 'coverage/**'",
     "pre-commit": "npm run lint && npm run test"
   },
   "dependencies": {
     "@azure/functions": "^4.0.0",
-    "node-fetch": "^2.7.0",
-    "mssql": "^10.0.2"
+    "mssql": "^10.0.2",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
-    "eslint": "^9.32.0",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "babel-jest": "^30.0.5",
+    "eslint": "^8.40.0",
+    "eslint-plugin-jest": "^29.0.1",
     "globals": "^15.12.0",
     "jest": "^30.0.5",
     "nock": "^14.0.7",

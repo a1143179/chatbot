@@ -15,4 +15,4 @@ export default async function (context, _req) {
             timestamp: new Date().toISOString()
         }
     };
-}; 
+} 

@@ -23,4 +23,4 @@ export default async function (context, _req) {
             message: apiKeyConfigured ? 'Service is ready' : 'Warning: Google AI API key not configured'
         }
     };
-}; 
+} 
