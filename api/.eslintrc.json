@@ -1,0 +1,12 @@
+{
+  "env": {
+    "jest": true,
+    "node": true
+  },
+  "globals": {
+    "describe": "readonly",
+    "it": "readonly",
+    "expect": "readonly",
+    "jest": "readonly"
+  }
+}

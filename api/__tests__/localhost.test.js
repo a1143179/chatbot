@@ -1,3 +1,4 @@
+/* eslint-env jest */
 // Jest test for localhost API
 
 describe('Localhost API Tests', () => {

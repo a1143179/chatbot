@@ -1,3 +1,4 @@
+/* eslint-env jest */
 // Jest test for logging user prompts and AI responses
 jest.mock('../database', () => ({
   logAIInteraction: jest.fn().mockResolvedValue(123),

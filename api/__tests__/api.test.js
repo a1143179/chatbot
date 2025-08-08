@@ -1,3 +1,4 @@
+/* eslint-env jest */
 // Jest test for API
 
 describe('API Endpoint Tests', () => {
