@@ -8,19 +8,8 @@ module.exports = {
       env: {
         jest: true
       },
-      globals: {
-        describe: 'readonly',
-        it: 'readonly',
-        expect: 'readonly',
-        jest: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly'
-      },
-      rules: {
-        'no-undef': 'off'
-      }
+  plugins: ['jest'],
+  extends: ['plugin:jest/recommended'],
     }
   ]
 };
