@@ -6,6 +6,13 @@ jobs:
   test-and-deploy-backend:
     runs-on: ubuntu-latest
     
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      API_KEY: ${{ secrets.API_KEY }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -70,5 +77,5 @@ jobs:
       with:
         app-name: 'chatbotprocessor'
         package: './api/api.zip' 
-
+```
 
