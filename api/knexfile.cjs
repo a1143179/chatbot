@@ -3,17 +3,13 @@ dotenv.config();
 
 module.exports = {
   development: {
-    client: 'mssql',
+    client: 'pg',
     connection: {
-      server: process.env.DB_HOST,
+      host: process.env.DB_HOST,
       port: parseInt(process.env.DB_PORT || '5432'),
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      options: {
-        encrypt: false, // Use true for production
-        trustServerCertificate: true,
-      },
     },
     pool: {
       min: 2,
