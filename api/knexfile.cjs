@@ -1,34 +1,20 @@
-"use strict";
+const { debug } = require('console');
 
+require('dotenv').config();
 module.exports = {
-  development: {
-    client: 'pg',
-    connection: {
-      host: '127.0.0..1',
-      database: 'chatbot_db',
-      user: 'postgres',
-      password: '',
-      port: 5432
-    },
-    pool: {
-      min: 2,
-      max: 10
-    },
-    migrations: {
-      directory: './migrations'
-    }
+  client: 'pg',
+  connection: {
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    port: parseInt(process.env.DB_PORT),
   },
-
-  production: {
-    client: 'pg',
-    connection: process.env.DATABASE_URL,
-    pool: {
-      min: 2,
-      max: 10
-    },
-    migrations: {
-      tableName: 'knex_migrations'
-    }
-  }
-
+  migrations: {
+    directory: './migrations',
+  },
+  seeds: {
+    directory: './seeds',
+  },
+  debug: false,
 };

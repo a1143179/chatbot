@@ -111,7 +111,8 @@ export default async function (context, req) {
         chat_history_count: chatHistory.length,
         request_ip: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown',
         user_agent: req.headers['user-agent'] || 'unknown',
-        request_headers: req.headers
+        request_headers: req.headers,
+        
     };
     
     try {

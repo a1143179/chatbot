@@ -64,8 +64,6 @@ pids
 
 # OS generated files
 Thumbs.db
-ehthumbs.db
-
 # Azure Functions
 local.settings.json
 __blobstorage__
