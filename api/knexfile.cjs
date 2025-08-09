@@ -5,8 +5,8 @@ module.exports = {
   development: {
     client: 'mssql',
     connection: {
-      server: process.env.DB_SERVER,
-      port: parseInt(process.env.DB_PORT || '1433'),
+      server: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || '5432'),
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
