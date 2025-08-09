@@ -1,20 +1,27 @@
-const { debug } = require('console');
-
-require('dotenv').config();
+console.log("DB_NAME:", process.env.DB_NAME);
+console.log("DB_USER:", process.env.DB_USER);
+console.log("DB_HOST:", process.env.DB_HOST);
 module.exports = {
-  client: 'pg',
-  connection: {
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT),
+  development: {
+    client: 'mssql',
+    connection: {
+      server: process.env.DB_SERVER,
+      port: parseInt(process.env.DB_PORT || '1433'),
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      options: {
+        encrypt: false, // Use true for production
+        trustServerCertificate: true,
+      },
+    },
+    pool: {
+      min: 2,
+      max: 10
+    },
+    migrations: {
+      tableName: 'knex_migrations',
+      directory: './migrations'
+    }
   },
-  migrations: {
-    directory: './migrations',
-  },
-  seeds: {
-    directory: './seeds',
-  },
-  debug: false,
 };
