@@ -1,0 +1,1 @@
+"deb [arch=amd64 https://packages.microsoft.com/repos/microsoft-ubuntu-$(lsb_release -cs)-prod $(lsb_release -cs) main" 
