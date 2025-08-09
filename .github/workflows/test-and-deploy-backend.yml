@@ -1,4 +1,3 @@
-
 on:
   push:
     branches: [ main ]
@@ -30,7 +29,14 @@ jobs:
       run: |
         cd api
         npm ci
+        echo "Hello World"
         
+    - name: Run Knex migrations
+      run: |
+        cd api
+        npm install -g knex
+        knex migrate:latest --knexfile knexfile.cjs
+
     - name: Run API tests
       run: |
         cd api
@@ -40,7 +46,7 @@ jobs:
       run: |
         cd api
         npm run lint
-        
+
     - name: Build Azure Functions package with dependencies
       run: |
         cd api
@@ -65,3 +71,5 @@ jobs:
       with:
         app-name: 'chatbotprocessor'
         package: './api/api.zip' 
+```
+
