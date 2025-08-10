@@ -884,8 +884,10 @@ function App() {
 
     // Initialize speech synthesis
     synthesisRef.current = window.speechSynthesis;
-    
-    // Load available voices
+  }, [processWithAI, languageContext, isContinuousTalking, isProcessing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load and set voices
+  useEffect(() => {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       setAvailableVoices(voices);
@@ -898,6 +900,7 @@ function App() {
       ) || voices[0];
       
       setSelectedVoice(defaultVoice);
+      console.log('Voices loaded and default voice set:', defaultVoice?.name);
     };
     
     // Load voices immediately if available
@@ -907,7 +910,7 @@ function App() {
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, [processWithAI, languageContext, isContinuousTalking, isProcessing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [languageContext]);
 
   // Update voice selection when language changes
   useEffect(() => {
@@ -1130,6 +1133,38 @@ function App() {
     return <CorsTest />;
   }
 
+  const getVoiceGender = (voice: SpeechSynthesisVoice): string => {
+    const name = voice.name.toLowerCase();
+    const genderMap: { [key: string]: string } = {
+      'google us english': '[Female]',
+      'microsoft catherine - english (australia)': '[Female]',
+      'microsoft hazel - english (united kingdom)': '[Female]',
+      'microsoft susan - english (united kingdom)': '[Female]',
+      'microsoft george - english (united kingdom)': '[Male]',
+      'microsoft james - english (australia)': '[Male]',
+      '國語（臺灣）': '[Female]',
+      '普通话（中国大陆）': '[Female]',
+      '粤語（香港）': '[Female]',
+      'microsoft huihui - chinese (simplified, prc)': '[Female]',
+      'microsoft kangkang - chinese (simplified, prc)': '[Female]',
+      'microsoft yaoyao - chinese (simplified, prc)': '[Female]',
+    };
+    console.log('name:', name);
+    for (const key in genderMap) {
+      if (name.includes(key)) {
+        return genderMap[key];
+      }
+    }
+
+    if (name.includes('female') || name.includes('girl') || name.includes('woman')) {
+      return '[female]';
+    }
+    if (name.includes('male') || name.includes('boy') || name.includes('man')) {
+      return '[male]';
+    }
+    return '';
+  };
+
   return (
     <div className="App">
       {/* Left Column - Controls and Statistics */}
@@ -1176,13 +1211,14 @@ function App() {
             id="voice-select"
             value={selectedVoice?.name || ''}
             onChange={(e) => {
-              const voice = availableVoices.find(v => v.name === e.target.value);
+              const voiceName = e.target.value;
+              const voice = availableVoices.find(v => v.name === voiceName);
               setSelectedVoice(voice || null);
               console.log('Voice selected:', voice?.name, voice?.lang);
             }}
             className="voice-select"
           >
-            <option value="">Default Voice</option>
+            <option value="">[female] Default Voice</option>
             {availableVoices
               .filter(voice => {
                 const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
@@ -1191,7 +1227,7 @@ function App() {
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((voice) => (
                 <option key={voice.name} value={voice.name}>
-                  {voice.name} ({voice.lang})
+                  {getVoiceGender(voice)} {voice.name} ({voice.lang})
                 </option>
               ))
             }
