@@ -891,16 +891,8 @@ function App() {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       setAvailableVoices(voices);
-      
-      // Set default voice based on language context
-      const defaultVoice = voices.find(voice => 
-        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en') && voice.default
-      ) || voices.find(voice => 
-        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en')
-      ) || voices[0];
-      
-      setSelectedVoice(defaultVoice);
-      console.log('Voices loaded and default voice set:', defaultVoice?.name);
+      setSelectedVoice(null); // Set selected voice to null to make "Default Voice" the default
+      console.log('Voices loaded. Default voice is set to "Default Voice".');
     };
     
     // Load voices immediately if available
