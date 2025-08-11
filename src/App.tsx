@@ -235,16 +235,6 @@ function App() {
     return hasSeenPopup !== 'true';
   });
   
-  // First visit auto-message state
-  const [hasSentFirstMessage, setHasSentFirstMessage] = useState(() => {
-    // Check if first message has been sent
-    const hasSent = getLocalStorage('firstMessageSent');
-    return hasSent === 'true';
-  });
-  
-  // Ref to track if first message is being sent
-  const isSendingFirstMessage = useRef(false);
-  
   // Ref for text input field
   const textInputRef = useRef<HTMLInputElement>(null);
   
@@ -724,7 +714,7 @@ function App() {
         
         console.log('=== End VRM Expression Debug ===');
         
-        // Immediately apply A-pose after VRM is loaded
+        // Immediately apply T-pose after VRM is loaded
         if (vrm.humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
             const boneNode = vrm.humanoid.getNormalizedBoneNode(boneName);
@@ -737,11 +727,11 @@ function App() {
             }
           };
 
-          // Apply complete A-pose immediately
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
+          // Apply complete T-pose immediately
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 90);   // T-pose: arms straight out
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -90);  // T-pose: arms straight out
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 0);    // Straight arms
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, 0);   // Straight arms
           setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
           setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
           setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
@@ -750,13 +740,12 @@ function App() {
           // Reset spring bones to the new pose
           if (vrm.springBoneManager) {
             vrm.springBoneManager.reset();
-            console.log('Spring bones reset to A-pose after VRM load');
+            console.log('Spring bones reset to T-pose after VRM load');
           }
           
-          console.log('Complete A-pose applied immediately after VRM load');
+          console.log('Complete T-pose applied immediately after VRM load');
         }
         
-        console.log('Avatar loaded. Pose will be continuously enforced in the animation loop.');
 
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
@@ -766,58 +755,9 @@ function App() {
     loadVRMModel(selectedVRM);
     
     // --- Animation loop and window resize (core modification here) ---
-    const clock = new THREE.Clock();
-    let frameCount = 0; // Track frames to ensure pose is applied consistently
 
     const animate = () => {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      frameCount++;
-      
-      if (vrmRef.current) {
-        // Update VRM's animation and physics first
-        vrmRef.current.update(delta);
-
-        // **Core fix: Always force A-pose after update to prevent T-pose**
-        // This ensures the pose is maintained even after page refresh or VRM updates
-        const humanoid = vrmRef.current.humanoid;
-        if (humanoid) {
-          const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
-            const boneNode = humanoid.getNormalizedBoneNode(boneName);
-            if (boneNode) {
-              boneNode.rotation.set(
-                THREE.MathUtils.degToRad(x),
-                THREE.MathUtils.degToRad(y),
-                THREE.MathUtils.degToRad(z)
-              );
-            }
-          };
-
-          // Force A-pose - ALWAYS apply this pose in every frame
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
-          
-          // Also set other body parts to ensure complete A-pose
-          setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
-          setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
-          setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
-          setBoneRotation(VRMHumanBoneName.RightShoulder, 0, 0, 0);   // Relaxed shoulders
-          
-          // Reset spring bones periodically to maintain pose
-          if (frameCount % 60 === 0 && vrmRef.current.springBoneManager) { // Every 60 frames (about 1 second)
-            vrmRef.current.springBoneManager.reset();
-            console.log("Periodic spring bone reset to maintain A-pose");
-          }
-          
-          // Log pose enforcement periodically
-          if (frameCount % 300 === 0) { // Every 300 frames (about 5 seconds)
-            console.log("A-pose enforced at frame:", frameCount);
-          }
-        }
-      }
-      
       renderer.render(scene, camera);
     };
 
@@ -944,34 +884,7 @@ function App() {
     }).map(v => `${v.name} (${v.lang})`));
   }, [languageContext, availableVoices]);
 
-  // Auto-send first message for first-time visitors
-  useEffect(() => {
-    if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
-      // Add a small delay to ensure component is fully initialized
-      const timer = setTimeout(() => {
-        if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
-          isSendingFirstMessage.current = true; // Mark as sending
-          
-          const firstMessage = "Please respond in English from now on.";
-          
-          // Mark as sent immediately to prevent duplicate sends
-          setHasSentFirstMessage(true);
-          setLocalStorage('firstMessageSent', 'true');
-          
-          // Add user message to chat
-          const userMessage: ChatMessage = { role: 'user', content: firstMessage };
-          setChatHistory(prev => [...prev, userMessage]);
-          
-          // Process with AI
-          processWithAI(firstMessage);
-          
-          console.log('Auto-sent first message for first-time visitor');
-        }
-      }, 1000); // 1 second delay
-      
-      return () => clearTimeout(timer);
-    }
-  }, [hasSentFirstMessage, isProcessing, processWithAI]);
+  
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening && !isProcessing) {
