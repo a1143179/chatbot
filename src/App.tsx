@@ -193,8 +193,7 @@ function App() {
   const [vrmAnalysis, setVrmAnalysis] = useState<any>(null);
   const [suggestedMouthShape, setSuggestedMouthShape] = useState<string | null>(null);
   
-  // Expression selection state
-  const [selectedExpression, setSelectedExpression] = useState<string>('neutral');
+  
   
   // Language context
   const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>(() => {
@@ -267,6 +266,10 @@ function App() {
     }
   }
 
+  // Ref to track if speech is active
+  const isSpeaking = useRef(false);
+  const animationFrameId = useRef<number | null>(null);
+
   // Enhanced lip sync with advanced phoneme detection
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
@@ -284,11 +287,31 @@ function App() {
       utterance.voice = selectedVoice;
     }
 
-    let mouthTimer: NodeJS.Timeout | null = null;
-    let currentMouthShape: string | null = null;
+    // Animation loop for continuous lip sync
+    const animateLipSync = () => {
+      if (!isSpeaking.current || !synthesisRef.current || !vrmRef.current) {
+        return;
+      }
+
+      // Check if any utterance is currently speaking
+      const speakingUtterance = synthesisRef.current.speaking;
+      
+      if (speakingUtterance) {
+        // Simple mouth open/close based on speech activity
+        const mouthOpenShape = suggestedMouthShape || 'aa';
+        setVrmMouthShape(mouthOpenShape, 1.0);
+      } else {
+        // If not speaking, close mouth
+        const mouthOpenShape = suggestedMouthShape || 'aa';
+        setVrmMouthShape(mouthOpenShape, 0.0);
+      }
+
+      animationFrameId.current = requestAnimationFrame(animateLipSync);
+    };
 
     // Open mouth when speech starts
     utterance.onstart = () => {
+      isSpeaking.current = true;
       // Reset all expressions first to clear any lingering smile
       if (vrmAnalysis && vrmAnalysis.expressionNames) {
         vrmAnalysis.expressionNames.forEach((expr: string) => {
@@ -298,33 +321,20 @@ function App() {
           }
         });
       }
-      
-      // Use a general mouth open shape (e.g., 'aa' or 'A')
-      const mouthOpenShape = suggestedMouthShape || 'aa'; // Fallback to 'aa'
-      currentMouthShape = mouthOpenShape;
-      console.log('Speech started - opening mouth with shape:', mouthOpenShape);
-      setVrmMouthShape(mouthOpenShape, 1.0);
-    };
-
-    // Keep mouth open during speech
-    utterance.onboundary = (event) => {
-      // Ensure mouth stays open during speech
-      if (currentMouthShape) {
-        setVrmMouthShape(currentMouthShape, 1.0);
-      }
+      console.log('Speech started - initiating lip sync animation');
+      animateLipSync();
     };
 
     // Close mouth when speech ends
     utterance.onend = () => {
+      isSpeaking.current = false;
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
       console.log('Speech ended - closing mouth');
-      if (mouthTimer) {
-        clearTimeout(mouthTimer);
-      }
       // Reset to neutral
-      if (currentMouthShape) {
-        setVrmMouthShape(currentMouthShape, 0.0);
-        currentMouthShape = null;
-      }
+      const mouthOpenShape = suggestedMouthShape || 'aa';
+      setVrmMouthShape(mouthOpenShape, 0.0);
     };
 
     synthesisRef.current.speak(utterance);
@@ -773,26 +783,7 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
-  // Handle expression change
-  const handleExpressionChange = useCallback((expression: string) => {
-    setSelectedExpression(expression);
-    
-    // Apply the selected expression to the VRM
-    if (vrmRef.current) {
-      // Reset all expressions first
-      if (vrmAnalysis && vrmAnalysis.expressionNames) {
-        vrmAnalysis.expressionNames.forEach((expr: string) => {
-          setVrmMouthShape(expr, 0.0);
-        });
-      }
-      
-      // Apply the selected expression
-      if (expression !== 'neutral') {
-        setVrmMouthShape(expression, 1.0);
-        console.log(`Applied expression: ${expression}`);
-      }
-    }
-  }, [vrmAnalysis]);
+  
 
   // Mouse control functions
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
@@ -970,22 +961,7 @@ function App() {
             }
           </select>
           
-          <label htmlFor="expression-select">Expression:</label>
-          <select 
-            id="expression-select"
-            value={selectedExpression}
-            onChange={(e) => handleExpressionChange(e.target.value)}
-            className="expression-select"
-          >
-            <option value="neutral">Neutral</option>
-            {vrmAnalysis && vrmAnalysis.expressionNames && 
-              vrmAnalysis.expressionNames
-                .filter((expr: string) => expr !== 'neutral')
-                .map((expr: string) => (
-                  <option key={expr} value={expr}>{expr}</option>
-                ))
-            }
-          </select>
+          
         </div>
 
         {/* Multi-tab box for VRM Analysis and Voice Information */}
