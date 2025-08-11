@@ -193,8 +193,7 @@ function App() {
   const [vrmAnalysis, setVrmAnalysis] = useState<any>(null);
   const [suggestedMouthShape, setSuggestedMouthShape] = useState<string | null>(null);
   
-  // Expression selection state
-  const [selectedExpression, setSelectedExpression] = useState<string>('neutral');
+  
   
   // Language context
   const [languageContext, setLanguageContext] = useState<'chinese' | 'english'>(() => {
@@ -235,16 +234,6 @@ function App() {
     return hasSeenPopup !== 'true';
   });
   
-  // First visit auto-message state
-  const [hasSentFirstMessage, setHasSentFirstMessage] = useState(() => {
-    // Check if first message has been sent
-    const hasSent = getLocalStorage('firstMessageSent');
-    return hasSent === 'true';
-  });
-  
-  // Ref to track if first message is being sent
-  const isSendingFirstMessage = useRef(false);
-  
   // Ref for text input field
   const textInputRef = useRef<HTMLInputElement>(null);
   
@@ -277,6 +266,10 @@ function App() {
     }
   }
 
+  // Ref to track if speech is active
+  const isSpeaking = useRef(false);
+  const animationFrameId = useRef<number | null>(null);
+
   // Enhanced lip sync with advanced phoneme detection
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
@@ -294,158 +287,31 @@ function App() {
       utterance.voice = selectedVoice;
     }
 
-    let mouthTimer: NodeJS.Timeout | null = null;
-    let currentMouthShape: string | null = null;
-    
-    // Get available mouth shapes from VRM analysis
-    const getAvailableMouthShapes = () => {
-      if (vrmAnalysis && vrmAnalysis.expressionNames) {
-        // Filter for mouth-related expressions
-        const mouthShapes = vrmAnalysis.expressionNames.filter((expr: string) => 
-          ['aa', 'ee', 'ih', 'oh', 'ou', 'a', 'e', 'i', 'o', 'u', 'ah', 'eh', 'ih', 'oh', 'uh',
-           'open', 'wide', 'round', 'pucker', 'smile', 'frown', 'relax', 'tight', 'part', 'close',
-           'jaw', 'lip', 'mouth'].includes(expr.toLowerCase())
-        );
-        return mouthShapes.length > 0 ? mouthShapes : ['aa']; // Fallback to 'aa'
+    // Animation loop for continuous lip sync
+    const animateLipSync = () => {
+      if (!isSpeaking.current || !synthesisRef.current || !vrmRef.current) {
+        return;
       }
-      return ['aa']; // Default fallback
-    };
-    
-    const availableMouthShapes = getAvailableMouthShapes();
-    
-    // Enhanced phoneme to mouth shape mapping
-    const phonemeToMouthShape = (phoneme: string, word: string): string => {
-      const phonemeLower = phoneme.toLowerCase();
-      const wordLower = word.toLowerCase();
+
+      // Check if any utterance is currently speaking
+      const speakingUtterance = synthesisRef.current.speaking;
       
-      // Find the best matching mouth shape from available shapes
-      const findBestMatch = (targetPatterns: string[]): string => {
-        for (const pattern of targetPatterns) {
-          const match = availableMouthShapes.find((shape: string) => 
-            shape.toLowerCase().includes(pattern.toLowerCase())
-          );
-          if (match) {
-            console.log(`Mouth shape selected: ${match} for phoneme: ${phonemeLower}, word: ${wordLower}`);
-            return match;
-          }
-        }
-        console.log(`No match found, using fallback: ${availableMouthShapes[0]} for phoneme: ${phonemeLower}`);
-        return availableMouthShapes[0]; // Fallback
-      };
-      
-      // Vowel mappings with more specific patterns
-      if (['a', 'ɑ', 'æ', 'ʌ', 'ɑː', 'aː'].includes(phonemeLower)) {
-        return findBestMatch(['aa', 'ah', 'a', 'open', 'wide', 'jaw']);
+      if (speakingUtterance) {
+        // Simple mouth open/close based on speech activity
+        const mouthOpenShape = suggestedMouthShape || 'aa';
+        setVrmMouthShape(mouthOpenShape, 1.0);
+      } else {
+        // If not speaking, close mouth
+        const mouthOpenShape = suggestedMouthShape || 'aa';
+        setVrmMouthShape(mouthOpenShape, 0.0);
       }
-      if (['e', 'ɛ', 'eɪ', 'iː', 'eː'].includes(phonemeLower)) {
-        return findBestMatch(['ee', 'eh', 'e', 'wide', 'part']);
-      }
-      if (['i', 'ɪ', 'iː', 'iː'].includes(phonemeLower)) {
-        return findBestMatch(['ih', 'i', 'ee', 'wide', 'part']);
-      }
-      if (['o', 'ɔ', 'oʊ', 'əʊ', 'oː'].includes(phonemeLower)) {
-        return findBestMatch(['oh', 'o', 'round', 'pucker', 'close']);
-      }
-      if (['u', 'ʊ', 'uː', 'juː', 'uː'].includes(phonemeLower)) {
-        return findBestMatch(['ou', 'uh', 'u', 'round', 'pucker', 'close']);
-      }
-      
-      // Consonant mappings with more specific mouth shapes
-      if (['p', 'b', 'm'].includes(phonemeLower)) {
-        return findBestMatch(['close', 'tight', 'part', 'relax']); // Closed lips
-      }
-      if (['f', 'v'].includes(phonemeLower)) {
-        return findBestMatch(['ih', 'part', 'relax', 'tight']); // Upper teeth on lower lip
-      }
-      if (['s', 'z', 'ʃ', 'ʒ'].includes(phonemeLower)) {
-        return findBestMatch(['ee', 'wide', 'part', 'tight']); // Teeth together
-      }
-      if (['t', 'd', 'n', 'l'].includes(phonemeLower)) {
-        return findBestMatch(['part', 'relax', 'wide', 'ih']); // Tongue to teeth
-      }
-      if (['k', 'g', 'ŋ'].includes(phonemeLower)) {
-        return findBestMatch(['ah', 'open', 'wide', 'aa']); // Back of throat
-      }
-      if (['r'].includes(phonemeLower)) {
-        return findBestMatch(['round', 'oh', 'pucker', 'close']); // Rounded lips
-      }
-      if (['w', 'j'].includes(phonemeLower)) {
-        return findBestMatch(['round', 'wide', 'oh', 'ee']); // Semi-vowels
-      }
-      
-      // Special cases for common word patterns
-      if (wordLower.includes('smile') || wordLower.includes('happy') || wordLower.includes('laugh')) {
-        return findBestMatch(['smile', 'wide', 'ee', 'part']);
-      }
-      if (wordLower.includes('frown') || wordLower.includes('sad') || wordLower.includes('cry')) {
-        return findBestMatch(['frown', 'pucker', 'oh', 'close']);
-      }
-      if (wordLower.includes('kiss') || wordLower.includes('pucker')) {
-        return findBestMatch(['pucker', 'round', 'oh', 'close']);
-      }
-      
-      // Default to first available shape
-      return availableMouthShapes[0];
-    };
-    
-    // Enhanced phoneme detection with word context
-    const detectPhoneme = (text: string, charIndex: number): { phoneme: string, word: string } => {
-      const words = text.toLowerCase().split(/\s+/);
-      let currentCharIndex = 0;
-      let currentWord = '';
-      
-      // Find the word being spoken at the current character index
-      for (const word of words) {
-        if (currentCharIndex + word.length > charIndex) {
-          currentWord = word;
-          break;
-        }
-        currentCharIndex += word.length + 1; // +1 for space
-      }
-      
-      if (!currentWord) {
-        currentWord = words[words.length - 1] || 'a';
-      }
-      
-      // Enhanced phoneme detection based on word structure
-      const detectPhonemeFromWord = (word: string): string => {
-        // Check for common vowel patterns
-        if (word.includes('a') || word.includes('o')) {
-          if (word.includes('ai') || word.includes('ay')) return 'e';
-          if (word.includes('au') || word.includes('aw')) return 'o';
-          return 'a';
-        }
-        if (word.includes('e') || word.includes('i')) {
-          if (word.includes('ie') || word.includes('ei')) return 'e';
-          if (word.includes('igh')) return 'i';
-          return 'e';
-        }
-        if (word.includes('u')) {
-          if (word.includes('ue') || word.includes('ui')) return 'u';
-          return 'u';
-        }
-        if (word.includes('y')) {
-          if (word.startsWith('y')) return 'i';
-          return 'e';
-        }
-        
-        // Check for consonant patterns that affect mouth shape
-        if (word.includes('p') || word.includes('b') || word.includes('m')) return 'p';
-        if (word.includes('f') || word.includes('v')) return 'f';
-        if (word.includes('s') || word.includes('z')) return 's';
-        if (word.includes('r')) return 'r';
-        if (word.includes('w')) return 'w';
-        
-        // Default to 'a' for most consonants
-        return 'a';
-      };
-      
-      const phoneme = detectPhonemeFromWord(currentWord);
-      return { phoneme, word: currentWord };
+
+      animationFrameId.current = requestAnimationFrame(animateLipSync);
     };
 
     // Open mouth when speech starts
     utterance.onstart = () => {
+      isSpeaking.current = true;
       // Reset all expressions first to clear any lingering smile
       if (vrmAnalysis && vrmAnalysis.expressionNames) {
         vrmAnalysis.expressionNames.forEach((expr: string) => {
@@ -455,65 +321,24 @@ function App() {
           }
         });
       }
-      
-      const { phoneme, word } = detectPhoneme(text, 0);
-      const mouthShape = phonemeToMouthShape(phoneme, word);
-      currentMouthShape = mouthShape;
-      console.log('Speech started - opening mouth with shape:', mouthShape, 'for phoneme:', phoneme, 'word:', word);
-      setVrmMouthShape(mouthShape, 1.0);
-    };
-
-    // Handle word boundaries for natural lip sync
-    utterance.onboundary = (event) => {
-      // Get the word being spoken
-      const charIndex = event.charIndex;
-      const { phoneme, word } = detectPhoneme(text, charIndex);
-      const mouthShape = phonemeToMouthShape(phoneme, word);
-      
-      console.log('Word boundary detected - adjusting mouth with shape:', mouthShape, 'for word:', word, 'phoneme:', phoneme);
-      
-      // Clear any existing timer
-      if (mouthTimer) {
-        clearTimeout(mouthTimer);
-      }
-      
-      // Only change mouth shape if it's different from current
-      if (currentMouthShape !== mouthShape) {
-        // Reset previous mouth shape
-        if (currentMouthShape) {
-          setVrmMouthShape(currentMouthShape, 0.0);
-        }
-        
-        // Set new mouth shape
-        currentMouthShape = mouthShape;
-        setVrmMouthShape(mouthShape, 1.0);
-      }
-      
-      // Close mouth after a short delay if no next word
-      mouthTimer = setTimeout(() => {
-        console.log('Closing mouth after delay');
-        if (currentMouthShape) {
-          setVrmMouthShape(currentMouthShape, 0.0);
-          currentMouthShape = null;
-        }
-      }, 200);
+      console.log('Speech started - initiating lip sync animation');
+      animateLipSync();
     };
 
     // Close mouth when speech ends
     utterance.onend = () => {
+      isSpeaking.current = false;
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
       console.log('Speech ended - closing mouth');
-      if (mouthTimer) {
-        clearTimeout(mouthTimer);
-      }
       // Reset to neutral
-      if (currentMouthShape) {
-        setVrmMouthShape(currentMouthShape, 0.0);
-        currentMouthShape = null;
-      }
+      const mouthOpenShape = suggestedMouthShape || 'aa';
+      setVrmMouthShape(mouthOpenShape, 0.0);
     };
 
     synthesisRef.current.speak(utterance);
-  }, [languageContext, vrmAnalysis, selectedVoice]);
+  }, [languageContext, vrmAnalysis, selectedVoice, suggestedMouthShape]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -724,7 +549,7 @@ function App() {
         
         console.log('=== End VRM Expression Debug ===');
         
-        // Immediately apply A-pose after VRM is loaded
+        // Immediately apply T-pose after VRM is loaded
         if (vrm.humanoid) {
           const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
             const boneNode = vrm.humanoid.getNormalizedBoneNode(boneName);
@@ -737,11 +562,11 @@ function App() {
             }
           };
 
-          // Apply complete A-pose immediately
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
+          // Apply complete T-pose immediately
+          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 90);   // T-pose: arms straight out
+          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -90);  // T-pose: arms straight out
+          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 0);    // Straight arms
+          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, 0);   // Straight arms
           setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
           setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
           setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
@@ -750,13 +575,12 @@ function App() {
           // Reset spring bones to the new pose
           if (vrm.springBoneManager) {
             vrm.springBoneManager.reset();
-            console.log('Spring bones reset to A-pose after VRM load');
+            console.log('Spring bones reset to T-pose after VRM load');
           }
           
-          console.log('Complete A-pose applied immediately after VRM load');
+          console.log('Complete T-pose applied immediately after VRM load');
         }
         
-        console.log('Avatar loaded. Pose will be continuously enforced in the animation loop.');
 
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
@@ -766,58 +590,9 @@ function App() {
     loadVRMModel(selectedVRM);
     
     // --- Animation loop and window resize (core modification here) ---
-    const clock = new THREE.Clock();
-    let frameCount = 0; // Track frames to ensure pose is applied consistently
 
     const animate = () => {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      frameCount++;
-      
-      if (vrmRef.current) {
-        // Update VRM's animation and physics first
-        vrmRef.current.update(delta);
-
-        // **Core fix: Always force A-pose after update to prevent T-pose**
-        // This ensures the pose is maintained even after page refresh or VRM updates
-        const humanoid = vrmRef.current.humanoid;
-        if (humanoid) {
-          const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
-            const boneNode = humanoid.getNormalizedBoneNode(boneName);
-            if (boneNode) {
-              boneNode.rotation.set(
-                THREE.MathUtils.degToRad(x),
-                THREE.MathUtils.degToRad(y),
-                THREE.MathUtils.degToRad(z)
-              );
-            }
-          };
-
-          // Force A-pose - ALWAYS apply this pose in every frame
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 60);   // A-pose: arms down at 60 degrees
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -60); // A-pose: arms down at -60 degrees
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 15);   // Slight elbow bend
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, -15); // Slight elbow bend
-          
-          // Also set other body parts to ensure complete A-pose
-          setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
-          setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
-          setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
-          setBoneRotation(VRMHumanBoneName.RightShoulder, 0, 0, 0);   // Relaxed shoulders
-          
-          // Reset spring bones periodically to maintain pose
-          if (frameCount % 60 === 0 && vrmRef.current.springBoneManager) { // Every 60 frames (about 1 second)
-            vrmRef.current.springBoneManager.reset();
-            console.log("Periodic spring bone reset to maintain A-pose");
-          }
-          
-          // Log pose enforcement periodically
-          if (frameCount % 300 === 0) { // Every 300 frames (about 5 seconds)
-            console.log("A-pose enforced at frame:", frameCount);
-          }
-        }
-      }
-      
       renderer.render(scene, camera);
     };
 
@@ -884,20 +659,15 @@ function App() {
 
     // Initialize speech synthesis
     synthesisRef.current = window.speechSynthesis;
-    
-    // Load available voices
+  }, [processWithAI, languageContext, isContinuousTalking, isProcessing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load and set voices
+  useEffect(() => {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       setAvailableVoices(voices);
-      
-      // Set default voice based on language context
-      const defaultVoice = voices.find(voice => 
-        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en') && voice.default
-      ) || voices.find(voice => 
-        voice.lang.startsWith(languageContext === 'chinese' ? 'zh' : 'en')
-      ) || voices[0];
-      
-      setSelectedVoice(defaultVoice);
+      setSelectedVoice(null); // Set selected voice to null to make "Default Voice" the default
+      console.log('Voices loaded. Default voice is set to "Default Voice".');
     };
     
     // Load voices immediately if available
@@ -907,7 +677,7 @@ function App() {
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, [processWithAI, languageContext, isContinuousTalking, isProcessing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [languageContext]);
 
   // Update voice selection when language changes
   useEffect(() => {
@@ -916,21 +686,28 @@ function App() {
       // Find the best voice for the current language
       const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
       
-      // First try to find a default voice for the language
-      let bestVoice = voices.find(voice => 
-        voice.lang.startsWith(languagePrefix) && voice.default
+      // Filter voices by language
+      const languageVoices = voices.filter(voice => voice.lang.startsWith(languagePrefix));
+
+      // Try to find a female voice
+      let bestVoice = languageVoices.find(voice => 
+        getVoiceGender(voice) === '[Female]' && voice.default
       );
-      
-      // If no default voice, find any voice for the language
+
       if (!bestVoice) {
-        bestVoice = voices.find(voice => 
-          voice.lang.startsWith(languagePrefix)
+        bestVoice = languageVoices.find(voice => 
+          getVoiceGender(voice) === '[Female]'
         );
       }
-      
-      // If still no voice found, use the first available voice
-      if (!bestVoice && voices.length > 0) {
-        bestVoice = voices[0];
+
+      // If no female voice, fall back to default voice for the language
+      if (!bestVoice) {
+        bestVoice = languageVoices.find(voice => voice.default);
+      }
+
+      // If still no voice found, use any voice for the language
+      if (!bestVoice) {
+        bestVoice = languageVoices[0];
       }
       
       if (bestVoice) {
@@ -949,34 +726,7 @@ function App() {
     }).map(v => `${v.name} (${v.lang})`));
   }, [languageContext, availableVoices]);
 
-  // Auto-send first message for first-time visitors
-  useEffect(() => {
-    if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
-      // Add a small delay to ensure component is fully initialized
-      const timer = setTimeout(() => {
-        if (!hasSentFirstMessage && !isProcessing && !isSendingFirstMessage.current) {
-          isSendingFirstMessage.current = true; // Mark as sending
-          
-          const firstMessage = "Please respond in English from now on.";
-          
-          // Mark as sent immediately to prevent duplicate sends
-          setHasSentFirstMessage(true);
-          setLocalStorage('firstMessageSent', 'true');
-          
-          // Add user message to chat
-          const userMessage: ChatMessage = { role: 'user', content: firstMessage };
-          setChatHistory(prev => [...prev, userMessage]);
-          
-          // Process with AI
-          processWithAI(firstMessage);
-          
-          console.log('Auto-sent first message for first-time visitor');
-        }
-      }, 1000); // 1 second delay
-      
-      return () => clearTimeout(timer);
-    }
-  }, [hasSentFirstMessage, isProcessing, processWithAI]);
+  
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening && !isProcessing) {
@@ -1033,26 +783,7 @@ function App() {
     // The VRM will be reloaded in the useEffect when selectedVRM changes
   }, []);
 
-  // Handle expression change
-  const handleExpressionChange = useCallback((expression: string) => {
-    setSelectedExpression(expression);
-    
-    // Apply the selected expression to the VRM
-    if (vrmRef.current) {
-      // Reset all expressions first
-      if (vrmAnalysis && vrmAnalysis.expressionNames) {
-        vrmAnalysis.expressionNames.forEach((expr: string) => {
-          setVrmMouthShape(expr, 0.0);
-        });
-      }
-      
-      // Apply the selected expression
-      if (expression !== 'neutral') {
-        setVrmMouthShape(expression, 1.0);
-        console.log(`Applied expression: ${expression}`);
-      }
-    }
-  }, [vrmAnalysis]);
+  
 
   // Mouse control functions
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
@@ -1130,6 +861,38 @@ function App() {
     return <CorsTest />;
   }
 
+  const getVoiceGender = (voice: SpeechSynthesisVoice): string => {
+    const name = voice.name.toLowerCase();
+    const genderMap: { [key: string]: string } = {
+      'google us english': '[Female]',
+      'microsoft catherine - english (australia)': '[Female]',
+      'microsoft hazel - english (united kingdom)': '[Female]',
+      'microsoft susan - english (united kingdom)': '[Female]',
+      'microsoft george - english (united kingdom)': '[Male]',
+      'microsoft james - english (australia)': '[Male]',
+      '國語（臺灣）': '[Female]',
+      '普通话（中国大陆）': '[Female]',
+      '粤語（香港）': '[Female]',
+      'microsoft huihui - chinese (simplified, prc)': '[Female]',
+      'microsoft kangkang - chinese (simplified, prc)': '[Female]',
+      'microsoft yaoyao - chinese (simplified, prc)': '[Female]',
+    };
+    console.log('name:', name);
+    for (const key in genderMap) {
+      if (name.includes(key)) {
+        return genderMap[key];
+      }
+    }
+
+    if (name.includes('female') || name.includes('girl') || name.includes('woman')) {
+      return '[female]';
+    }
+    if (name.includes('male') || name.includes('boy') || name.includes('man')) {
+      return '[male]';
+    }
+    return '';
+  };
+
   return (
     <div className="App">
       {/* Left Column - Controls and Statistics */}
@@ -1176,13 +939,14 @@ function App() {
             id="voice-select"
             value={selectedVoice?.name || ''}
             onChange={(e) => {
-              const voice = availableVoices.find(v => v.name === e.target.value);
+              const voiceName = e.target.value;
+              const voice = availableVoices.find(v => v.name === voiceName);
               setSelectedVoice(voice || null);
               console.log('Voice selected:', voice?.name, voice?.lang);
             }}
             className="voice-select"
           >
-            <option value="">Default Voice</option>
+            <option value="">[female] Default Voice</option>
             {availableVoices
               .filter(voice => {
                 const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
@@ -1191,28 +955,13 @@ function App() {
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((voice) => (
                 <option key={voice.name} value={voice.name}>
-                  {voice.name} ({voice.lang})
+                  {getVoiceGender(voice)} {voice.name} ({voice.lang})
                 </option>
               ))
             }
           </select>
           
-          <label htmlFor="expression-select">Expression:</label>
-          <select 
-            id="expression-select"
-            value={selectedExpression}
-            onChange={(e) => handleExpressionChange(e.target.value)}
-            className="expression-select"
-          >
-            <option value="neutral">Neutral</option>
-            {vrmAnalysis && vrmAnalysis.expressionNames && 
-              vrmAnalysis.expressionNames
-                .filter((expr: string) => expr !== 'neutral')
-                .map((expr: string) => (
-                  <option key={expr} value={expr}>{expr}</option>
-                ))
-            }
-          </select>
+          
         </div>
 
         {/* Multi-tab box for VRM Analysis and Voice Information */}
