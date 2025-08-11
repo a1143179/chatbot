@@ -286,153 +286,6 @@ function App() {
 
     let mouthTimer: NodeJS.Timeout | null = null;
     let currentMouthShape: string | null = null;
-    
-    // Get available mouth shapes from VRM analysis
-    const getAvailableMouthShapes = () => {
-      if (vrmAnalysis && vrmAnalysis.expressionNames) {
-        // Filter for mouth-related expressions
-        const mouthShapes = vrmAnalysis.expressionNames.filter((expr: string) => 
-          ['aa', 'ee', 'ih', 'oh', 'ou', 'a', 'e', 'i', 'o', 'u', 'ah', 'eh', 'ih', 'oh', 'uh',
-           'open', 'wide', 'round', 'pucker', 'smile', 'frown', 'relax', 'tight', 'part', 'close',
-           'jaw', 'lip', 'mouth'].includes(expr.toLowerCase())
-        );
-        return mouthShapes.length > 0 ? mouthShapes : ['aa']; // Fallback to 'aa'
-      }
-      return ['aa']; // Default fallback
-    };
-    
-    const availableMouthShapes = getAvailableMouthShapes();
-    
-    // Enhanced phoneme to mouth shape mapping
-    const phonemeToMouthShape = (phoneme: string, word: string): string => {
-      const phonemeLower = phoneme.toLowerCase();
-      const wordLower = word.toLowerCase();
-      
-      // Find the best matching mouth shape from available shapes
-      const findBestMatch = (targetPatterns: string[]): string => {
-        for (const pattern of targetPatterns) {
-          const match = availableMouthShapes.find((shape: string) => 
-            shape.toLowerCase().includes(pattern.toLowerCase())
-          );
-          if (match) {
-            console.log(`Mouth shape selected: ${match} for phoneme: ${phonemeLower}, word: ${wordLower}`);
-            return match;
-          }
-        }
-        console.log(`No match found, using fallback: ${availableMouthShapes[0]} for phoneme: ${phonemeLower}`);
-        return availableMouthShapes[0]; // Fallback
-      };
-      
-      // Vowel mappings with more specific patterns
-      if (['a', 'ɑ', 'æ', 'ʌ', 'ɑː', 'aː'].includes(phonemeLower)) {
-        return findBestMatch(['aa', 'ah', 'a', 'open', 'wide', 'jaw']);
-      }
-      if (['e', 'ɛ', 'eɪ', 'iː', 'eː'].includes(phonemeLower)) {
-        return findBestMatch(['ee', 'eh', 'e', 'wide', 'part']);
-      }
-      if (['i', 'ɪ', 'iː', 'iː'].includes(phonemeLower)) {
-        return findBestMatch(['ih', 'i', 'ee', 'wide', 'part']);
-      }
-      if (['o', 'ɔ', 'oʊ', 'əʊ', 'oː'].includes(phonemeLower)) {
-        return findBestMatch(['oh', 'o', 'round', 'pucker', 'close']);
-      }
-      if (['u', 'ʊ', 'uː', 'juː', 'uː'].includes(phonemeLower)) {
-        return findBestMatch(['ou', 'uh', 'u', 'round', 'pucker', 'close']);
-      }
-      
-      // Consonant mappings with more specific mouth shapes
-      if (['p', 'b', 'm'].includes(phonemeLower)) {
-        return findBestMatch(['close', 'tight', 'part', 'relax']); // Closed lips
-      }
-      if (['f', 'v'].includes(phonemeLower)) {
-        return findBestMatch(['ih', 'part', 'relax', 'tight']); // Upper teeth on lower lip
-      }
-      if (['s', 'z', 'ʃ', 'ʒ'].includes(phonemeLower)) {
-        return findBestMatch(['ee', 'wide', 'part', 'tight']); // Teeth together
-      }
-      if (['t', 'd', 'n', 'l'].includes(phonemeLower)) {
-        return findBestMatch(['part', 'relax', 'wide', 'ih']); // Tongue to teeth
-      }
-      if (['k', 'g', 'ŋ'].includes(phonemeLower)) {
-        return findBestMatch(['ah', 'open', 'wide', 'aa']); // Back of throat
-      }
-      if (['r'].includes(phonemeLower)) {
-        return findBestMatch(['round', 'oh', 'pucker', 'close']); // Rounded lips
-      }
-      if (['w', 'j'].includes(phonemeLower)) {
-        return findBestMatch(['round', 'wide', 'oh', 'ee']); // Semi-vowels
-      }
-      
-      // Special cases for common word patterns
-      if (wordLower.includes('smile') || wordLower.includes('happy') || wordLower.includes('laugh')) {
-        return findBestMatch(['smile', 'wide', 'ee', 'part']);
-      }
-      if (wordLower.includes('frown') || wordLower.includes('sad') || wordLower.includes('cry')) {
-        return findBestMatch(['frown', 'pucker', 'oh', 'close']);
-      }
-      if (wordLower.includes('kiss') || wordLower.includes('pucker')) {
-        return findBestMatch(['pucker', 'round', 'oh', 'close']);
-      }
-      
-      // Default to first available shape
-      return availableMouthShapes[0];
-    };
-    
-    // Enhanced phoneme detection with word context
-    const detectPhoneme = (text: string, charIndex: number): { phoneme: string, word: string } => {
-      const words = text.toLowerCase().split(/\s+/);
-      let currentCharIndex = 0;
-      let currentWord = '';
-      
-      // Find the word being spoken at the current character index
-      for (const word of words) {
-        if (currentCharIndex + word.length > charIndex) {
-          currentWord = word;
-          break;
-        }
-        currentCharIndex += word.length + 1; // +1 for space
-      }
-      
-      if (!currentWord) {
-        currentWord = words[words.length - 1] || 'a';
-      }
-      
-      // Enhanced phoneme detection based on word structure
-      const detectPhonemeFromWord = (word: string): string => {
-        // Check for common vowel patterns
-        if (word.includes('a') || word.includes('o')) {
-          if (word.includes('ai') || word.includes('ay')) return 'e';
-          if (word.includes('au') || word.includes('aw')) return 'o';
-          return 'a';
-        }
-        if (word.includes('e') || word.includes('i')) {
-          if (word.includes('ie') || word.includes('ei')) return 'e';
-          if (word.includes('igh')) return 'i';
-          return 'e';
-        }
-        if (word.includes('u')) {
-          if (word.includes('ue') || word.includes('ui')) return 'u';
-          return 'u';
-        }
-        if (word.includes('y')) {
-          if (word.startsWith('y')) return 'i';
-          return 'e';
-        }
-        
-        // Check for consonant patterns that affect mouth shape
-        if (word.includes('p') || word.includes('b') || word.includes('m')) return 'p';
-        if (word.includes('f') || word.includes('v')) return 'f';
-        if (word.includes('s') || word.includes('z')) return 's';
-        if (word.includes('r')) return 'r';
-        if (word.includes('w')) return 'w';
-        
-        // Default to 'a' for most consonants
-        return 'a';
-      };
-      
-      const phoneme = detectPhonemeFromWord(currentWord);
-      return { phoneme, word: currentWord };
-    };
 
     // Open mouth when speech starts
     utterance.onstart = () => {
@@ -446,47 +299,19 @@ function App() {
         });
       }
       
-      const { phoneme, word } = detectPhoneme(text, 0);
-      const mouthShape = phonemeToMouthShape(phoneme, word);
-      currentMouthShape = mouthShape;
-      console.log('Speech started - opening mouth with shape:', mouthShape, 'for phoneme:', phoneme, 'word:', word);
-      setVrmMouthShape(mouthShape, 1.0);
+      // Use a general mouth open shape (e.g., 'aa' or 'A')
+      const mouthOpenShape = suggestedMouthShape || 'aa'; // Fallback to 'aa'
+      currentMouthShape = mouthOpenShape;
+      console.log('Speech started - opening mouth with shape:', mouthOpenShape);
+      setVrmMouthShape(mouthOpenShape, 1.0);
     };
 
-    // Handle word boundaries for natural lip sync
+    // Keep mouth open during speech
     utterance.onboundary = (event) => {
-      // Get the word being spoken
-      const charIndex = event.charIndex;
-      const { phoneme, word } = detectPhoneme(text, charIndex);
-      const mouthShape = phonemeToMouthShape(phoneme, word);
-      
-      console.log('Word boundary detected - adjusting mouth with shape:', mouthShape, 'for word:', word, 'phoneme:', phoneme);
-      
-      // Clear any existing timer
-      if (mouthTimer) {
-        clearTimeout(mouthTimer);
+      // Ensure mouth stays open during speech
+      if (currentMouthShape) {
+        setVrmMouthShape(currentMouthShape, 1.0);
       }
-      
-      // Only change mouth shape if it's different from current
-      if (currentMouthShape !== mouthShape) {
-        // Reset previous mouth shape
-        if (currentMouthShape) {
-          setVrmMouthShape(currentMouthShape, 0.0);
-        }
-        
-        // Set new mouth shape
-        currentMouthShape = mouthShape;
-        setVrmMouthShape(mouthShape, 1.0);
-      }
-      
-      // Close mouth after a short delay if no next word
-      mouthTimer = setTimeout(() => {
-        console.log('Closing mouth after delay');
-        if (currentMouthShape) {
-          setVrmMouthShape(currentMouthShape, 0.0);
-          currentMouthShape = null;
-        }
-      }, 200);
     };
 
     // Close mouth when speech ends
@@ -503,7 +328,7 @@ function App() {
     };
 
     synthesisRef.current.speak(utterance);
-  }, [languageContext, vrmAnalysis, selectedVoice]);
+  }, [languageContext, vrmAnalysis, selectedVoice, suggestedMouthShape]);
 
   const processWithAI = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -851,21 +676,28 @@ function App() {
       // Find the best voice for the current language
       const languagePrefix = languageContext === 'chinese' ? 'zh' : 'en';
       
-      // First try to find a default voice for the language
-      let bestVoice = voices.find(voice => 
-        voice.lang.startsWith(languagePrefix) && voice.default
+      // Filter voices by language
+      const languageVoices = voices.filter(voice => voice.lang.startsWith(languagePrefix));
+
+      // Try to find a female voice
+      let bestVoice = languageVoices.find(voice => 
+        getVoiceGender(voice) === '[Female]' && voice.default
       );
-      
-      // If no default voice, find any voice for the language
+
       if (!bestVoice) {
-        bestVoice = voices.find(voice => 
-          voice.lang.startsWith(languagePrefix)
+        bestVoice = languageVoices.find(voice => 
+          getVoiceGender(voice) === '[Female]'
         );
       }
-      
-      // If still no voice found, use the first available voice
-      if (!bestVoice && voices.length > 0) {
-        bestVoice = voices[0];
+
+      // If no female voice, fall back to default voice for the language
+      if (!bestVoice) {
+        bestVoice = languageVoices.find(voice => voice.default);
+      }
+
+      // If still no voice found, use any voice for the language
+      if (!bestVoice) {
+        bestVoice = languageVoices[0];
       }
       
       if (bestVoice) {
