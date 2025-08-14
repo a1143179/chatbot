@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import Loader from './components/Loader';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
@@ -185,6 +186,7 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // VRM selection only
   const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
@@ -451,6 +453,7 @@ function App() {
     // --- Model loading logic ---
     const loadVRMModel = async (vrmFile: string) => {
       console.log(`Loading VRM file: ${vrmFile}`);
+      setIsLoading(true);
       
       if (vrmRef.current) {
         scene.remove(vrmRef.current.scene);
@@ -581,9 +584,11 @@ function App() {
           console.log('Complete T-pose applied immediately after VRM load');
         }
         
+        setIsLoading(false);
 
       } catch (error) {
         console.error(`Error loading VRM (${vrmFile}):`, error);
+        setIsLoading(false);
       }
     };
     
@@ -856,6 +861,12 @@ function App() {
     setLocalStorage('mouseControlPopupSeen', 'true');
   }, []);
 
+  const handleReset = () => {
+    localStorage.removeItem('cameraState');
+    localStorage.removeItem('vrmRotationState');
+    window.location.reload();
+  };
+
   // Render CORS test page
   if (currentRoute === 'cors-test') {
     return <CorsTest />;
@@ -895,6 +906,7 @@ function App() {
 
   return (
     <div className="App">
+      {isLoading && <Loader />}
       {/* Left Column - Controls and Statistics */}
       <div className="left-column">
         {/* Model selector */}
@@ -961,6 +973,7 @@ function App() {
             }
           </select>
           
+          <button onClick={handleReset} className="reset-button">Reset Avatar</button>
           
         </div>
 
