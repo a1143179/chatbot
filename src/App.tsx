@@ -189,7 +189,7 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // VRM selection only
-  const [selectedVRM, setSelectedVRM] = useState<string>('cute-girl.vrm');
+  const [selectedVRM, setSelectedVRM] = useState<string>('twitch-girl.vrm');
   
   // VRM analysis state
   const [vrmAnalysis, setVrmAnalysis] = useState<any>(null);
@@ -245,81 +245,75 @@ function App() {
   function setVrmMouthShape(shape: string, value: number): void {
     const vrm = vrmRef.current;
     if (!vrm) {
-      console.log('setVrmMouthShape: No VRM loaded');
       return;
     }
-    
-    console.log(`setVrmMouthShape: Setting ${shape} to ${value}`);
-    
+
     // VRM 1.x
     if ((vrm as any).expressionManager && typeof (vrm as any).expressionManager.setValue === 'function') {
       (vrm as any).expressionManager.setValue(shape, value);
-      console.log(`Applied to expressionManager: ${shape} = ${value}`);
-      
-      // Debug: List available expressions
-      if (value > 0) {
-        console.log('Available expressions:', (vrm as any).expressionManager.getExpressionNames?.() || 'No getExpressionNames method');
-      }
     } else if ((vrm as any).blendShapeProxy && typeof (vrm as any).blendShapeProxy.setValue === 'function') {
       (vrm as any).blendShapeProxy.setValue(shape, value);
-      console.log(`Applied to blendShapeProxy: ${shape} = ${value}`);
-    } else {
-      console.log('setVrmMouthShape: No compatible expression system found');
     }
   }
 
-  // Ref to track if speech is active
-  const isSpeaking = useRef(false);
+  // Refs for lip sync animation
   const animationFrameId = useRef<number | null>(null);
+  const currentMouthValue = useRef(0);
+  const targetMouthValue = useRef(0);
+  const clock = useRef(new THREE.Clock());
 
-  // Enhanced lip sync with advanced phoneme detection
+  // Smoother lip sync with interpolation
   const speakText = useCallback((text: string) => {
     if (!synthesisRef.current) return;
-    
-    // Cancel any ongoing speech to avoid event conflicts
+
     synthesisRef.current.cancel();
-    
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = languageContext === 'chinese' ? 'zh-CN' : 'en-US';
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
-    
-    // Set the selected voice if available
+
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     }
 
-    // Animation loop for continuous lip sync
     const animateLipSync = () => {
-      if (!isSpeaking.current || !synthesisRef.current || !vrmRef.current) {
-        return;
-      }
+      const mouthOpenShape = suggestedMouthShape || 'aa';
+      const isSpeaking = synthesisRef.current?.speaking;
 
-      // Check if any utterance is currently speaking
-      const speakingUtterance = synthesisRef.current.speaking;
-      
-      if (speakingUtterance) {
-        // Simple mouth open/close based on speech activity
-        const mouthOpenShape = suggestedMouthShape || 'aa';
-        setVrmMouthShape(mouthOpenShape, 1.0);
+      // Smoothly interpolate the current mouth value towards the target
+      const lerpFactor = 0.3;
+      currentMouthValue.current += (targetMouthValue.current - currentMouthValue.current) * lerpFactor;
+
+      // Apply the interpolated value
+      setVrmMouthShape(mouthOpenShape, currentMouthValue.current);
+
+      if (isSpeaking) {
+        // Fluctuate the target mouth value for more dynamic movement
+        const time = clock.current.getElapsedTime();
+        targetMouthValue.current = (Math.sin(time * 20) + 1) / 2 * 0.8 + 0.2;
+        animationFrameId.current = requestAnimationFrame(animateLipSync);
       } else {
-        // If not speaking, close mouth
-        const mouthOpenShape = suggestedMouthShape || 'aa';
-        setVrmMouthShape(mouthOpenShape, 0.0);
+        // If speech has ended, animate the mouth closing
+        targetMouthValue.current = 0;
+        if (currentMouthValue.current > 0.01) {
+          animationFrameId.current = requestAnimationFrame(animateLipSync);
+        } else {
+          setVrmMouthShape(mouthOpenShape, 0);
+          currentMouthValue.current = 0;
+          if (animationFrameId.current) {
+            cancelAnimationFrame(animationFrameId.current);
+          }
+        }
       }
-
-      animationFrameId.current = requestAnimationFrame(animateLipSync);
     };
 
-    // Open mouth when speech starts
     utterance.onstart = () => {
-      isSpeaking.current = true;
-      // Reset all expressions first to clear any lingering smile
+      clock.current.start();
       if (vrmAnalysis && vrmAnalysis.expressionNames) {
         vrmAnalysis.expressionNames.forEach((expr: string) => {
           if (expr.toLowerCase().includes('smile')) {
             setVrmMouthShape(expr, 0.0);
-            console.log(`Reset smile expression: ${expr}`);
           }
         });
       }
@@ -327,16 +321,9 @@ function App() {
       animateLipSync();
     };
 
-    // Close mouth when speech ends
     utterance.onend = () => {
-      isSpeaking.current = false;
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
+      clock.current.stop();
       console.log('Speech ended - closing mouth');
-      // Reset to neutral
-      const mouthOpenShape = suggestedMouthShape || 'aa';
-      setVrmMouthShape(mouthOpenShape, 0.0);
     };
 
     synthesisRef.current.speak(utterance);
@@ -481,108 +468,15 @@ function App() {
           }
         });
         
-        // DEBUG: Print all available expression names
-        console.log('=== VRM Expression Debug ===');
-        console.log('VRM object:', vrm);
-        console.log('VRM type:', typeof vrm);
-        console.log('VRM keys:', Object.keys(vrm));
-        
         // Use VRM analyzer
         const analysis = analyzeVRM(vrm);
         setVrmAnalysis(analysis);
         
         // Find and suggest mouth shapes
-        const mouthShapes = findMouthShapes(analysis);
         const suggested = suggestMouthShape(analysis);
         setSuggestedMouthShape(suggested);
         
-        console.log('=== VRM Analysis Results ===');
-        console.log('Analysis:', analysis);
-        console.log('Mouth shapes found:', mouthShapes);
-        console.log('Suggested mouth shape:', suggested);
-        console.log('=== End VRM Analysis ===');
         
-        if ((vrm as any).expressionManager) {
-          console.log('ExpressionManager found:', (vrm as any).expressionManager);
-          console.log('ExpressionManager type:', typeof (vrm as any).expressionManager);
-          console.log('ExpressionManager keys:', Object.keys((vrm as any).expressionManager));
-          
-          const expressionNames = (vrm as any).expressionManager.getExpressionNames?.();
-          console.log('Available expressions:', expressionNames);
-          
-          // Try to get expressions directly
-          if ((vrm as any).expressionManager.expressions) {
-            console.log('Direct expressions:', (vrm as any).expressionManager.expressions);
-          }
-          
-          // Also check blendShapeProxy for older VRM versions
-          if ((vrm as any).blendShapeProxy) {
-            console.log('BlendShapeProxy available:', (vrm as any).blendShapeProxy);
-            console.log('BlendShapeProxy type:', typeof (vrm as any).blendShapeProxy);
-            console.log('BlendShapeProxy keys:', Object.keys((vrm as any).blendShapeProxy));
-          }
-        } else {
-          console.log('No expressionManager found');
-          
-          // Check for alternative expression systems
-          if ((vrm as any).blendShapeProxy) {
-            console.log('BlendShapeProxy available:', (vrm as any).blendShapeProxy);
-            console.log('BlendShapeProxy type:', typeof (vrm as any).blendShapeProxy);
-            console.log('BlendShapeProxy keys:', Object.keys((vrm as any).blendShapeProxy));
-          }
-          
-          // Check for any expression-related properties
-          const vrmKeys = Object.keys(vrm);
-          const expressionKeys = vrmKeys.filter(key => 
-            key.toLowerCase().includes('expression') || 
-            key.toLowerCase().includes('blend') || 
-            key.toLowerCase().includes('shape')
-          );
-          console.log('Expression-related keys:', expressionKeys);
-        }
-        
-        // Check VRM version and structure
-        if ((vrm as any).meta) {
-          console.log('VRM Meta:', (vrm as any).meta);
-        }
-        
-        if ((vrm as any).humanoid) {
-          console.log('VRM Humanoid available');
-        }
-        
-        console.log('=== End VRM Expression Debug ===');
-        
-        // Immediately apply T-pose after VRM is loaded
-        if (vrm.humanoid) {
-          const setBoneRotation = (boneName: VRMHumanBoneName, x: number, y: number, z: number) => {
-            const boneNode = vrm.humanoid.getNormalizedBoneNode(boneName);
-            if (boneNode) {
-              boneNode.rotation.set(
-                THREE.MathUtils.degToRad(x),
-                THREE.MathUtils.degToRad(y),
-                THREE.MathUtils.degToRad(z)
-              );
-            }
-          };
-
-          // Apply complete T-pose immediately
-          setBoneRotation(VRMHumanBoneName.LeftUpperArm, 0, 0, 90);   // T-pose: arms straight out
-          setBoneRotation(VRMHumanBoneName.RightUpperArm, 0, 0, -90);  // T-pose: arms straight out
-          setBoneRotation(VRMHumanBoneName.LeftLowerArm, 0, 0, 0);    // Straight arms
-          setBoneRotation(VRMHumanBoneName.RightLowerArm, 0, 0, 0);   // Straight arms
-          setBoneRotation(VRMHumanBoneName.LeftHand, 0, 0, 0);        // Natural hand position
-          setBoneRotation(VRMHumanBoneName.RightHand, 0, 0, 0);       // Natural hand position
-          setBoneRotation(VRMHumanBoneName.LeftShoulder, 0, 0, 0);    // Relaxed shoulders
-          setBoneRotation(VRMHumanBoneName.RightShoulder, 0, 0, 0);   // Relaxed shoulders
-          
-          // Reset spring bones to the new pose
-          if (vrm.springBoneManager) {
-            vrm.springBoneManager.reset();
-            console.log('Spring bones reset to T-pose after VRM load');
-          }
-          
-          console.log('Complete T-pose applied immediately after VRM load');
-        }
         
         setIsLoading(false);
 
@@ -596,8 +490,17 @@ function App() {
     
     // --- Animation loop and window resize (core modification here) ---
 
+    const clock = new THREE.Clock();
+
     const animate = () => {
       requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+
+      if (vrmRef.current) {
+        vrmRef.current.update(delta);
+      }
+
       renderer.render(scene, camera);
     };
 
@@ -918,7 +821,7 @@ function App() {
             onChange={(e) => handleVRMChange(e.target.value)}
             className="model-select"
           >
-            <option value="cute-girl.vrm">Cute Girl</option>
+            
             <option value="twitch-girl.vrm">Twitch Girl</option>
             <option value="Nahida.vrm">Nahida</option>
             <option value="star-rail.vrm">Star Rail</option>
@@ -1009,7 +912,7 @@ function App() {
                     <p><strong>Suggested Mouth Shape:</strong> {suggestedMouthShape}</p>
                   )}
                   <p><strong>Mouth Shapes Found:</strong> {findMouthShapes(vrmAnalysis).join(', ') || 'None'}</p>
-                  <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape ? suggestedMouthShape.replace(/^(Expression|BlendShape):\s*/, '') : 'aa'}</p>
+                  <p><strong>Current Mouth Shape:</strong> {suggestedMouthShape || 'aa'}</p>
                 </div>
               </div>
             )}
