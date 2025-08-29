@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Loader from './components/Loader';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin, VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
+import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm';
 import './App.css';
 import config from './config';
 import CorsTest from './components/CorsTest';
